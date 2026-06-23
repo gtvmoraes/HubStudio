@@ -1,0 +1,153 @@
+.cb-root {
+  min-height: 100vh;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.cb-card {
+  width: 100%;
+  max-width: 480px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 16px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.cb-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.cb-icon.success {
+  background: #052e16;
+  color: #4ade80;
+  border: 2px solid #16a34a;
+}
+
+.cb-icon.error {
+  background: #1a0a0a;
+  color: #f87171;
+  border: 2px solid #dc2626;
+}
+
+.cb-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cb-title--error { color: #f87171; }
+
+.cb-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #888;
+  line-height: 1.6;
+}
+
+.cb-subtitle strong { color: #ccc; }
+
+.cb-pill {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 14px;
+  color: #aaa;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Params */
+.cb-params {
+  width: 100%;
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  border-radius: 10px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.cb-params-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.cb-params-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.cb-copy {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #666;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.cb-copy:hover { color: #fff; }
+
+.cb-params-body {
+  margin: 0;
+  padding: 14px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #4ade80;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Actions */
+.cb-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cb-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: #ff2b55;
+  color: #fff;
+  transition: opacity 0.2s;
+}
+
+.cb-btn:hover { opacity: 0.85; }
+
+.cb-btn.ghost {
+  background: transparent;
+  color: #666;
+  border: 1px solid #2a2a2a;
+}
+
+.cb-btn.ghost:hover { color: #aaa; }

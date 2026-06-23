@@ -7,6 +7,8 @@ import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout/DashboardLayout'
 
 import Landing from './pages/Landing/Landing'
+import DevTikTok from './pages/DevTikTok/DevTikTok'
+import IntegrationsCallback from './pages/IntegrationsCallback/IntegrationsCallback'
 import Login from './pages/Login/Login'
 import Cadastro from './pages/Cadastro/Cadastro'
 import EsqueciSenha from './pages/EsqueciSenha/EsqueciSenha'
@@ -48,6 +50,10 @@ export default function App() {
                   <Route path="configuracoes" element={<Configuracoes />} />
                   <Route path="suporte" element={<Suporte />} />
                 </Route>
+
+                {/* Rotas de desenvolvimento — sem autenticação, acesso direto pela URL */}
+                <Route path="/dev/tiktok" element={<DevTikTok />} />
+                <Route path="/integrations/callback" element={<IntegrationsCallback />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
