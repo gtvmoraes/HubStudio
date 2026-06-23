@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './DevTikTok.css'
 
 const DEFAULT_API = 'https://hubstudio.onrender.com'
+const POLL_INTERVAL_MS = 4000
 
 export default function DevTikTokPost() {
   const [apiBase, setApiBase] = useState(DEFAULT_API)
@@ -14,9 +15,51 @@ export default function DevTikTokPost() {
   const [error, setError] = useState('')
   const [log, setLog] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
+  const pollingRef = useRef(null)
 
   const addLog = (msg, type = 'info') =>
     setLog(prev => [...prev, { msg, type, time: new Date().toLocaleTimeString() }])
+
+  const stopPolling = () => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+  }
+
+  const checkStatus = async (postPlatformId, jwtToken, base) => {
+    try {
+      const res = await fetch(
+        `${base}/posts/${postPlatformId}/publish/tiktok/status?postPlatformId=${postPlatformId}`,
+        { headers: { Authorization: `Bearer ${jwtToken}` } }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message ?? JSON.stringify(data))
+
+      addLog(`Polling status: ${data.status}`, data.status === 'POSTED' ? 'success' : 'info')
+      setStatusResult(data)
+
+      if (data.status === 'POSTED') {
+        stopPolling()
+        setStep('done')
+      } else if (data.status === 'ERROR') {
+        stopPolling()
+        setError(data.errorMessage ?? 'Erro ao publicar no TikTok')
+        setStep('error')
+      }
+    } catch (err) {
+      addLog(`Erro no polling: ${err.message}`, 'error')
+    }
+  }
+
+  useEffect(() => {
+    if (step === 'posting' && result?.id) {
+      addLog('Iniciando polling automático a cada 4s…', 'info')
+      checkStatus(result.id, jwt, apiBase)
+      pollingRef.current = setInterval(() => checkStatus(result.id, jwt, apiBase), POLL_INTERVAL_MS)
+    }
+    return () => stopPolling()
+  }, [step, result?.id])
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0]
@@ -99,32 +142,8 @@ export default function DevTikTokPost() {
     }
   }
 
-  const handleCheckStatus = async () => {
-    if (!result?.id) return
-    setStep('checking')
-    addLog(`GET → ${apiBase}/posts/${result.id}/publish/tiktok/status?postPlatformId=${result.id}`)
-
-    try {
-      const res = await fetch(
-        `${apiBase}/posts/${result.id}/publish/tiktok/status?postPlatformId=${result.id}`,
-        { headers: { Authorization: `Bearer ${jwt.trim()}` } }
-      )
-      addLog(`Status: ${res.status}`)
-      const data = await res.json()
-
-      if (!res.ok) throw new Error(data.message ?? JSON.stringify(data))
-
-      addLog(`Status TikTok: ${data.status}`, data.status === 'POSTED' ? 'success' : 'info')
-      setStatusResult(data)
-      setStep(data.status === 'POSTED' ? 'done' : 'posting')
-    } catch (err) {
-      addLog(`Erro: ${err.message}`, 'error')
-      setError(err.message)
-      setStep('error')
-    }
-  }
-
   const handleReset = () => {
+    stopPolling()
     setStep('idle')
     setVideoFile(null)
     setTitle('')
@@ -219,9 +238,9 @@ export default function DevTikTokPost() {
           {step === 'loading' && (
             <button className="devtk-btn primary" disabled>Upload em andamento…</button>
           )}
-          {(step === 'posting' || step === 'checking') && (
-            <button className="devtk-btn primary" onClick={handleCheckStatus} disabled={step === 'checking'}>
-              {step === 'checking' ? 'Verificando…' : 'Verificar status'}
+          {step === 'posting' && (
+            <button className="devtk-btn primary" disabled>
+              ⏳ Aguardando TikTok processar… (polling automático)
             </button>
           )}
           {step === 'done' && (
