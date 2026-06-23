@@ -98,8 +98,14 @@ export default function DevTikTokPost() {
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded / e.total) * 100)
           setUploadProgress(percent)
-          addLog(`Upload: ${percent}%`, 'info')
+          if (percent < 100) addLog(`Upload: ${percent}%`, 'info')
         }
+      })
+
+      xhr.upload.addEventListener('load', () => {
+        setUploadProgress(100)
+        setStep('processing')
+        addLog('Arquivo enviado — servidor processando (S3 + TikTok)…', 'info')
       })
 
       xhr.addEventListener('load', () => {
@@ -210,10 +216,10 @@ export default function DevTikTokPost() {
 
         {/* Steps */}
         <div className="devtk-steps">
-          <Step num={1} active={step === 'idle' || step === 'loading' || step === 'error'} done={['posting','checking','done'].includes(step)}>
-            Upload → S3 → TikTok → Delete S3
+          <Step num={1} active={['idle','loading','processing','error'].includes(step)} done={['posting','done'].includes(step)}>
+            Upload → S3 → TikTok
           </Step>
-          <Step num={2} active={['posting','checking'].includes(step)} done={step === 'done'}>
+          <Step num={2} active={step === 'posting'} done={step === 'done'}>
             Aguardar publicação no TikTok
           </Step>
         </div>
@@ -236,7 +242,10 @@ export default function DevTikTokPost() {
             </button>
           )}
           {step === 'loading' && (
-            <button className="devtk-btn primary" disabled>Upload em andamento…</button>
+            <button className="devtk-btn primary" disabled>Enviando arquivo… {uploadProgress}%</button>
+          )}
+          {step === 'processing' && (
+            <button className="devtk-btn primary" disabled>Processando no servidor…</button>
           )}
           {step === 'posting' && (
             <button className="devtk-btn primary" disabled>
