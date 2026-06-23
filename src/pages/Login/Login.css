@@ -1,0 +1,74 @@
+/* ─────────────────────────────────────────────────────────
+   Login — logo decorativa flutuante no lado esquerdo
+   ───────────────────────────────────────────────────────── */
+
+.auth__left-logo,
+.auth__left-headline {
+  z-index: 2;
+}
+
+/* Wrapper: posição + animação de ENTRADA.
+   O blur sutil final (3px) fica aqui para que o keyframe
+   de entrada possa animá-lo de 24px → 3px sem conflitar
+   com o filter da img interna. */
+.login-deco-wrap {
+  position: absolute;
+  top: -60px;
+  right: -85px;
+  left: auto;
+  bottom: auto;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: center center;
+  filter: blur(3px);
+  animation: decoEnterLogin 2s ease-out both;
+  transition:
+    top    1s cubic-bezier(0.65, 0, 0.35, 1),
+    bottom 1s cubic-bezier(0.65, 0, 0.35, 1),
+    left   1s cubic-bezier(0.65, 0, 0.35, 1),
+    right  1s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Logo: apenas a FLUTUAÇÃO perpétua. Sem filter aqui —
+   o blur está no wrapper para evitar soma de valores. */
+.login-deco-logo {
+  display: block;
+  width: 380px;
+  height: auto;
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+  animation: decoFloat 6s ease-in-out infinite;
+}
+
+@keyframes decoFloat {
+  0%   { translate: 0 0px;   rotate: 0deg; }
+  50%  { translate: 0 -24px; rotate: 4deg; }
+  100% { translate: 0 0px;   rotate: 0deg; }
+}
+
+@keyframes decoEnterLogin {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+    filter: blur(20px);
+  }
+  25% {
+    opacity: 0.12;
+    filter: blur(15px);
+  }
+  50% {
+    opacity: 0.22;
+    filter: blur(10px);
+  }
+  75% {
+    opacity: 0.30;
+    filter: blur(6px);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.35;
+    filter: blur(3px);
+  }
+}

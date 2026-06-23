@@ -1,0 +1,193 @@
+/* ══════════════════════════════════════════════════════════
+   NAVBAR
+   ══════════════════════════════════════════════════════════ */
+
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: var(--z-navbar);
+  background: rgba(255, 255, 255, 0.0);
+  border-bottom: 1px solid transparent;
+  transition:
+    background  320ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow  320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar--scrolled {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: rgba(229, 231, 235, 0.7);
+  box-shadow: 0 1px 24px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Drawer aberto: navbar fica branca pra combinar com o drawer */
+.navbar--open {
+  background: #fff;
+  border-bottom-color: var(--color-border);
+}
+
+/* Layout: logo (flex:1) | nav (auto) | ações (flex:1) */
+.navbar__inner {
+  display: flex;
+  align-items: center;
+  height: 72px;
+  padding-inline: 56px;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+/* ── Logo ───────────────────────────────────────────────── */
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: fit-content;
+  transition: opacity 200ms;
+}
+.navbar__logo:hover { opacity: 0.75; }
+
+.navbar__logo-img {
+  height: 42px;
+  width: auto;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+/* ── Nav links ──────────────────────────────────────────── */
+.navbar__nav {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.navbar__link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  transition: color 180ms, background 180ms;
+  white-space: nowrap;
+}
+.navbar__link:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* Borda 1px só no botão Entrar da navbar */
+.navbar__actions .btn--outline {
+  border-width: 1px;
+}
+
+/* ── Ações desktop (coluna direita) ─────────────────────── */
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── CTA mobile (dentro do drawer) ─────────────────────── */
+.navbar__mobile-cta {
+  display: none;
+}
+
+/* ── Burger (coluna direita, mobile) ────────────────────── */
+.navbar__burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 180ms, color 180ms;
+}
+.navbar__burger:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* ── Overlay mobile ─────────────────────────────────────── */
+.navbar__overlay {
+  display: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVO
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* No mobile o .navbar__nav é position:fixed e .navbar__actions é display:none
+     → sobram apenas logo + burger no flow do flex. space-between empurra
+     o burger pra borda direita. */
+  .navbar__inner {
+    padding-inline: 24px;
+    justify-content: space-between;
+  }
+  .navbar__actions { display: none; }
+  .navbar__burger   { display: flex; }
+
+  .navbar__nav {
+    position: fixed;
+    top: 72px; left: 0; right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: #fff;
+    padding: 20px 24px 28px;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   280ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+  }
+
+  .navbar__nav--open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .navbar__link {
+    padding: 12px 16px;
+    font-size: 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .navbar__mobile-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .navbar__overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: 72px;
+    background: transparent;
+    z-index: 9;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar__inner { height: 64px; padding-inline: 16px; }
+  .navbar__nav { top: 64px; }
+  .navbar__overlay { top: 64px; }
+  .navbar__logo-img { height: 36px; }
+}

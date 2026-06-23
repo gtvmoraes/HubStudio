@@ -1,0 +1,165 @@
+/* ══════════════════════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════════════════════ */
+
+.footer {
+  position: relative;
+  background: linear-gradient(180deg, #070315 0%, #09041A 40%, #0A0519 100%);
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+}
+
+/* ── Top glow decoration ────────────────────────────────── */
+.footer__top-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 300px;
+  background: radial-gradient(ellipse 60% 100% at 50% 0%, rgba(79, 53, 232, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Gradient separator ─────────────────────────────────── */
+.footer__gradient-line {
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #4F35E8 20%, #7C5FE8 50%, #E84FA5 80%, transparent 100%);
+}
+
+/* ── Espaçador entre linha e conteúdo ───────────────────── */
+.footer__spacer {
+  height: 0;
+}
+
+/* ── Body grid ──────────────────────────────────────────── */
+.footer__body {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 1fr 1fr;
+  gap: 64px 48px;
+  position: relative;
+}
+
+/* Seletor mais específico para vencer .container { padding: 0 } */
+.footer .footer__body {
+  padding-top: 40px;
+  padding-bottom: 56px;
+}
+
+/* ── Brand column ───────────────────────────────────────── */
+.footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.footer__logo {
+  display: block;
+  width: fit-content;
+  transition: opacity 200ms;
+}
+.footer__logo:hover { opacity: 0.75; }
+
+.footer__logo-img {
+  height: 52px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.footer__tagline {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.8;
+  max-width: 300px;
+}
+
+
+/* ── Link columns ───────────────────────────────────────── */
+.footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.footer__col-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.footer__col ul {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.footer__col a {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 180ms, padding-left 180ms;
+  display: block;
+}
+.footer__col a:hover {
+  color: rgba(255, 255, 255, 0.9);
+  padding-left: 4px;
+}
+
+/* ── Bottom bar ─────────────────────────────────────────── */
+.footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.footer__bottom-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 28px;
+  padding-bottom: 32px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.footer__bottom p {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.footer__bottom-links {
+  display: flex;
+  gap: 28px;
+}
+
+.footer__bottom-links a {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.18);
+  transition: color 180ms;
+}
+.footer__bottom-links a:hover { color: rgba(255, 255, 255, 0.6); }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .footer__body {
+    grid-template-columns: 1fr 1fr;
+    gap: 56px 40px;
+  }
+  .footer__brand { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .footer__body {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding-top: 72px;
+    padding-bottom: 56px;
+  }
+.footer__bottom-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}

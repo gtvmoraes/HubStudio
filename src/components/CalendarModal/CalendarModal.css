@@ -1,0 +1,159 @@
+.cal-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cal-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cal-modal__nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cal-modal__nav h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 180px;
+  text-align: center;
+}
+.cal-modal__nav button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.cal-modal__nav button:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+.cal-modal__today {
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: all var(--transition-fast);
+}
+.cal-modal__today:hover {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.cal-modal__legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cal-modal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+}
+.cal-modal__legend-item strong { color: var(--color-text); font-weight: 700; }
+.cal-modal__legend-item::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
+}
+.cal-modal__legend-item--scheduled::before { background: var(--color-primary); }
+.cal-modal__legend-item--published::before { background: var(--color-success); }
+.cal-modal__legend-item--draft::before     { background: var(--color-warning); }
+
+.cal-modal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cal-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-modal__cell {
+  min-height: 80px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-card-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+.cal-modal__cell:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.cal-modal__cell--empty {
+  background: var(--color-bg);
+  border-color: transparent;
+  pointer-events: none;
+}
+.cal-modal__day-num {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.cal-modal__cell--today { border-color: var(--color-primary); border-width: 2px; }
+.cal-modal__cell--today .cal-modal__day-num {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.cal-modal__chip {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.cal-modal__chip--scheduled {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+}
+.cal-modal__chip--published {
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success);
+}
+.cal-modal__chip--draft {
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  color: var(--color-warning);
+}
+
+@media (max-width: 768px) {
+  .cal-modal__cell { min-height: 60px; padding: 4px; }
+  .cal-modal__chip { font-size: 0.55rem; padding: 2px 5px; }
+}

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(git *)",
+      "Bash(python3 \"C:/Users/gabinete16/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"social media SaaS scheduling analytics creator tool\" --design-system -p \"HubStudio\")",
+      "Bash(npm run *)",
+      "Bash(xargs rm -f)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$s = git status --porcelain; if ($s) { git add -A; $msg = 'chore: auto sync [Claude]'; git commit -m $msg; git push origin main }",
+            "shell": "powershell",
+            "timeout": 60,
+            "statusMessage": "Sincronizando com GitHub..."
+          }
+        ]
+      }
+    ]
+  }
+}

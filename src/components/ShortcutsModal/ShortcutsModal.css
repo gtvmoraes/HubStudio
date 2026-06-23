@@ -1,0 +1,39 @@
+.shortcuts { display: flex; flex-direction: column; gap: 20px; }
+.shortcuts__group h4 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+.shortcuts__list { display: flex; flex-direction: column; gap: 8px; }
+.shortcuts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-tertiary);
+  font-size: var(--font-size-sm);
+}
+.shortcuts__desc { color: var(--color-text); }
+.shortcuts__keys {
+  display: inline-flex;
+  gap: 4px;
+}
+.shortcuts__keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--font-family);
+}

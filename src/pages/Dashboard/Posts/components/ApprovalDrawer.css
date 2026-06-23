@@ -1,0 +1,296 @@
+.approval-root {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.approval__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 4, 26, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.approval {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: 100vh;
+  background: var(--color-card-bg);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Header */
+.approval__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.approval__back,
+.approval__close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+.approval__back:hover,
+.approval__close:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+.approval__title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.approval__title h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* Body scrollável */
+.approval__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.approval__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* Meta info */
+.approval__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.approval__author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.approval__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.approval__author strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+.approval__author span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+.approval__info {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+.approval__info span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.approval__networks {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Preview section */
+.approval__preview-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.approval__preview-section > .phone-preview {
+  background: var(--color-bg-tertiary);
+  padding: 16px;
+  border-radius: var(--radius-md);
+}
+
+/* Comentários */
+.approval__comments {
+  display: flex;
+  flex-direction: column;
+}
+.approval__comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.approval__no-comments {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  padding: 14px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+.approval__comment {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+}
+.approval__comment-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+.approval__comment-body { flex: 1; min-width: 0; }
+.approval__comment-body strong {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  margin-right: 8px;
+}
+.approval__comment-time {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+.approval__comment-body p {
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.approval__comment-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.approval__comment-input textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  color: var(--color-text);
+  resize: vertical;
+}
+.approval__comment-input textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+.approval__comment-send {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: all var(--transition-fast);
+}
+.approval__comment-send:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+.approval__comment-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Footer */
+.approval__footer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+  flex-shrink: 0;
+}
+.approval__btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-family);
+  transition: all var(--transition-fast);
+}
+.approval__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.approval__btn--danger {
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+}
+.approval__btn--danger:not(:disabled):hover {
+  background: var(--color-error);
+  color: #fff;
+}
+.approval__btn--success {
+  background: var(--color-success);
+  color: #fff;
+}
+.approval__btn--success:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-success) 85%, #000);
+}
+
+@media (max-width: 768px) {
+  .approval { max-width: 100%; }
+}
