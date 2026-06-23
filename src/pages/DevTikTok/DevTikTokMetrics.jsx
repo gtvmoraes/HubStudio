@@ -19,9 +19,9 @@ export default function DevTikTokMetrics() {
   const loadPosts = async () => {
     if (!jwt.trim()) { setError('Cole um JWT válido.'); return }
     setError(''); setLoading(true)
-    addLog('GET → /posts/tiktok/platforms')
+    addLog('GET → /metrics/tiktok/posts')
     try {
-      const res = await fetch(`${apiBase}/posts/tiktok/platforms`, {
+      const res = await fetch(`${apiBase}/metrics/tiktok/posts`, {
         headers: { Authorization: `Bearer ${jwt.trim()}` }
       })
       addLog(`HTTP ${res.status}`, res.ok ? 'info' : 'error')
