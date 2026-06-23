@@ -122,14 +122,14 @@ export default function DevTikTokPost() {
             const data = JSON.parse(xhr.responseText)
             setResult(data)
             if (data.status === 'POSTED') {
-              addLog(`Publicado no TikTok ✓ — publishId: ${data.externalPostId ?? '(aguardando)'}`, 'success')
+              addLog(`Publicado no TikTok ✓ — publishId: ${data.publishId ?? '(aguardando)'}`, 'success')
               setStep('done')
             } else if (data.status === 'ERROR') {
               addLog(`Erro TikTok: ${data.errorMessage}`, 'error')
               setError(data.errorMessage)
               setStep('error')
             } else {
-              addLog(`Status: ${data.status} — publishId: ${data.externalPostId ?? '(aguardando)'}`, 'info')
+              addLog(`Status: ${data.status} — publishId: ${data.publishId ?? '(aguardando)'}`, 'info')
               setStep('posting')
             }
           } catch (e) {
@@ -178,7 +178,7 @@ export default function DevTikTokPost() {
     setUploadProgress(0)
   }
 
-  const currentStatus = statusResult?.status ?? result?.status
+  const currentStatus = result?.status
 
   return (
     <div className="devtk-root">
@@ -279,15 +279,14 @@ export default function DevTikTokPost() {
         </div>
 
         {/* Result */}
-        {(result || statusResult) && (
+        {result && (
           <section className="devtk-section">
             <label className="devtk-label">Resultado</label>
             <div className="devtk-result-grid">
-              <ResultRow label="postPlatformId" value={result?.id} />
-              <ResultRow label="publishId (TikTok)" value={result?.externalPostId ?? '—'} />
+              <ResultRow label="postPlatformId" value={result.postPlatformId} />
+              <ResultRow label="publishId (TikTok)" value={result.publishId ?? '—'} />
               <ResultRow label="Status" value={<StatusChip status={currentStatus} />} />
-              {result?.errorMessage && <ResultRow label="Erro TikTok" value={result.errorMessage} error />}
-              {statusResult?.errorMessage && <ResultRow label="Erro status" value={statusResult.errorMessage} error />}
+              {result.errorMessage && <ResultRow label="Erro" value={result.errorMessage} error />}
             </div>
           </section>
         )}
