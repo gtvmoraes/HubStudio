@@ -120,14 +120,15 @@ export default function DevTikTokPost() {
             setStep('error')
           }
         } else {
+          const raw = xhr.responseText?.slice(0, 300) ?? '(sem resposta)'
+          let msg = `Erro HTTP ${xhr.status}`
           try {
             const data = JSON.parse(xhr.responseText)
-            addLog(`Erro ${xhr.status}: ${data.message}`, 'error')
-            setError(data.message)
-          } catch (e) {
-            addLog(`Erro ${xhr.status}`, 'error')
-            setError(`Erro HTTP ${xhr.status}`)
-          }
+            msg = data.message ?? data.error ?? JSON.stringify(data)
+          } catch (_) {}
+          addLog(`Erro ${xhr.status}: ${msg}`, 'error')
+          addLog(`Resposta bruta: ${raw}`, 'error')
+          setError(msg)
           setStep('error')
         }
       })
