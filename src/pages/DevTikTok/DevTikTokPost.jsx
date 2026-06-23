@@ -120,9 +120,18 @@ export default function DevTikTokPost() {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const data = JSON.parse(xhr.responseText)
-            addLog(`Publicação iniciada ✓ — publishId: ${data.externalPostId ?? '(aguardando)'}`, 'success')
             setResult(data)
-            setStep('posting')
+            if (data.status === 'POSTED') {
+              addLog(`Publicado no TikTok ✓ — publishId: ${data.externalPostId ?? '(aguardando)'}`, 'success')
+              setStep('done')
+            } else if (data.status === 'ERROR') {
+              addLog(`Erro TikTok: ${data.errorMessage}`, 'error')
+              setError(data.errorMessage)
+              setStep('error')
+            } else {
+              addLog(`Status: ${data.status} — publishId: ${data.externalPostId ?? '(aguardando)'}`, 'info')
+              setStep('posting')
+            }
           } catch (e) {
             setError('Erro ao processar resposta do servidor')
             setStep('error')
