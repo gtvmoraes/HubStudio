@@ -178,6 +178,9 @@
 .devtk-btn.tiktok {
   background: linear-gradient(135deg, #010101 0%, #ff004f 50%, #00f2ea 100%);
   color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .devtk-btn.ghost {

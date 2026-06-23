@@ -45,7 +45,7 @@ export default function DevTikTok() {
       addLog(`authUrl recebida ✓`, 'success')
       addLog(`state: ${data.state}`, 'success')
 
-      setAuthUrl(data.authUrl)
+      setAuthUrl(data.authorizationUrl)
       setState(data.state)
       setStep('url_ready')
     } catch (err) {
@@ -126,9 +126,15 @@ export default function DevTikTok() {
             </button>
           )}
           {step === 'url_ready' && (
-            <button className="devtk-btn tiktok" onClick={handleOpenTikTok}>
+            <a
+              className="devtk-btn tiktok"
+              href={authUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => { addLog('Abrindo TikTok para autorização...'); setStep('waiting') }}
+            >
               2. Abrir TikTok para autorizar
-            </button>
+            </a>
           )}
           {step === 'waiting' && (
             <p className="devtk-waiting">
