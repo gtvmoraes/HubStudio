@@ -423,3 +423,26 @@
 
 .metrics-history-row { color: #ccc; }
 .metrics-history-row:hover { background: #111; }
+
+.posts-list { display: flex; flex-direction: column; gap: 8px; }
+
+.post-item {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.post-item:hover { border-color: #444; }
+.post-item.selected { border-color: #fe2c55; background: #120008; }
+
+.post-item-header { display: flex; align-items: center; justify-content: space-between; }
+.post-item-date { font-size: 11px; color: #555; }
+.post-item-content { font-size: 13px; color: #ccc; }
+.post-item-id { display: flex; align-items: center; gap: 8px; }
+.id-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; min-width: 90px; }
+.post-item-id code { font-size: 11px; color: #888; font-family: monospace; word-break: break-all; }

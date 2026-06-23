@@ -6,7 +6,8 @@ const DEFAULT_API = 'https://hubstudio.onrender.com'
 export default function DevTikTokMetrics() {
   const [apiBase, setApiBase] = useState(DEFAULT_API)
   const [jwt, setJwt] = useState('')
-  const [postPlatformId, setPostPlatformId] = useState('')
+  const [posts, setPosts] = useState([])
+  const [selected, setSelected] = useState(null)
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -15,13 +16,39 @@ export default function DevTikTokMetrics() {
   const addLog = (msg, type = 'info') =>
     setLog(prev => [...prev, { msg, type, time: new Date().toLocaleTimeString() }])
 
-  const collect = async () => {
+  const loadPosts = async () => {
     if (!jwt.trim()) { setError('Cole um JWT válido.'); return }
-    if (!postPlatformId.trim()) { setError('Informe o postPlatformId.'); return }
     setError(''); setLoading(true)
-    addLog(`POST → /posts/${postPlatformId}/metrics/tiktok/collect`)
+    addLog('GET → /posts/tiktok/platforms')
     try {
-      const res = await fetch(`${apiBase}/posts/${postPlatformId}/metrics/tiktok/collect`, {
+      const res = await fetch(`${apiBase}/posts/tiktok/platforms`, {
+        headers: { Authorization: `Bearer ${jwt.trim()}` }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message ?? JSON.stringify(data))
+      addLog(`${data.length} post(s) encontrado(s)`, 'success')
+      setPosts(data)
+      setSelected(null)
+      setHistory([])
+    } catch (err) {
+      addLog(`Erro: ${err.message}`, 'error')
+      setError(err.message)
+    } finally { setLoading(false) }
+  }
+
+  const selectPost = (post) => {
+    setSelected(post)
+    setHistory([])
+    setError('')
+    addLog(`Selecionado: ${post.postPlatformId}`)
+  }
+
+  const collect = async () => {
+    if (!selected) return
+    setError(''); setLoading(true)
+    addLog(`POST → /posts/${selected.postPlatformId}/metrics/tiktok/collect`)
+    try {
+      const res = await fetch(`${apiBase}/posts/${selected.postPlatformId}/metrics/tiktok/collect`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${jwt.trim()}` }
       })
@@ -32,18 +59,15 @@ export default function DevTikTokMetrics() {
     } catch (err) {
       addLog(`Erro: ${err.message}`, 'error')
       setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const loadHistory = async () => {
-    if (!jwt.trim()) { setError('Cole um JWT válido.'); return }
-    if (!postPlatformId.trim()) { setError('Informe o postPlatformId.'); return }
+    if (!selected) return
     setError(''); setLoading(true)
-    addLog(`GET → /posts/${postPlatformId}/metrics/tiktok`)
+    addLog(`GET → /posts/${selected.postPlatformId}/metrics/tiktok`)
     try {
-      const res = await fetch(`${apiBase}/posts/${postPlatformId}/metrics/tiktok`, {
+      const res = await fetch(`${apiBase}/posts/${selected.postPlatformId}/metrics/tiktok`, {
         headers: { Authorization: `Bearer ${jwt.trim()}` }
       })
       const data = await res.json()
@@ -53,9 +77,7 @@ export default function DevTikTokMetrics() {
     } catch (err) {
       addLog(`Erro: ${err.message}`, 'error')
       setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const latest = history[0]
@@ -66,7 +88,7 @@ export default function DevTikTokMetrics() {
         <div className="devtk-header">
           <span className="devtk-badge">DEV</span>
           <h1>Métricas TikTok</h1>
-          <p>Coleta e exibe o histórico de métricas de um vídeo publicado no TikTok.</p>
+          <p>Selecione um post publicado para coletar e visualizar o histórico de métricas.</p>
         </div>
 
         <section className="devtk-section">
@@ -80,20 +102,65 @@ export default function DevTikTokMetrics() {
             placeholder="Cole o token do POST /auth/login" rows={3} />
         </section>
 
-        <section className="devtk-section">
-          <label className="devtk-label">postPlatformId</label>
-          <input className="devtk-input" value={postPlatformId} onChange={e => setPostPlatformId(e.target.value)}
-            placeholder="UUID retornado após publicar o vídeo" />
-        </section>
-
         <div className="devtk-actions">
-          <button className="devtk-btn tiktok" onClick={collect} disabled={loading}>
-            {loading ? 'Coletando…' : '↓ Coletar métricas agora'}
-          </button>
-          <button className="devtk-btn primary" onClick={loadHistory} disabled={loading}>
-            {loading ? 'Carregando…' : 'Ver histórico salvo'}
+          <button className="devtk-btn primary" onClick={loadPosts} disabled={loading}>
+            {loading && !selected ? 'Carregando…' : '↓ Listar posts TikTok'}
           </button>
         </div>
+
+        {posts.length > 0 && (
+          <section className="devtk-section">
+            <label className="devtk-label">Posts publicados ({posts.length})</label>
+            <div className="posts-list">
+              {posts.map(p => (
+                <div
+                  key={p.postPlatformId}
+                  className={`post-item ${selected?.postPlatformId === p.postPlatformId ? 'selected' : ''}`}
+                  onClick={() => selectPost(p)}
+                >
+                  <div className="post-item-header">
+                    <StatusChip status={p.status} />
+                    <span className="post-item-date">{fmt(p.postedAt)}</span>
+                  </div>
+                  <div className="post-item-content">{p.content || '(sem legenda)'}</div>
+                  <div className="post-item-id">
+                    <span className="id-label">postPlatformId</span>
+                    <code>{p.postPlatformId}</code>
+                  </div>
+                  {p.publishId && (
+                    <div className="post-item-id">
+                      <span className="id-label">publishId</span>
+                      <code>{p.publishId}</code>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {selected && (
+          <>
+            <section className="devtk-section">
+              <label className="devtk-label">Post selecionado</label>
+              <div className="devtk-result-grid">
+                <ResultRow label="postPlatformId" value={selected.postPlatformId} />
+                <ResultRow label="publishId" value={selected.publishId ?? '—'} />
+                <ResultRow label="videoId" value={selected.tiktokVideoId ?? '(ainda não resolvido)'} />
+                <ResultRow label="Status" value={<StatusChip status={selected.status} />} />
+              </div>
+            </section>
+
+            <div className="devtk-actions">
+              <button className="devtk-btn tiktok" onClick={collect} disabled={loading}>
+                {loading ? 'Coletando…' : '↓ Coletar métricas agora'}
+              </button>
+              <button className="devtk-btn primary" onClick={loadHistory} disabled={loading}>
+                Ver histórico salvo
+              </button>
+            </div>
+          </>
+        )}
 
         {error && <div className="devtk-error"><strong>Erro:</strong> {error}</div>}
 
@@ -158,6 +225,30 @@ function MetricCard({ label, value, icon }) {
       <span className="metric-value">{value ?? 0}</span>
       <span className="metric-label">{label}</span>
     </div>
+  )
+}
+
+function ResultRow({ label, value }) {
+  return (
+    <div className="devtk-result-row">
+      <span className="devtk-result-label">{label}</span>
+      <span className="devtk-result-value">{value}</span>
+    </div>
+  )
+}
+
+function StatusChip({ status }) {
+  const map = {
+    DRAFT: { color: '#888', bg: '#1a1a1a' },
+    POSTING: { color: '#f97316', bg: '#1c0f00' },
+    POSTED: { color: '#4ade80', bg: '#052e16' },
+    ERROR: { color: '#f87171', bg: '#1a0a0a' },
+  }
+  const s = map[status] ?? map.DRAFT
+  return (
+    <span style={{ color: s.color, background: s.bg, padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
+      {status ?? '—'}
+    </span>
   )
 }
 
