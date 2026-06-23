@@ -24,7 +24,11 @@ export default function DevTikTokMetrics() {
       const res = await fetch(`${apiBase}/posts/tiktok/platforms`, {
         headers: { Authorization: `Bearer ${jwt.trim()}` }
       })
-      const data = await res.json()
+      addLog(`HTTP ${res.status}`, res.ok ? 'info' : 'error')
+      const text = await res.text()
+      addLog(`Resposta: ${text.slice(0, 200) || '(vazia)'}`, res.ok ? 'info' : 'error')
+      if (!text) throw new Error(`Resposta vazia — HTTP ${res.status}`)
+      const data = JSON.parse(text)
       if (!res.ok) throw new Error(data.message ?? JSON.stringify(data))
       addLog(`${data.length} post(s) encontrado(s)`, 'success')
       setPosts(data)
