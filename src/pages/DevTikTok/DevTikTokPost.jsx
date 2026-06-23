@@ -16,6 +16,7 @@ export default function DevTikTokPost() {
   const [log, setLog] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const pollingRef = useRef(null)
+  const pollCountRef = useRef(0)
 
   const addLog = (msg, type = 'info') =>
     setLog(prev => [...prev, { msg, type, time: new Date().toLocaleTimeString() }])
@@ -28,6 +29,7 @@ export default function DevTikTokPost() {
   }
 
   const checkStatus = async (postPlatformId, jwtToken, base) => {
+    pollCountRef.current += 1
     try {
       const res = await fetch(
         `${base}/posts/${postPlatformId}/publish/tiktok/status?postPlatformId=${postPlatformId}`,
@@ -36,7 +38,7 @@ export default function DevTikTokPost() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.message ?? JSON.stringify(data))
 
-      addLog(`Polling status: ${data.status}`, data.status === 'POSTED' ? 'success' : 'info')
+      addLog(`Polling #${pollCountRef.current} → status: ${data.status}${data.errorMessage ? ' | erro: ' + data.errorMessage : ''}`, data.status === 'POSTED' ? 'success' : 'info')
       setStatusResult(data)
 
       if (data.status === 'POSTED') {
@@ -46,14 +48,20 @@ export default function DevTikTokPost() {
         stopPolling()
         setError(data.errorMessage ?? 'Erro ao publicar no TikTok')
         setStep('error')
+      } else if (pollCountRef.current >= 15) {
+        stopPolling()
+        addLog('Timeout: TikTok não confirmou após 15 tentativas. Verifique manualmente.', 'error')
+        setStep('error')
+        setError('Timeout aguardando confirmação do TikTok')
       }
     } catch (err) {
-      addLog(`Erro no polling: ${err.message}`, 'error')
+      addLog(`Erro no polling #${pollCountRef.current}: ${err.message}`, 'error')
     }
   }
 
   useEffect(() => {
     if (step === 'posting' && result?.id) {
+      pollCountRef.current = 0
       addLog('Iniciando polling automático a cada 4s…', 'info')
       checkStatus(result.id, jwt, apiBase)
       pollingRef.current = setInterval(() => checkStatus(result.id, jwt, apiBase), POLL_INTERVAL_MS)
