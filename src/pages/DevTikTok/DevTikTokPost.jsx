@@ -271,7 +271,10 @@ export default function DevTikTokPost() {
             </button>
           )}
           {step === 'done' && (
-            <div className="devtk-success-banner">✓ Vídeo publicado com sucesso no TikTok!</div>
+            <>
+              <div className="devtk-success-banner">✓ Vídeo publicado com sucesso no TikTok!</div>
+              <a href="/dev/tiktok/metrics" className="devtk-btn primary">Ver métricas →</a>
+            </>
           )}
           {step !== 'idle' && (
             <button className="devtk-btn ghost" onClick={handleReset}>Recomeçar</button>

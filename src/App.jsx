@@ -9,6 +9,7 @@ import DashboardLayout from './layouts/DashboardLayout/DashboardLayout'
 import Landing from './pages/Landing/Landing'
 import DevTikTok from './pages/DevTikTok/DevTikTok'
 import DevTikTokPost from './pages/DevTikTok/DevTikTokPost'
+import DevTikTokMetrics from './pages/DevTikTok/DevTikTokMetrics'
 import IntegrationsCallback from './pages/IntegrationsCallback/IntegrationsCallback'
 import Login from './pages/Login/Login'
 import Cadastro from './pages/Cadastro/Cadastro'
@@ -55,6 +56,7 @@ export default function App() {
                 {/* Rotas de desenvolvimento — sem autenticação, acesso direto pela URL */}
                 <Route path="/dev/tiktok" element={<DevTikTok />} />
                 <Route path="/dev/tiktok/post" element={<DevTikTokPost />} />
+                <Route path="/dev/tiktok/metrics" element={<DevTikTokMetrics />} />
                 <Route path="/integrations/callback" element={<IntegrationsCallback />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
