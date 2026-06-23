@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import './DevTikTok.css'
 
 const DEFAULT_API = 'http://localhost:8080'
@@ -147,6 +148,9 @@ export default function DevTikTok() {
               Recomeçar
             </button>
           )}
+          <Link to="/dev/tiktok/post" className="devtk-btn ghost">
+            Próximo: testar publicação →
+          </Link>
         </div>
 
         {/* Auth URL preview */}
