@@ -22,6 +22,7 @@ import Equipes from './pages/Dashboard/Equipes/Equipes'
 import Configuracoes from './pages/Dashboard/Configuracoes/Configuracoes'
 import Suporte from './pages/Dashboard/Suporte/Suporte'
 import PrivacyPolicy from './pages/Legal/PrivacyPolicy'
+import TermsOfService from './pages/Legal/TermsOfService'
 
 export default function App() {
   return (
@@ -60,6 +61,7 @@ export default function App() {
                 <Route path="/dev/tiktok/metrics" element={<DevTikTokMetrics />} />
                 <Route path="/integrations/callback" element={<IntegrationsCallback />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
