@@ -10,6 +10,8 @@ import Landing from './pages/Landing/Landing'
 import DevTikTok from './pages/DevTikTok/DevTikTok'
 import DevTikTokPost from './pages/DevTikTok/DevTikTokPost'
 import DevTikTokMetrics from './pages/DevTikTok/DevTikTokMetrics'
+import DevYouTube from './pages/DevYouTube/DevYouTube'
+import DevYouTubePost from './pages/DevYouTube/DevYouTubePost'
 import IntegrationsCallback from './pages/IntegrationsCallback/IntegrationsCallback'
 import Login from './pages/Login/Login'
 import Cadastro from './pages/Cadastro/Cadastro'
@@ -59,6 +61,8 @@ export default function App() {
                 <Route path="/dev/tiktok" element={<DevTikTok />} />
                 <Route path="/dev/tiktok/post" element={<DevTikTokPost />} />
                 <Route path="/dev/tiktok/metrics" element={<DevTikTokMetrics />} />
+                <Route path="/dev/youtube" element={<DevYouTube />} />
+                <Route path="/dev/youtube/post" element={<DevYouTubePost />} />
                 <Route path="/integrations/callback" element={<IntegrationsCallback />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
