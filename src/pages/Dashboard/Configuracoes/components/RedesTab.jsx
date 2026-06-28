@@ -158,7 +158,7 @@ export default function RedesTab() {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon
           const color = networkColor(id, theme)
-          const isBusy = connecting === id || disconnecting === accountId
+          const isBusy = connecting === id || (accountId !== null && disconnecting === accountId)
           return (
             <motion.div
               key={id}
