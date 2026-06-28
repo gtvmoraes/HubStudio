@@ -8,7 +8,7 @@ import { FaInstagram, FaTiktok, FaYoutube, FaFacebook, FaLinkedin } from 'react-
 import { FaXTwitter } from 'react-icons/fa6'
 import {
   getPostById, NETWORK_META, networkColor,
-  getContentTypeInsight, generateCaption, suggestHashtags, getBestTimeSlots,
+  getContentTypeInsight, suggestHashtags, getBestTimeSlots,
   getSocialAccounts,
 } from '../../../services/posts'
 import { API_BASE } from '../../../services/api'
@@ -18,6 +18,7 @@ import { useTheme } from '../../../contexts/ThemeContext'
 import PhonePreview from './components/PhonePreview'
 import MediaUploader from './components/MediaUploader'
 import DateTimePicker from './components/DateTimePicker'
+import CaptionIdeaModal from './components/CaptionIdeaModal'
 import './Composer.css'
 
 const NETWORK_ICONS = {
@@ -66,7 +67,8 @@ export default function Composer() {
 
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState('')
-  const [aiBusy, setAiBusy] = useState(null)   // 'caption' | 'hashtags' | null
+  const [aiBusy, setAiBusy] = useState(null)          // 'caption' | 'hashtags' | null
+  const [captionModalOpen, setCaptionModalOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
   // Carrega o post quando estamos em modo edição
@@ -331,22 +333,38 @@ export default function Composer() {
   const canGenCaption = activeHasMedia || activeHasTitle   // legenda: mídia OU título
   const canHashtags = activeHasMedia                       // hashtags: precisa de mídia
 
-  // IA — gera uma legenda ideal pro post
-  const handleGenerateCaption = async () => {
+  // IA — abre o modal de ideia; depois chama o endpoint Groq via backend
+  const handleGenerateCaption = () => {
     if (!activeNetwork || aiBusy) return
+    setCaptionModalOpen(true)
+  }
+
+  const handleCaptionGenerate = async (idea) => {
     setAiBusy('caption')
-    setFeedback('')
-    try {
-      const caption = await generateCaption({
+    const token = localStorage.getItem('hs-token')
+    const res = await fetch(`${API_BASE}/ai/generate-caption`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
         networkId: activeNetwork,
-        title: activeContent?.title || '',
-      })
-      updateNetworkField(activeNetwork, 'content', caption.slice(0, activeMeta?.maxChars || 5000))
-      setFeedback('Legenda gerada pela IA!')
-    } finally {
+        idea,
+        maxChars: activeMeta?.maxChars || 2200,
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
       setAiBusy(null)
-      setTimeout(() => setFeedback(''), 1800)
+      throw new Error(err.message || `Erro ${res.status}`)
     }
+    const { caption } = await res.json()
+    updateNetworkField(activeNetwork, 'content', caption)
+    setCaptionModalOpen(false)
+    setAiBusy(null)
+    setFeedback('Legenda gerada pela IA!')
+    setTimeout(() => setFeedback(''), 2000)
   }
 
   // IA — anexa hashtags sugeridas ao final da legenda
@@ -645,6 +663,14 @@ export default function Composer() {
           />
         </aside>
       </div>
+
+      {captionModalOpen && activeNetwork && (
+        <CaptionIdeaModal
+          networkLabel={activeMeta?.label || activeNetwork}
+          onGenerate={handleCaptionGenerate}
+          onClose={() => { setCaptionModalOpen(false); setAiBusy(null) }}
+        />
+      )}
 
       {/* Barra fixa de ações */}
       <div className="composer__actions">
