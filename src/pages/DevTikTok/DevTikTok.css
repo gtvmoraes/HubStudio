@@ -446,3 +446,68 @@
 .post-item-id { display: flex; align-items: center; gap: 8px; }
 .id-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; min-width: 90px; }
 .post-item-id code { font-size: 11px; color: #888; font-family: monospace; word-break: break-all; }
+
+/* Mode toggle */
+.devtk-toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.devtk-toggle-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.devtk-toggle-btn:hover:not(:disabled) {
+  border-color: #555;
+  color: #ccc;
+}
+
+.devtk-toggle-btn.active {
+  background: #fe2c55;
+  border-color: #fe2c55;
+  color: #fff;
+}
+
+.devtk-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Accounts list */
+.devtk-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devtk-account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background: #151515;
+  cursor: pointer;
+  font-size: 13px;
+  color: #ccc;
+  transition: border-color 0.15s;
+}
+
+.devtk-account-item:hover { border-color: #444; }
+
+.devtk-account-item input[type="checkbox"] {
+  accent-color: #fe2c55;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

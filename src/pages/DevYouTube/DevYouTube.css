@@ -395,3 +395,68 @@
 }
 
 .devyt-info strong { color: #63b3ed; }
+
+/* Mode toggle */
+.devyt-toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.devyt-toggle-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.devyt-toggle-btn:hover:not(:disabled) {
+  border-color: #555;
+  color: #ccc;
+}
+
+.devyt-toggle-btn.active {
+  background: #FF0000;
+  border-color: #FF0000;
+  color: #fff;
+}
+
+.devyt-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Accounts list */
+.devyt-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devyt-account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background: #151515;
+  cursor: pointer;
+  font-size: 13px;
+  color: #ccc;
+  transition: border-color 0.15s;
+}
+
+.devyt-account-item:hover { border-color: #444; }
+
+.devyt-account-item input[type="checkbox"] {
+  accent-color: #FF0000;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

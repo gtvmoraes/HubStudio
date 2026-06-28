@@ -18,6 +18,13 @@ export default function DevTikTokPost() {
   const pollingRef = useRef(null)
   const pollCountRef = useRef(0)
 
+  // Scheduling
+  const [mode, setMode] = useState('now') // 'now' | 'schedule'
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [accounts, setAccounts] = useState([])
+  const [selectedAccounts, setSelectedAccounts] = useState([])
+  const [loadingAccounts, setLoadingAccounts] = useState(false)
+
   const addLog = (msg, type = 'info') =>
     setLog(prev => [...prev, { msg, type, time: new Date().toLocaleTimeString() }])
 
@@ -82,9 +89,38 @@ export default function DevTikTokPost() {
     }
   }
 
+  const loadAccounts = async () => {
+    if (!jwt.trim()) { setError('Cole um JWT válido antes de carregar contas.'); return }
+    setLoadingAccounts(true)
+    setError('')
+    try {
+      const res = await fetch(`${apiBase}/social/accounts`, {
+        headers: { Authorization: `Bearer ${jwt.trim()}` }
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setAccounts(data)
+      addLog(`${data.length} conta(s) carregada(s)`, 'success')
+    } catch (err) {
+      setError('Erro ao carregar contas: ' + err.message)
+    } finally {
+      setLoadingAccounts(false)
+    }
+  }
+
+  const toggleAccount = (id) => {
+    setSelectedAccounts(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    )
+  }
+
   const handlePublish = async () => {
     if (!jwt.trim()) { setError('Cole um JWT válido.'); return }
     if (!videoFile) { setError('Selecione um arquivo de vídeo.'); return }
+    if (mode === 'schedule') {
+      if (!scheduledAt) { setError('Selecione a data e hora do agendamento.'); return }
+      if (selectedAccounts.length === 0) { setError('Selecione ao menos uma conta social.'); return }
+    }
 
     setError('')
     setLog([])
@@ -93,13 +129,23 @@ export default function DevTikTokPost() {
     setStep('loading')
     setUploadProgress(0)
 
-    addLog(`POST → ${apiBase}/posts/publish/tiktok/video`)
+    const formData = new FormData()
+    formData.append('video', videoFile)
+    formData.append('title', title.trim())
+
+    let endpoint
+    if (mode === 'schedule') {
+      const isoDate = new Date(scheduledAt).toISOString().replace('Z', '')
+      formData.append('scheduledAt', isoDate)
+      selectedAccounts.forEach(id => formData.append('socialAccountIds', id))
+      endpoint = `${apiBase}/posts/schedule/video`
+      addLog(`POST → ${endpoint} (agendamento: ${scheduledAt})`)
+    } else {
+      endpoint = `${apiBase}/posts/publish/tiktok/video`
+      addLog(`POST → ${endpoint}`)
+    }
 
     try {
-      const formData = new FormData()
-      formData.append('video', videoFile)
-      formData.append('title', title.trim())
-
       const xhr = new XMLHttpRequest()
 
       xhr.upload.addEventListener('progress', (e) => {
@@ -113,7 +159,9 @@ export default function DevTikTokPost() {
       xhr.upload.addEventListener('load', () => {
         setUploadProgress(100)
         setStep('processing')
-        addLog('Arquivo enviado — servidor processando (S3 + TikTok)…', 'info')
+        addLog(mode === 'schedule'
+          ? 'Arquivo enviado — registrando agendamento…'
+          : 'Arquivo enviado — servidor processando (S3 + TikTok)…', 'info')
       })
 
       xhr.addEventListener('load', () => {
@@ -121,7 +169,10 @@ export default function DevTikTokPost() {
           try {
             const data = JSON.parse(xhr.responseText)
             setResult(data)
-            if (data.status === 'POSTED') {
+            if (mode === 'schedule') {
+              addLog(`Agendado com sucesso! scheduledAt: ${data.scheduledAt}`, 'success')
+              setStep('scheduled')
+            } else if (data.status === 'POSTED') {
               addLog(`Publicado no TikTok ✓ — publishId: ${data.publishId ?? '(aguardando)'}`, 'success')
               setStep('done')
             } else if (data.status === 'ERROR') {
@@ -156,7 +207,7 @@ export default function DevTikTokPost() {
         setStep('error')
       })
 
-      xhr.open('POST', `${apiBase}/posts/publish/tiktok/video`)
+      xhr.open('POST', endpoint)
       xhr.setRequestHeader('Authorization', `Bearer ${jwt.trim()}`)
       xhr.send(formData)
     } catch (err) {
@@ -176,8 +227,11 @@ export default function DevTikTokPost() {
     setError('')
     setLog([])
     setUploadProgress(0)
+    setScheduledAt('')
+    setSelectedAccounts([])
   }
 
+  const isIdle = step === 'idle' || step === 'error'
   const currentStatus = result?.status
 
   return (
@@ -205,13 +259,78 @@ export default function DevTikTokPost() {
           />
         </section>
 
+        {/* Mode Toggle */}
+        <section className="devtk-section">
+          <label className="devtk-label">Modo</label>
+          <div className="devtk-toggle-group">
+            <button
+              className={`devtk-toggle-btn ${mode === 'now' ? 'active' : ''}`}
+              onClick={() => setMode('now')}
+              disabled={!isIdle}
+            >
+              Publicar agora
+            </button>
+            <button
+              className={`devtk-toggle-btn ${mode === 'schedule' ? 'active' : ''}`}
+              onClick={() => setMode('schedule')}
+              disabled={!isIdle}
+            >
+              Agendar
+            </button>
+          </div>
+        </section>
+
+        {/* Scheduling Fields */}
+        {mode === 'schedule' && (
+          <>
+            <section className="devtk-section">
+              <label className="devtk-label">Data e Hora do Agendamento</label>
+              <input
+                type="datetime-local"
+                className="devtk-input"
+                value={scheduledAt}
+                onChange={e => setScheduledAt(e.target.value)}
+                disabled={!isIdle}
+                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+              />
+            </section>
+
+            <section className="devtk-section">
+              <label className="devtk-label">Contas Sociais</label>
+              <button
+                className="devtk-btn ghost"
+                style={{ marginBottom: 10 }}
+                onClick={loadAccounts}
+                disabled={loadingAccounts || !isIdle}
+              >
+                {loadingAccounts ? 'Carregando…' : 'Carregar contas'}
+              </button>
+              {accounts.length > 0 && (
+                <div className="devtk-accounts-list">
+                  {accounts.map(acc => (
+                    <label key={acc.id} className="devtk-account-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedAccounts.includes(acc.id)}
+                        onChange={() => toggleAccount(acc.id)}
+                        disabled={!isIdle}
+                      />
+                      <span>{acc.platform} — {acc.accountName ?? acc.id}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
         <section className="devtk-section">
           <label className="devtk-label">Selecionar Vídeo</label>
           <input
             type="file"
             accept="video/*"
             onChange={handleFileSelect}
-            disabled={step !== 'idle' && step !== 'error'}
+            disabled={!isIdle}
             className="devtk-file-input"
           />
           {videoFile && (
@@ -228,18 +347,31 @@ export default function DevTikTokPost() {
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Meu vídeo no TikTok"
-            disabled={step !== 'idle' && step !== 'error'}
+            disabled={!isIdle}
           />
         </section>
 
         {/* Steps */}
         <div className="devtk-steps">
-          <Step num={1} active={['idle','loading','processing','error'].includes(step)} done={['posting','done'].includes(step)}>
-            Upload → S3 → TikTok
-          </Step>
-          <Step num={2} active={step === 'posting'} done={step === 'done'}>
-            Aguardar publicação no TikTok
-          </Step>
+          {mode === 'now' ? (
+            <>
+              <Step num={1} active={['idle','loading','processing','error'].includes(step)} done={['posting','done'].includes(step)}>
+                Upload → S3 → TikTok
+              </Step>
+              <Step num={2} active={step === 'posting'} done={step === 'done'}>
+                Aguardar publicação no TikTok
+              </Step>
+            </>
+          ) : (
+            <>
+              <Step num={1} active={['idle','loading','error'].includes(step)} done={['processing','scheduled'].includes(step)}>
+                Upload → S3
+              </Step>
+              <Step num={2} active={step === 'processing'} done={step === 'scheduled'}>
+                Registrar agendamento
+              </Step>
+            </>
+          )}
         </div>
 
         {/* Upload Progress */}
@@ -254,9 +386,9 @@ export default function DevTikTokPost() {
 
         {/* Actions */}
         <div className="devtk-actions">
-          {(step === 'idle' || step === 'error') && (
+          {isIdle && (
             <button className="devtk-btn tiktok" onClick={handlePublish}>
-              Publicar no TikTok
+              {mode === 'schedule' ? 'Agendar publicação' : 'Publicar no TikTok'}
             </button>
           )}
           {step === 'loading' && (
@@ -267,8 +399,13 @@ export default function DevTikTokPost() {
           )}
           {step === 'posting' && (
             <button className="devtk-btn primary" disabled>
-              ⏳ Aguardando TikTok processar… (polling automático)
+              Aguardando TikTok processar… (polling automático)
             </button>
+          )}
+          {step === 'scheduled' && (
+            <div className="devtk-success-banner">
+              Publicação agendada com sucesso!
+            </div>
           )}
           {step === 'done' && (
             <>
@@ -285,12 +422,21 @@ export default function DevTikTokPost() {
         {result && (
           <section className="devtk-section">
             <label className="devtk-label">Resultado</label>
-            <div className="devtk-result-grid">
-              <ResultRow label="postPlatformId" value={result.postPlatformId} />
-              <ResultRow label="publishId (TikTok)" value={result.publishId ?? '—'} />
-              <ResultRow label="Status" value={<StatusChip status={currentStatus} />} />
-              {result.errorMessage && <ResultRow label="Erro" value={result.errorMessage} error />}
-            </div>
+            {mode === 'schedule' ? (
+              <div className="devtk-result-grid">
+                <ResultRow label="Post ID" value={result.postId} />
+                <ResultRow label="Status" value={<StatusChip status="SCHEDULED" />} />
+                <ResultRow label="Agendado para" value={result.scheduledAt ? new Date(result.scheduledAt).toLocaleString('pt-BR') : '—'} />
+                <ResultRow label="Plataformas" value={result.platforms?.map(p => p.platform).join(', ') ?? '—'} />
+              </div>
+            ) : (
+              <div className="devtk-result-grid">
+                <ResultRow label="postPlatformId" value={result.postPlatformId} />
+                <ResultRow label="publishId (TikTok)" value={result.publishId ?? '—'} />
+                <ResultRow label="Status" value={<StatusChip status={currentStatus} />} />
+                {result.errorMessage && <ResultRow label="Erro" value={result.errorMessage} error />}
+              </div>
+            )}
           </section>
         )}
 
@@ -342,10 +488,11 @@ function ResultRow({ label, value, error }) {
 
 function StatusChip({ status }) {
   const map = {
-    DRAFT: { color: '#888', bg: '#1a1a1a' },
-    POSTING: { color: '#f97316', bg: '#1c0f00' },
-    POSTED: { color: '#4ade80', bg: '#052e16' },
-    ERROR: { color: '#f87171', bg: '#1a0a0a' },
+    DRAFT:      { color: '#888', bg: '#1a1a1a' },
+    SCHEDULED:  { color: '#60a5fa', bg: '#0a1628' },
+    POSTING:    { color: '#f97316', bg: '#1c0f00' },
+    POSTED:     { color: '#4ade80', bg: '#052e16' },
+    ERROR:      { color: '#f87171', bg: '#1a0a0a' },
   }
   const s = map[status] ?? map.DRAFT
   return (

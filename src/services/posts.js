@@ -1,4 +1,5 @@
 import { LuMessageSquare, LuChartBar, LuHash } from 'react-icons/lu'
+import { authFetch } from './api'
 
 export const getTopPosts = () => Promise.resolve([
   { id: 1, title: '5 dicas para aumentar seu engajamento', date: '18 de maio de 2026', views: '12.4K', likes: '1.3K', comments: '2.6K' },
@@ -206,7 +207,17 @@ const ALL_POSTS = [
   },
 ]
 
-export const getAllPosts = () => Promise.resolve(ALL_POSTS)
+export const getAllPosts = async () => {
+  const token = localStorage.getItem('hs-token')
+  if (!token) return ALL_POSTS
+  try {
+    const res = await authFetch('/posts/schedule/all-posts')
+    if (!res.ok) return ALL_POSTS
+    return await res.json()
+  } catch {
+    return ALL_POSTS
+  }
+}
 
 export const getPostById = (id) =>
   Promise.resolve(ALL_POSTS.find(p => p.id === id) || null)
