@@ -218,12 +218,23 @@ export default function Composer() {
     const token = localStorage.getItem('hs-token')
 
     if (status === 'scheduled' && token && form.scheduledFor) {
-      const videoNetworks = form.networks.filter(n => {
-        if (n !== 'tiktok' && n !== 'youtube') return false
-        return (form.contentByNetwork[n]?.media || []).some(m => m.type === 'video' && m.file)
-      })
+      // Todas as redes de vídeo selecionadas — independente de qual aba tem o arquivo
+      const videoNetworks = form.networks.filter(n => n === 'tiktok' || n === 'youtube')
 
-      if (videoNetworks.length > 0) {
+      // Busca o arquivo de vídeo em qualquer aba (não só na aba da rede em questão)
+      let videoFile = null
+      let videoTitle = ''
+      for (const n of form.networks) {
+        const item = (form.contentByNetwork[n]?.media || []).find(m => m.type === 'video' && m.file)
+        if (item) {
+          videoFile = item.file
+          const c = form.contentByNetwork[n]
+          videoTitle = c.title || c.content.slice(0, 60)
+          break
+        }
+      }
+
+      if (videoNetworks.length > 0 && videoFile) {
         try {
           const accounts = await getSocialAccounts()
           const matchingIds = accounts
@@ -234,18 +245,6 @@ export default function Composer() {
             setFeedback('Nenhuma conta TikTok/YouTube conectada. Vá em Configurações > Redes.')
             setLoading(false)
             return
-          }
-
-          let videoFile = null
-          let videoTitle = ''
-          for (const n of videoNetworks) {
-            const item = (form.contentByNetwork[n]?.media || []).find(m => m.type === 'video' && m.file)
-            if (item) {
-              videoFile = item.file
-              const c = form.contentByNetwork[n]
-              videoTitle = c.title || c.content.slice(0, 60)
-              break
-            }
           }
 
           const isoDate = new Date(form.scheduledFor).toISOString().replace('Z', '')
