@@ -315,7 +315,7 @@ export default function DevTikTokPost() {
                         onChange={() => toggleAccount(acc.id)}
                         disabled={!isIdle}
                       />
-                      <span>{acc.platform} — {acc.accountName ?? acc.id}</span>
+                      <span>{acc.platform} — {acc.username ?? acc.id}</span>
                     </label>
                   ))}
                 </div>

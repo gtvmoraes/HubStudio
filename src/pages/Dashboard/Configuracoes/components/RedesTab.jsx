@@ -1,59 +1,157 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
-  LuShieldCheck, LuCircleCheck, LuCircleAlert, LuWifiOff, LuPlus, LuCheck, LuLock,
+  LuShieldCheck, LuCircleCheck, LuCircleAlert, LuWifiOff,
+  LuCheck, LuLock, LuRefreshCw, LuLoader, LuUnplug,
 } from 'react-icons/lu'
 import { FaInstagram, FaTiktok, FaYoutube, FaFacebook, FaLinkedin } from 'react-icons/fa'
-import { FaXTwitter } from 'react-icons/fa6'
 import Button from '../../../../components/Button/Button'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { networkColor } from '../../../../services/posts'
+import { authFetch, API_BASE } from '../../../../services/api'
 import { useTheme } from '../../../../contexts/ThemeContext'
 
-const INITIAL = [
-  { id: 'instagram', name: 'Instagram',   icon: FaInstagram, status: 'connected',    handle: '@hubstudio' },
-  { id: 'tiktok',    name: 'TikTok',      icon: FaTiktok,    status: 'expired',      handle: '@hubstudio' },
-  { id: 'youtube',   name: 'YouTube',     icon: FaYoutube,   status: 'connected',    handle: 'HubStudio' },
-  { id: 'facebook',  name: 'Facebook',    icon: FaFacebook,  status: 'connected',    handle: 'HubStudio' },
-  { id: 'linkedin',  name: 'LinkedIn',    icon: FaLinkedin,  status: 'disconnected', handle: '—' },
-  { id: 'twitter',   name: 'X (Twitter)', icon: FaXTwitter,  status: 'disconnected', handle: '—' },
+const ALL_PLATFORMS = [
+  { id: 'instagram', name: 'Instagram',   icon: FaInstagram, connectPath: '/social/instagram/connect' },
+  { id: 'tiktok',    name: 'TikTok',      icon: FaTiktok,    connectPath: '/social/tiktok/connect'    },
+  { id: 'youtube',   name: 'YouTube',     icon: FaYoutube,   connectPath: '/social/youtube/connect'   },
+  { id: 'facebook',  name: 'Facebook',    icon: FaFacebook,  connectPath: '/social/facebook/connect'  },
+  { id: 'linkedin',  name: 'LinkedIn',    icon: FaLinkedin,  connectPath: '/social/linkedin/connect'  },
 ]
 
 const STATUS_CONFIG = {
-  connected:    { label: 'Conectado',    color: 'success', icon: LuCircleCheck, btnLabel: 'Gerenciar',  btnVariant: 'outline' },
-  expired:      { label: 'Expirado',     color: 'warning', icon: LuCircleAlert, btnLabel: 'Reconectar', btnVariant: 'primary' },
-  disconnected: { label: 'Desconectado', color: 'error',   icon: LuWifiOff,     btnLabel: 'Conectar',   btnVariant: 'primary' },
+  connected:    { label: 'Conectado',    color: 'success', icon: LuCircleCheck  },
+  expired:      { label: 'Expirado',     color: 'warning', icon: LuCircleAlert  },
+  disconnected: { label: 'Desconectado', color: 'error',   icon: LuWifiOff      },
 }
 
 const PERMISSIONS = [
-  { label: 'Publicação de conteúdo', desc: 'Criar, agendar e excluir publicações nos perfis vinculados.', done: true },
-  { label: 'Leitura de métricas',    desc: 'Acessar alcance, engajamento e crescimento de seguidores.',   done: true },
+  { label: 'Publicação de conteúdo', desc: 'Criar, agendar e excluir publicações nos perfis vinculados.', done: true  },
+  { label: 'Leitura de métricas',    desc: 'Acessar alcance, engajamento e crescimento de seguidores.',   done: true  },
   { label: 'Gestão de comentários',  desc: 'Responder e moderar comentários direto pela plataforma.',     done: false },
 ]
 
 export default function RedesTab() {
   const { theme } = useTheme()
-  const [networks, setNetworks] = useState(INITIAL)
+  const [accounts, setAccounts] = useState([])   // dados da API
+  const [loading, setLoading] = useState(true)
+  const [connecting, setConnecting] = useState(null)   // platform id em progresso
+  const [disconnecting, setDisconnecting] = useState(null) // account id em progresso
+  const [error, setError] = useState('')
 
-  const handleAction = (id, status) => {
-    if (status === 'connected') return
-    setNetworks(prev => prev.map(n =>
-      n.id === id ? { ...n, status: 'connected', handle: n.handle === '—' ? '@hubstudio' : n.handle } : n
-    ))
+  const fetchAccounts = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await authFetch('/social/accounts')
+      if (!res.ok) throw new Error(`Erro ${res.status}`)
+      setAccounts(await res.json())
+    } catch (e) {
+      setError('Não foi possível carregar as contas. Verifique sua sessão.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('hs-token')
+    if (token) {
+      fetchAccounts()
+    } else {
+      setLoading(false)
+    }
+
+    // Recarrega ao voltar para a aba (OAuth abre na mesma aba e retorna)
+    const onFocus = () => {
+      const t = localStorage.getItem('hs-token')
+      if (t) fetchAccounts()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [fetchAccounts])
+
+  // Mescla os dados da API com a lista fixa de plataformas
+  const networks = ALL_PLATFORMS.map(p => {
+    const connected = accounts.find(a => a.platform === p.id)
+    return {
+      ...p,
+      accountId: connected?.id ?? null,
+      handle: connected?.username ?? '—',
+      avatarUrl: connected?.avatarUrl ?? null,
+      status: connected?.status ?? 'disconnected',
+      tokenExpiresAt: connected?.tokenExpiresAt ?? null,
+    }
+  })
+
+  const handleConnect = async (platform) => {
+    const meta = ALL_PLATFORMS.find(p => p.id === platform)
+    if (!meta) return
+    setConnecting(platform)
+    setError('')
+    try {
+      const res = await authFetch(meta.connectPath)
+      if (!res.ok) throw new Error(`Erro ${res.status}`)
+      const data = await res.json()
+      const url = data.authorizationUrl || data.authorization_url
+      if (!url) throw new Error('URL de autorização não retornada pelo servidor')
+      // Redireciona na mesma aba; ao voltar, o listener focus recarrega as contas
+      window.location.href = url
+    } catch (e) {
+      setError(`Erro ao iniciar conexão com ${platform}: ${e.message}`)
+      setConnecting(null)
+    }
   }
+
+  const handleDisconnect = async (accountId, platformName) => {
+    if (!window.confirm(`Desconectar a conta ${platformName}? Os posts agendados para essa conta serão cancelados.`)) return
+    setDisconnecting(accountId)
+    setError('')
+    try {
+      const res = await authFetch(`/social/accounts/${accountId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error(`Erro ${res.status}`)
+      setAccounts(prev => prev.filter(a => a.id !== accountId))
+    } catch (e) {
+      setError(`Erro ao desconectar: ${e.message}`)
+    } finally {
+      setDisconnecting(null)
+    }
+  }
+
+  const isAuthenticated = Boolean(localStorage.getItem('hs-token'))
 
   return (
     <div className="set-section">
       <div className="set-section__head">
         <h2>Redes sociais</h2>
         <p>Vincule suas contas para agendar e analisar tudo num só lugar.</p>
+        {isAuthenticated && (
+          <button
+            type="button"
+            className="set-refresh-btn"
+            onClick={fetchAccounts}
+            disabled={loading}
+            title="Atualizar lista de contas"
+          >
+            <LuRefreshCw size={14} className={loading ? 'spin' : ''} />
+            Atualizar
+          </button>
+        )}
       </div>
 
+      {error && (
+        <div className="set-net-error">{error}</div>
+      )}
+
+      {!isAuthenticated && (
+        <div className="set-net-error">Faça login para gerenciar suas redes sociais.</div>
+      )}
+
       <div className="set-net-grid">
-        {networks.map(({ id, name, icon: Icon, status, handle }, i) => {
+        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, accountId, connectPath }, i) => {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon
           const color = networkColor(id, theme)
+          const isBusy = connecting === id || disconnecting === accountId
           return (
             <motion.div
               key={id}
@@ -63,36 +161,60 @@ export default function RedesTab() {
             >
               <div className="set-net-card__top">
                 <div className="set-net-card__icon" style={{ background: `${color}18`, color }}>
-                  <Icon size={22} />
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt={name} className="set-net-card__avatar" />
+                    : <Icon size={22} />
+                  }
                 </div>
                 <span className={`set-net-card__status set-net-card__status--${cfg.color}`}>
-                  <StatusIcon size={12} /> {cfg.label}
+                  {isBusy
+                    ? <LuLoader size={12} className="spin" />
+                    : <StatusIcon size={12} />
+                  }
+                  {isBusy ? 'Aguarde…' : cfg.label}
                 </span>
               </div>
+
               <div className="set-net-card__body">
                 <h3>{name}</h3>
                 <span className="set-net-card__handle">{handle}</span>
               </div>
-              <Button
-                variant={cfg.btnVariant}
-                size="sm"
-                fullWidth
-                onClick={() => handleAction(id, status)}
-              >
-                {cfg.btnLabel}
-              </Button>
+
+              <div className="set-net-card__actions">
+                {status === 'connected' ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    fullWidth
+                    onClick={() => handleDisconnect(accountId, name)}
+                    disabled={isBusy || !isAuthenticated}
+                  >
+                    <LuUnplug size={13} /> Desconectar
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => handleConnect(id)}
+                    disabled={isBusy || loading || !isAuthenticated}
+                  >
+                    {status === 'expired' ? 'Reconectar' : 'Conectar'}
+                  </Button>
+                )}
+              </div>
             </motion.div>
           )
         })}
 
-        <motion.button
-          type="button"
-          className="set-net-card set-net-card--add"
-          variants={fadeUp} initial="hidden" animate="visible" custom={networks.length}
-        >
-          <span className="set-net-card__add-icon"><LuPlus size={24} /></span>
-          <span>Conectar outra rede</span>
-        </motion.button>
+        {loading && (
+          <motion.div
+            className="set-net-card set-net-card--loading"
+            variants={fadeUp} initial="hidden" animate="visible"
+          >
+            <LuLoader size={24} className="spin" />
+          </motion.div>
+        )}
       </div>
 
       <div className="set-net-bottom">
