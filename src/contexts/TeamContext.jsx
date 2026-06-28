@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { getUserTeams, initTeamData } from '../services/team'
+import { getUserTeams, createTeamApi, updateTeamApi, deleteTeamApi, joinByCodeApi } from '../services/team'
 import { useAuth } from './AuthContext'
 
 const TeamContext = createContext(null)
@@ -12,18 +12,21 @@ export function TeamProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!user) { setLoading(false); return }
     getUserTeams().then(list => {
       setTeams(list)
-      if (!currentTeamId || !list.find(t => t.id === currentTeamId)) {
-        const firstId = list[0]?.id
-        if (firstId) {
-          setCurrentTeamId(firstId)
-          localStorage.setItem(STORAGE_KEY, firstId)
-        }
+      if (list.length > 0) {
+        const saved = list.find(t => t.id === currentTeamId)
+        const activeId = saved ? currentTeamId : list[0].id
+        setCurrentTeamId(activeId)
+        localStorage.setItem(STORAGE_KEY, activeId)
+      } else {
+        setCurrentTeamId(null)
+        localStorage.removeItem(STORAGE_KEY)
       }
       setLoading(false)
-    })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    }).catch(() => setLoading(false))
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchTeam = (teamId) => {
     if (!teams.find(t => t.id === teamId)) return
@@ -31,60 +34,48 @@ export function TeamProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, teamId)
   }
 
-  const createTeam = ({ name, type, color }) => {
-    const newTeam = {
-      id: `t-${Date.now()}`,
-      name,
-      type,
-      color,
-      plan: 'lite',
-      role: 'admin',
-      totalMembers: 1,
-      pendingPosts: 0,
-      photo: null,
-      description: '',
-    }
-
-    // Semeia a equipe com o usuário atual como único membro
-    const founder = {
-      id: 'u1',
-      name: user?.name || 'Você',
-      email: user?.email || 'voce@hubstudio.com',
-      role: 'admin',
-      joinedAt: new Date().toISOString(),
-      lastActive: 'agora',
-    }
-    initTeamData(newTeam.id, founder)
-
+  const createTeam = async (data) => {
+    const newTeam = await createTeamApi(data)
     setTeams(prev => [...prev, newTeam])
     setCurrentTeamId(newTeam.id)
     localStorage.setItem(STORAGE_KEY, newTeam.id)
     return newTeam
   }
 
-  /** Atualiza dados editáveis da equipe atual (nome, cor, foto, descrição). */
-  const updateTeam = (teamId, updates) => {
-    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t))
+  const joinTeam = async (code) => {
+    const team = await joinByCodeApi(code)
+    setTeams(prev => [...prev, team])
+    setCurrentTeamId(team.id)
+    localStorage.setItem(STORAGE_KEY, team.id)
+    return team
   }
 
-  /** Remove uma equipe da lista do usuário. */
-  const deleteTeam = (teamId) => {
+  const updateTeam = async (teamId, updates) => {
+    const updated = await updateTeamApi(teamId, updates)
+    setTeams(prev => prev.map(t => t.id === teamId ? updated : t))
+    return updated
+  }
+
+  const deleteTeam = async (teamId) => {
+    await deleteTeamApi(teamId)
     setTeams(prev => {
       const next = prev.filter(t => t.id !== teamId)
-      if (currentTeamId === teamId && next.length) {
-        setCurrentTeamId(next[0].id)
-        localStorage.setItem(STORAGE_KEY, next[0].id)
+      if (currentTeamId === teamId) {
+        const nextId = next[0]?.id || null
+        setCurrentTeamId(nextId)
+        if (nextId) localStorage.setItem(STORAGE_KEY, nextId)
+        else localStorage.removeItem(STORAGE_KEY)
       }
       return next
     })
   }
 
-  const currentTeam = teams.find(t => t.id === currentTeamId) || teams[0] || null
+  const currentTeam = teams.find(t => t.id === currentTeamId) || null
 
   return (
     <TeamContext.Provider value={{
       teams, currentTeam, loading,
-      switchTeam, createTeam, updateTeam, deleteTeam,
+      switchTeam, createTeam, joinTeam, updateTeam, deleteTeam,
     }}>
       {children}
     </TeamContext.Provider>

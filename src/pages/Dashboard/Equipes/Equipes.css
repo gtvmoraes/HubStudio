@@ -17,6 +17,123 @@
   color: var(--color-text-muted);
 }
 
+/* ── Estado vazio (sem equipes) ── */
+.eq-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px 24px;
+}
+
+.eq-empty__content {
+  max-width: 420px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.eq-empty__content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.eq-empty__content p {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.eq-empty__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.eq-empty__btn {
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.eq-empty__btn--primary {
+  background: var(--color-primary, #4F35E8);
+  color: #fff;
+}
+
+.eq-empty__btn--primary:hover { opacity: 0.88; }
+
+.eq-empty__divider {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.eq-empty__join {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.eq-empty__join input {
+  flex: 1;
+  min-width: 140px;
+  max-width: 200px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  outline: none;
+}
+
+.eq-empty__join input:focus {
+  border-color: var(--color-primary, #4F35E8);
+}
+
+.eq-empty__join button {
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.eq-empty__join button:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.eq-empty__join button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.eq-empty__error {
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-danger, #EF4444);
+}
+
 /* ── Header ── */
 .eq-header {
   display: flex;

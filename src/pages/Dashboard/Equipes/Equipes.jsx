@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  getTeamMembers, getPendingInvites, getApprovalConfig,
-  getTeamActivity,
+  getTeamMembers, getPendingInvites, getApprovalConfig, getTeamActivity,
+  sendInviteApi, cancelInviteApi, resendInviteApi,
+  changeRoleApi, removeMemberApi, updateApprovalConfigApi,
 } from '../../../services/team'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
@@ -20,7 +21,7 @@ import './Equipes.css'
 
 export default function Equipes() {
   const { user } = useAuth()
-  const { currentTeam, createTeam, updateTeam, deleteTeam } = useTeam()
+  const { currentTeam, loading, createTeam, joinTeam, updateTeam, deleteTeam } = useTeam()
 
   const [members, setMembers] = useState([])
   const [invites, setInvites] = useState([])
@@ -30,6 +31,9 @@ export default function Equipes() {
   const [activeTab, setActiveTab] = useState('membros')
   const [showInvite, setShowInvite] = useState(false)
   const [showCreateTeam, setShowCreateTeam] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [joinError, setJoinError] = useState('')
+  const [joinLoading, setJoinLoading] = useState(false)
   const [flash, setFlash] = useState('')
 
   useEffect(() => {
@@ -53,84 +57,215 @@ export default function Equipes() {
   }
 
   // ── Membros ──
-  const handleRoleChange = (memberId, newRole) => {
-    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m))
-    flashMsg('Papel atualizado!')
+  const handleRoleChange = async (memberId, newRole) => {
+    try {
+      const updated = await changeRoleApi(currentTeam.id, memberId, newRole)
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: updated.role } : m))
+      flashMsg('Cargo atualizado!')
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao alterar cargo.')
+    }
   }
-  const handleRemove = (memberId) => {
+
+  const handleRemove = async (memberId) => {
     const m = members.find(x => x.id === memberId)
     if (!m) return
     if (!window.confirm(`Remover ${m.name} do time?`)) return
-    setMembers(prev => prev.filter(x => x.id !== memberId))
-    flashMsg('Membro removido.')
+    try {
+      await removeMemberApi(currentTeam.id, memberId)
+      setMembers(prev => prev.filter(x => x.id !== memberId))
+      flashMsg('Membro removido.')
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao remover membro.')
+    }
   }
 
   // ── Convites ──
-  const handleInvite = ({ email, role }) => {
-    const newInvite = {
-      id: `inv-${Date.now()}`,
-      email,
-      role,
-      invitedBy: user?.name || 'Você',
-      invitedAt: new Date().toISOString(),
+  const handleInvite = async ({ email, role }) => {
+    try {
+      const invite = await sendInviteApi(currentTeam.id, email, role)
+      setInvites(prev => [invite, ...prev])
+      setActiveTab('convites')
+      flashMsg(`Convite enviado pra ${email}!`)
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao enviar convite.')
     }
-    setInvites(prev => [newInvite, ...prev])
-    setActiveTab('convites')
-    flashMsg(`Convite enviado pra ${email}!`)
   }
-  const handleResend = (inviteId) => {
-    const inv = invites.find(i => i.id === inviteId)
-    if (!inv) return
-    flashMsg(`Convite reenviado pra ${inv.email}.`)
+
+  const handleResend = async (inviteId) => {
+    try {
+      await resendInviteApi(currentTeam.id, inviteId)
+      const inv = invites.find(i => i.id === inviteId)
+      flashMsg(`Convite reenviado pra ${inv?.email}.`)
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao reenviar convite.')
+    }
   }
-  const handleCancelInvite = (inviteId) => {
-    setInvites(prev => prev.filter(i => i.id !== inviteId))
-    flashMsg('Convite cancelado.')
+
+  const handleCancelInvite = async (inviteId) => {
+    try {
+      await cancelInviteApi(currentTeam.id, inviteId)
+      setInvites(prev => prev.filter(i => i.id !== inviteId))
+      flashMsg('Convite cancelado.')
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao cancelar convite.')
+    }
   }
 
   // ── Aprovação ──
-  const handleToggleConfig = (key) => {
-    setConfig(prev => ({ ...prev, [key]: !prev[key] }))
-    flashMsg('Configuração salva.')
+  const handleToggleConfig = async (key) => {
+    const next = { ...config, [key]: !config[key] }
+    setConfig(next)
+    try {
+      const saved = await updateApprovalConfigApi(currentTeam.id, {
+        requireApprovalFromEditors: next.requireApprovalFromEditors,
+        requireDoubleApprovalAbove100k: next.requireDoubleApprovalAbove100k,
+        autoApproveScheduled48h: next.autoApproveScheduled48h,
+        notifyManagersAfter24h: next.notifyManagersAfter24h,
+        defaultApproverIds: next.defaultApproverIds || [],
+      })
+      setConfig(saved)
+      flashMsg('Configuração salva.')
+    } catch (e) {
+      setConfig(config)
+      flashMsg(e.message || 'Erro ao salvar configuração.')
+    }
   }
-  const handleRemoveApprover = (memberId) => {
-    setConfig(prev => ({
-      ...prev,
-      defaultApproverIds: prev.defaultApproverIds.filter(id => id !== memberId),
-    }))
-    flashMsg('Aprovador removido.')
+
+  const handleRemoveApprover = async (userId) => {
+    const next = { ...config, defaultApproverIds: config.defaultApproverIds.filter(id => id !== userId) }
+    setConfig(next)
+    try {
+      const saved = await updateApprovalConfigApi(currentTeam.id, {
+        requireApprovalFromEditors: next.requireApprovalFromEditors,
+        requireDoubleApprovalAbove100k: next.requireDoubleApprovalAbove100k,
+        autoApproveScheduled48h: next.autoApproveScheduled48h,
+        notifyManagersAfter24h: next.notifyManagersAfter24h,
+        defaultApproverIds: next.defaultApproverIds,
+      })
+      setConfig(saved)
+      flashMsg('Aprovador removido.')
+    } catch (e) {
+      setConfig(config)
+      flashMsg(e.message || 'Erro ao remover aprovador.')
+    }
   }
 
   // ── Time ──
-  const handleCreateTeam = (data) => {
-    const newTeam = createTeam(data)
-    flashMsg(`Bem-vindo ao ${newTeam.name}!`)
-  }
-  const handleUpdateTeam = (updates) => {
-    updateTeam(currentTeam.id, updates)
-    flashMsg('Equipe atualizada!')
-  }
-  const handleDeleteTeam = () => {
-    const name = currentTeam.name
-    deleteTeam(currentTeam.id)
-    setActiveTab('membros')
-    flashMsg(`Equipe "${name}" excluída.`)
-  }
-  const handleLeaveTeam = () => {
-    const name = currentTeam.name
-    deleteTeam(currentTeam.id)
-    setActiveTab('membros')
-    flashMsg(`Você saiu de "${name}".`)
+  const handleCreateTeam = async (data) => {
+    try {
+      const newTeam = await createTeam(data)
+      flashMsg(`Bem-vindo ao ${newTeam.name}!`)
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao criar equipe.')
+    }
   }
 
-  if (!currentTeam) {
+  const handleUpdateTeam = async (updates) => {
+    try {
+      await updateTeam(currentTeam.id, updates)
+      flashMsg('Equipe atualizada!')
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao atualizar equipe.')
+    }
+  }
+
+  const handleDeleteTeam = async () => {
+    const name = currentTeam.name
+    try {
+      await deleteTeam(currentTeam.id)
+      setActiveTab('membros')
+      flashMsg(`Equipe "${name}" excluída.`)
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao excluir equipe.')
+    }
+  }
+
+  const handleLeaveTeam = async () => {
+    const name = currentTeam.name
+    try {
+      await deleteTeam(currentTeam.id)
+      setActiveTab('membros')
+      flashMsg(`Você saiu de "${name}".`)
+    } catch (e) {
+      flashMsg(e.message || 'Erro ao sair da equipe.')
+    }
+  }
+
+  const handleJoinByCode = async (e) => {
+    e.preventDefault()
+    if (!joinCode.trim()) return
+    setJoinLoading(true)
+    setJoinError('')
+    try {
+      const team = await joinTeam(joinCode.trim())
+      setJoinCode('')
+      flashMsg(`Você entrou em "${team.name}"!`)
+    } catch (e) {
+      setJoinError(e.message || 'Código inválido.')
+    } finally {
+      setJoinLoading(false)
+    }
+  }
+
+  // ── Estado de carregamento ──
+  if (loading) {
     return (
       <div className="eq-loading">
-        <p>Carregando equipe...</p>
+        <p>Carregando equipes...</p>
       </div>
     )
   }
 
+  // ── Sem equipes: tela de entrada ──
+  if (!currentTeam) {
+    return (
+      <motion.div
+        className="eq-empty"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="eq-empty__content">
+          <h2>Você ainda não faz parte de nenhuma equipe</h2>
+          <p>Crie uma nova equipe ou entre em uma existente com um código de convite.</p>
+
+          <div className="eq-empty__actions">
+            <button
+              className="eq-empty__btn eq-empty__btn--primary"
+              onClick={() => setShowCreateTeam(true)}
+            >
+              Criar equipe
+            </button>
+
+            <span className="eq-empty__divider">ou</span>
+
+            <form className="eq-empty__join" onSubmit={handleJoinByCode}>
+              <input
+                type="text"
+                placeholder="Código da equipe"
+                value={joinCode}
+                onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinError('') }}
+                maxLength={8}
+              />
+              <button type="submit" disabled={joinLoading || !joinCode.trim()}>
+                {joinLoading ? 'Entrando...' : 'Entrar'}
+              </button>
+              {joinError && <span className="eq-empty__error">{joinError}</span>}
+            </form>
+          </div>
+        </div>
+
+        <CreateTeamModal
+          isOpen={showCreateTeam}
+          onClose={() => setShowCreateTeam(false)}
+          onCreate={handleCreateTeam}
+        />
+      </motion.div>
+    )
+  }
+
+  // ── Com equipe selecionada ──
   return (
     <motion.div
       className="eq-page"
@@ -150,7 +285,7 @@ export default function Equipes() {
         active={activeTab}
         onChange={setActiveTab}
         counts={{ invites: invites.length }}
-        currentRole={currentTeam.role}
+        currentRole={currentTeam.role?.toLowerCase?.() || currentTeam.role}
       />
 
       <div className="eq-content">
@@ -165,7 +300,7 @@ export default function Equipes() {
             {activeTab === 'membros' && (
               <MembrosTab
                 members={members}
-                currentUserId={'u1'}
+                currentUserId={user?.id}
                 onRoleChange={handleRoleChange}
                 onRemove={handleRemove}
                 onInviteClick={() => setShowInvite(true)}
@@ -198,7 +333,7 @@ export default function Equipes() {
             {activeTab === 'configuracoes' && (
               <ConfiguracoesTab
                 team={currentTeam}
-                currentRole={currentTeam.role}
+                currentRole={currentTeam.role?.toLowerCase?.() || currentTeam.role}
                 onUpdate={handleUpdateTeam}
                 onDelete={handleDeleteTeam}
                 onLeave={handleLeaveTeam}
