@@ -254,7 +254,10 @@ export default function Composer() {
             return
           }
 
-          const isoDate = new Date(form.scheduledFor).toISOString().replace('Z', '')
+          // Envia o horário local diretamente — evita conversão UTC que deslocaria o fuso
+          const isoDate = form.scheduledFor.length === 16
+            ? form.scheduledFor + ':00'
+            : form.scheduledFor
           const fd = new FormData()
           fd.append('video', videoFile)
           fd.append('title', videoTitle)
