@@ -17,7 +17,6 @@ export default function IntegrationsCallback() {
   const username = params.get('username')
   const error = params.get('error')
   const [copied, setCopied] = useState(false)
-  const [countdown, setCountdown] = useState(3)
 
   const allParams = Object.fromEntries(params.entries())
   const success = !error && platform
@@ -36,17 +35,7 @@ export default function IntegrationsCallback() {
 
   useEffect(() => {
     if (!success) return
-    const interval = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) {
-          clearInterval(interval)
-          navigate('/dashboard/configuracoes?tab=redes', { replace: true })
-          return 0
-        }
-        return c - 1
-      })
-    }, 1000)
-    return () => clearInterval(interval)
+    navigate('/dashboard/configuracoes?tab=redes', { replace: true })
   }, [success, navigate])
 
   return (
@@ -88,21 +77,13 @@ export default function IntegrationsCallback() {
           </pre>
         </div>
 
-        <div className="cb-actions">
-          {success ? (
-            <>
-              <button className="cb-btn" onClick={() => navigate('/dashboard/configuracoes?tab=redes', { replace: true })}>
-                Ir para Redes ({countdown}s)
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="cb-btn" onClick={() => navigate('/dashboard/configuracoes?tab=redes', { replace: true })}>
-                Voltar para Redes
-              </button>
-            </>
-          )}
-        </div>
+        {!success && (
+          <div className="cb-actions">
+            <button className="cb-btn" onClick={() => navigate('/dashboard/configuracoes?tab=redes', { replace: true })}>
+              Voltar para Redes
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
