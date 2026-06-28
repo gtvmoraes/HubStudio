@@ -8,7 +8,7 @@ import { FaInstagram, FaTiktok, FaYoutube, FaFacebook, FaLinkedin } from 'react-
 import { FaXTwitter } from 'react-icons/fa6'
 import {
   getPostById, NETWORK_META, networkColor,
-  getContentTypeInsight, suggestHashtags, getBestTimeSlots,
+  getContentTypeInsight, getBestTimeSlots,
   getSocialAccounts,
 } from '../../../services/posts'
 import { API_BASE } from '../../../services/api'
@@ -328,10 +328,9 @@ export default function Composer() {
   const activeNeedsTitle = activeNetwork ? typeNeedsTitle(activeNetwork, activeType) : false
 
   // Pré-requisitos das ferramentas de IA do conteúdo
-  const activeHasMedia = form.media.length > 0
+  const activeHasContent = (activeContent?.content?.trim().length || 0) > 0
   const activeHasTitle = (activeContent?.title?.trim().length || 0) > 0
-  const canGenCaption = activeHasMedia || activeHasTitle   // legenda: mídia OU título
-  const canHashtags = activeHasMedia                       // hashtags: precisa de mídia
+  const canHashtags = activeHasContent || activeHasTitle   // hashtags: precisa de conteúdo ou título
 
   // IA — abre o modal de ideia; depois chama o endpoint Groq via backend
   const handleGenerateCaption = () => {
@@ -367,24 +366,39 @@ export default function Composer() {
     setTimeout(() => setFeedback(''), 2000)
   }
 
-  // IA — anexa hashtags sugeridas ao final da legenda
+  // IA — sugere hashtags via Groq e anexa ao final da legenda
   const handleSuggestHashtags = async () => {
     if (!activeNetwork || aiBusy) return
     setAiBusy('hashtags')
     setFeedback('')
     try {
-      const tags = await suggestHashtags({
-        networkId: activeNetwork,
-        content: activeContent?.content || '',
-        title: activeContent?.title || '',
+      const token = localStorage.getItem('hs-token')
+      const res = await fetch(`${API_BASE}/ai/suggest-hashtags`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          networkId: activeNetwork,
+          content: activeContent?.content || '',
+          title: activeContent?.title || '',
+        }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || `Erro ${res.status}`)
+      }
+      const { hashtags } = await res.json()
       const existing = (activeContent?.content || '').trimEnd()
-      const block = (existing ? existing + '\n\n' : '') + tags.join(' ')
+      const block = (existing ? existing + '\n\n' : '') + hashtags.join(' ')
       updateNetworkField(activeNetwork, 'content', block.slice(0, activeMeta?.maxChars || 5000))
       setFeedback('Hashtags adicionadas!')
+    } catch (err) {
+      setFeedback(`Erro: ${err.message}`)
     } finally {
       setAiBusy(null)
-      setTimeout(() => setFeedback(''), 1800)
+      setTimeout(() => setFeedback(''), 2000)
     }
   }
 
@@ -574,8 +588,8 @@ export default function Composer() {
                       onClick={handleSuggestHashtags}
                       disabled={!canHashtags || aiBusy !== null}
                       title={canHashtags
-                        ? 'Sugerir as melhores hashtags pro seu conteúdo'
-                        : 'Adicione uma mídia primeiro'}
+                        ? 'Sugerir hashtags com IA baseadas no seu conteúdo'
+                        : 'Escreva a legenda ou título primeiro'}
                     >
                       {aiBusy === 'hashtags'
                         ? <LuLoaderCircle size={14} className="composer__ai-spin" />
