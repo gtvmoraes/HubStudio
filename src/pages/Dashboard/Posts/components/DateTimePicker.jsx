@@ -14,6 +14,8 @@ const TIME_PRESETS = [
   { label: '20:00', h: 20, m: 0  },
 ]
 
+const MIN_AHEAD_MS = 5 * 60 * 1000   // 5 minutos em ms
+
 const pad = (n) => String(n).padStart(2, '0')
 
 // Converte "YYYY-MM-DDTHH:MM" → Date local (sem timezone shift)
@@ -104,6 +106,19 @@ export default function DateTimePicker({
     view.year === selected.getFullYear() &&
     view.month === selected.getMonth() &&
     day === selected.getDate()
+
+  // Dias anteriores a hoje não podem ser selecionados
+  const isPastDay = (day) => {
+    if (!day) return false
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    return new Date(view.year, view.month, day) < todayMidnight
+  }
+
+  // True quando a data+hora selecionada está a menos de 5 min do momento atual
+  const tooSoon = useMemo(() => {
+    if (!selected) return false
+    return selected < new Date(today.getTime() + MIN_AHEAD_MS)
+  }, [selected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const goPrev = () => setView(v => {
     const m = v.month - 1
@@ -237,21 +252,25 @@ export default function DateTimePicker({
 
               {/* Grid */}
               <div className="dtpicker__grid">
-                {cells.map((day, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={!day}
-                    className={`dtpicker__day
-                      ${isToday(day) ? 'dtpicker__day--today' : ''}
-                      ${isSelected(day) ? 'dtpicker__day--selected' : ''}
-                      ${!day ? 'dtpicker__day--empty' : ''}
-                    `}
-                    onClick={() => day && applyDate(day)}
-                  >
-                    {day || ''}
-                  </button>
-                ))}
+                {cells.map((day, i) => {
+                  const past = isPastDay(day)
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={!day || past}
+                      className={`dtpicker__day
+                        ${isToday(day) ? 'dtpicker__day--today' : ''}
+                        ${isSelected(day) ? 'dtpicker__day--selected' : ''}
+                        ${past ? 'dtpicker__day--past' : ''}
+                        ${!day ? 'dtpicker__day--empty' : ''}
+                      `}
+                      onClick={() => day && !past && applyDate(day)}
+                    >
+                      {day || ''}
+                    </button>
+                  )
+                })}
               </div>
             </>
           )}
@@ -329,6 +348,13 @@ export default function DateTimePicker({
             )}
           </div>
 
+          {/* Aviso de antecedência mínima */}
+          {tooSoon && (
+            <p className="dtpicker__warn">
+              O agendamento deve ter no mínimo 5 minutos de antecedência.
+            </p>
+          )}
+
           {/* Footer */}
           <div className="dtpicker__footer">
             <button type="button" className="dtpicker__today-btn" onClick={goToday}>
@@ -337,6 +363,7 @@ export default function DateTimePicker({
             <button
               type="button"
               className="dtpicker__confirm"
+              disabled={tooSoon}
               onClick={() => setOpen(false)}
             >
               Confirmar

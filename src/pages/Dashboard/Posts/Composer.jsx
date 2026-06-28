@@ -187,6 +187,13 @@ export default function Composer() {
   const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle)
   const hasAnyContent = validationByNetwork.some(v => v.hasContent)
 
+  // Garante pelo menos 5 minutos de antecedência no agendamento
+  const scheduledTooSoon = useMemo(() => {
+    if (!form.scheduledFor) return false
+    const chosen = new Date(form.scheduledFor)
+    return chosen < new Date(Date.now() + 5 * 60 * 1000)
+  }, [form.scheduledFor])
+
   const xhrUpload = (endpoint, formData, onProgress) =>
     new Promise((resolve, reject) => {
       const token = localStorage.getItem('hs-token')
@@ -657,7 +664,7 @@ export default function Composer() {
           type="button"
           className="composer__btn composer__btn--primary"
           onClick={() => handleSave('scheduled')}
-          disabled={loading || !canSubmit || !form.scheduledFor}
+          disabled={loading || !canSubmit || !form.scheduledFor || scheduledTooSoon}
         >
           <LuCalendarClock size={15} /> Agendar
         </button>

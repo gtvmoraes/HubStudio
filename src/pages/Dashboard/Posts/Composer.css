@@ -724,6 +724,11 @@
   font-weight: 700;
   color: var(--color-primary);
 }
+.dtpicker__day--past {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 .dtpicker__day--selected {
   background: var(--color-primary) !important;
   color: #fff !important;
@@ -836,7 +841,18 @@
   font-family: var(--font-family);
   transition: background var(--transition-fast);
 }
-.dtpicker__confirm:hover { background: var(--color-primary-hover); }
+.dtpicker__confirm:hover:not(:disabled) { background: var(--color-primary-hover); }
+.dtpicker__confirm:disabled { background: var(--color-text-muted); cursor: not-allowed; opacity: 0.6; }
+.dtpicker__warn {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: #92400e;
+  line-height: 1.4;
+}
 
 /* ════════════════════════════════════════════════════════════
    IA — insight de formato (card 2), ferramentas de legenda (card 3),
