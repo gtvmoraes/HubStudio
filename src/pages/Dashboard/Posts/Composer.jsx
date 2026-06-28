@@ -31,8 +31,8 @@ const NETWORK_ICONS = {
 
 const NETWORK_IDS = ['instagram', 'tiktok', 'youtube', 'facebook', 'linkedin', 'twitter']
 
-// Estrutura padrão pra conteúdo de uma rede
-const emptyNetworkContent = () => ({ title: '', content: '', media: [] })
+// Estrutura padrão pra conteúdo de uma rede (mídia é compartilhada em form.media)
+const emptyNetworkContent = () => ({ title: '', content: '' })
 
 // Verifica se a rede/tipo selecionado exige título
 function typeNeedsTitle(networkId, typeId) {
@@ -56,7 +56,8 @@ export default function Composer() {
   const [form, setForm] = useState({
     networks: [],
     typesByNetwork: {},
-    contentByNetwork: {},  // { instagram: { title, content, media }, ... }
+    contentByNetwork: {},  // { instagram: { title, content }, ... }
+    media: [],             // mídia única compartilhada entre todas as redes
     scheduledFor: initialDate,
   })
 
@@ -83,13 +84,13 @@ export default function Composer() {
           contentByNetwork[n] = {
             title: post.title || '',
             content: post.content || '',
-            media: [],
           }
         })
         setForm({
           networks: post.networks || [],
           typesByNetwork,
           contentByNetwork,
+          media: [],
           scheduledFor: post.scheduledFor ? post.scheduledFor.slice(0, 16) : '',
         })
         if (post.networks?.[0]) setActiveNetwork(post.networks[0])
@@ -158,7 +159,6 @@ export default function Composer() {
           next[n] = {
             title: source.title,
             content: source.content.slice(0, NETWORK_META[n]?.maxChars || 5000),
-            media: source.media,
           }
         }
       })
@@ -228,16 +228,18 @@ export default function Composer() {
       // Todas as redes de vídeo selecionadas — independente de qual aba tem o arquivo
       const videoNetworks = form.networks.filter(n => n === 'tiktok' || n === 'youtube')
 
-      // Busca o arquivo de vídeo em qualquer aba (não só na aba da rede em questão)
+      // Busca o arquivo de vídeo na mídia compartilhada
       let videoFile = null
       let videoTitle = ''
-      for (const n of form.networks) {
-        const item = (form.contentByNetwork[n]?.media || []).find(m => m.type === 'video' && m.file)
-        if (item) {
-          videoFile = item.file
+      const videoItem = form.media.find(m => m.type === 'video' && m.file)
+      if (videoItem) {
+        videoFile = videoItem.file
+        for (const n of videoNetworks) {
           const c = form.contentByNetwork[n]
-          videoTitle = c.title || c.content.slice(0, 60)
-          break
+          if (c?.title || c?.content) {
+            videoTitle = c.title || c.content.slice(0, 60)
+            break
+          }
         }
       }
 
@@ -287,9 +289,9 @@ export default function Composer() {
     }
 
     if (status === 'scheduled' && token && !form.scheduledFor) {
-      const hasVideoNetwork = form.networks.some(n => (n === 'tiktok' || n === 'youtube') &&
-        (form.contentByNetwork[n]?.media || []).some(m => m.type === 'video' && m.file))
-      if (hasVideoNetwork) {
+      const hasVideoNetwork = form.networks.some(n => n === 'tiktok' || n === 'youtube')
+      const hasVideoFile = form.media.some(m => m.type === 'video' && m.file)
+      if (hasVideoNetwork && hasVideoFile) {
         setFeedback('Defina a data e hora antes de agendar.')
         setLoading(false)
         return
@@ -324,7 +326,7 @@ export default function Composer() {
   const activeNeedsTitle = activeNetwork ? typeNeedsTitle(activeNetwork, activeType) : false
 
   // Pré-requisitos das ferramentas de IA do conteúdo
-  const activeHasMedia = (activeContent?.media?.length || 0) > 0
+  const activeHasMedia = form.media.length > 0
   const activeHasTitle = (activeContent?.title?.trim().length || 0) > 0
   const canGenCaption = activeHasMedia || activeHasTitle   // legenda: mídia OU título
   const canHashtags = activeHasMedia                       // hashtags: precisa de mídia
@@ -582,25 +584,34 @@ export default function Composer() {
                   </span>
                 </div>
 
-                {/* Mídia por rede */}
-                <div className="composer__field">
-                  <label>
-                    <LuImage size={14} /> Mídia pro {activeMeta?.label}
-                  </label>
-                  <MediaUploader
-                    media={activeContent.media}
-                    onChange={(media) => updateNetworkField(activeNetwork, 'media', media)}
-                  />
-                </div>
               </div>
             </div>
           )}
 
-          {/* PASSO 4 — Agendamento (global) */}
+          {/* PASSO 4 — Mídia compartilhada entre todas as redes */}
           {hasNetworks && (
             <div className="composer__step">
               <div className="composer__step-head">
                 <span className="composer__step-num">4</span>
+                <h3>
+                  <LuImage size={16} /> Mídia da publicação
+                </h3>
+              </div>
+              <p className="composer__hint">
+                Imagens e vídeos enviados aqui serão usados em todas as redes selecionadas.
+              </p>
+              <MediaUploader
+                media={form.media}
+                onChange={(media) => setForm(f => ({ ...f, media }))}
+              />
+            </div>
+          )}
+
+          {/* PASSO 5 — Agendamento (global) */}
+          {hasNetworks && (
+            <div className="composer__step">
+              <div className="composer__step-head">
+                <span className="composer__step-num">5</span>
                 <h3>Quando publicar?</h3>
               </div>
               <div className="composer__field">
