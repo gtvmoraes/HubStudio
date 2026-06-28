@@ -9,7 +9,9 @@ import { FaXTwitter } from 'react-icons/fa6'
 import {
   getPostById, NETWORK_META, networkColor,
   getContentTypeInsight, generateCaption, suggestHashtags, getBestTimeSlots,
+  getSocialAccounts,
 } from '../../../services/posts'
+import { API_BASE } from '../../../services/api'
 import { showToast } from '../../../components/Toast'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTheme } from '../../../contexts/ThemeContext'
@@ -64,6 +66,7 @@ export default function Composer() {
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [aiBusy, setAiBusy] = useState(null)   // 'caption' | 'hashtags' | null
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   // Carrega o post quando estamos em modo edição
   useEffect(() => {
@@ -184,10 +187,107 @@ export default function Composer() {
   const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle)
   const hasAnyContent = validationByNetwork.some(v => v.hasContent)
 
-  // Salva o post (mock)
+  const xhrUpload = (endpoint, formData, onProgress) =>
+    new Promise((resolve, reject) => {
+      const token = localStorage.getItem('hs-token')
+      const xhr = new XMLHttpRequest()
+      xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+      })
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)) } catch { resolve({}) }
+        } else {
+          try {
+            const d = JSON.parse(xhr.responseText)
+            reject(new Error(d.message || d.detail || `Erro HTTP ${xhr.status}`))
+          } catch { reject(new Error(`Erro HTTP ${xhr.status}`)) }
+        }
+      })
+      xhr.addEventListener('error', () => reject(new Error('Erro de rede ao enviar vídeo')))
+      xhr.open('POST', `${API_BASE}${endpoint}`)
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.send(formData)
+    })
+
   const handleSave = async (status) => {
     setLoading(true)
     setFeedback('')
+    setUploadProgress(0)
+
+    const token = localStorage.getItem('hs-token')
+
+    if (status === 'scheduled' && token && form.scheduledFor) {
+      const videoNetworks = form.networks.filter(n => {
+        if (n !== 'tiktok' && n !== 'youtube') return false
+        return (form.contentByNetwork[n]?.media || []).some(m => m.type === 'video' && m.file)
+      })
+
+      if (videoNetworks.length > 0) {
+        try {
+          const accounts = await getSocialAccounts()
+          const matchingIds = accounts
+            .filter(a => videoNetworks.includes((a.platform || '').toLowerCase()))
+            .map(a => a.id)
+
+          if (matchingIds.length === 0) {
+            setFeedback('Nenhuma conta TikTok/YouTube conectada. Vá em Configurações > Redes.')
+            setLoading(false)
+            return
+          }
+
+          let videoFile = null
+          let videoTitle = ''
+          for (const n of videoNetworks) {
+            const item = (form.contentByNetwork[n]?.media || []).find(m => m.type === 'video' && m.file)
+            if (item) {
+              videoFile = item.file
+              const c = form.contentByNetwork[n]
+              videoTitle = c.title || c.content.slice(0, 60)
+              break
+            }
+          }
+
+          const isoDate = new Date(form.scheduledFor).toISOString().replace('Z', '')
+          const fd = new FormData()
+          fd.append('video', videoFile)
+          fd.append('title', videoTitle)
+          fd.append('scheduledAt', isoDate)
+          matchingIds.forEach(id => fd.append('socialAccountIds', id))
+
+          setFeedback('Enviando vídeo…')
+          await xhrUpload('/posts/schedule/video', fd, pct => {
+            setUploadProgress(pct)
+            setFeedback(pct < 100 ? `Enviando vídeo… ${pct}%` : 'Registrando agendamento…')
+          })
+
+          showToast({
+            type: 'success',
+            title: 'Post agendado com sucesso',
+            message: `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`,
+          })
+          setTimeout(() => navigate('/dashboard/posts'), 700)
+          setLoading(false)
+          return
+        } catch (err) {
+          setFeedback(`Erro ao agendar: ${err.message}`)
+          setLoading(false)
+          return
+        }
+      }
+    }
+
+    if (status === 'scheduled' && token && !form.scheduledFor) {
+      const hasVideoNetwork = form.networks.some(n => (n === 'tiktok' || n === 'youtube') &&
+        (form.contentByNetwork[n]?.media || []).some(m => m.type === 'video' && m.file))
+      if (hasVideoNetwork) {
+        setFeedback('Defina a data e hora antes de agendar.')
+        setLoading(false)
+        return
+      }
+    }
+
+    // Fallback mock (rascunho, aprovação, ou sem arquivo de vídeo)
     await new Promise(r => setTimeout(r, 600))
     setLoading(false)
     const msg = {
@@ -529,6 +629,11 @@ export default function Composer() {
       {/* Barra fixa de ações */}
       <div className="composer__actions">
         {feedback && <span className="composer__feedback">{feedback}</span>}
+        {loading && uploadProgress > 0 && uploadProgress < 100 && (
+          <div className="composer__upload-bar">
+            <div className="composer__upload-fill" style={{ width: `${uploadProgress}%` }} />
+          </div>
+        )}
 
         <button
           type="button"

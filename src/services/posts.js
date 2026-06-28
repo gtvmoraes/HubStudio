@@ -1,6 +1,16 @@
 import { LuMessageSquare, LuChartBar, LuHash } from 'react-icons/lu'
 import { authFetch } from './api'
 
+export const getSocialAccounts = async () => {
+  const token = localStorage.getItem('hs-token')
+  if (!token) return []
+  try {
+    const res = await authFetch('/social/accounts')
+    if (!res.ok) return []
+    return await res.json()
+  } catch { return [] }
+}
+
 export const getTopPosts = () => Promise.resolve([
   { id: 1, title: '5 dicas para aumentar seu engajamento', date: '18 de maio de 2026', views: '12.4K', likes: '1.3K', comments: '2.6K' },
   { id: 2, title: 'Seus Reels alcançaram 2 do nada',       date: '15 de maio de 2026', views: '9.8K',  likes: '872',  comments: '1.9K' },

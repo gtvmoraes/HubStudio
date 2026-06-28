@@ -947,6 +947,23 @@
   color: var(--color-text-muted);
 }
 
+/* Upload progress bar (scheduling via API) */
+.composer__upload-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 80px;
+  max-width: 200px;
+}
+.composer__upload-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
 @media (max-width: 1100px) {
   .composer__layout { grid-template-columns: 1fr; }
   .composer__preview-wrap {
