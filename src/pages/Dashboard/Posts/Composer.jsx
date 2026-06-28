@@ -560,10 +560,8 @@ export default function Composer() {
                       type="button"
                       className="composer__ai-btn"
                       onClick={handleGenerateCaption}
-                      disabled={!canGenCaption || aiBusy !== null}
-                      title={canGenCaption
-                        ? 'Gerar uma legenda ideal com IA a partir do seu conteúdo'
-                        : 'Adicione uma mídia ou um título primeiro'}
+                      disabled={aiBusy !== null}
+                      title="Gerar uma legenda com IA"
                     >
                       {aiBusy === 'caption'
                         ? <LuLoaderCircle size={14} className="composer__ai-spin" />
