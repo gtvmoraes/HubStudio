@@ -409,6 +409,140 @@
 .set-security p { font-size: var(--font-size-xs); color: rgba(255,255,255,0.78); line-height: 1.6; }
 
 /* ─────────────────────────────────────────────────────────
+   PAINEL DE TOKENS
+   ───────────────────────────────────────────────────────── */
+.set-tokens {
+  margin-top: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.set-tokens__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  gap: 12px;
+}
+.set-tokens__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+  flex-wrap: wrap;
+}
+.set-tokens__title strong { font-size: 0.875rem; }
+.set-tokens__subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+.set-tokens__refresh-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-family);
+  transition: background var(--transition-fast);
+}
+.set-tokens__refresh-all:hover:not(:disabled) { background: var(--color-bg-tertiary); }
+.set-tokens__refresh-all:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.set-tokens__table { width: 100%; }
+.set-tokens__row {
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 1.2fr 1.4fr 0.8fr 90px;
+  align-items: center;
+  padding: 11px 18px;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8rem;
+}
+.set-tokens__row:last-child { border-bottom: none; }
+.set-tokens__row--header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+}
+.set-tokens__row--expired  { background: #fef2f210; }
+.set-tokens__row--critical { background: #fff7ed10; }
+
+.set-tokens__platform {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.set-tokens__expiry {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+.set-tokens__expiry--ok       { color: var(--color-success); }
+.set-tokens__expiry--warning  { color: #f59e0b; }
+.set-tokens__expiry--critical { color: #ef4444; }
+.set-tokens__expiry--expired  { color: #dc2626; }
+.set-tokens__expiry--unknown  { color: var(--color-text-muted); }
+
+.set-tokens__refresh-status { color: var(--color-text-secondary); }
+.set-tokens__refresh-status--none { color: var(--color-text-muted); font-style: italic; }
+.set-tokens__updated { color: var(--color-text-muted); font-size: 0.75rem; }
+
+.set-tokens__badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.set-tokens__badge--ok       { background: #d1fae5; color: #065f46; }
+.set-tokens__badge--warning  { background: #fef3c7; color: #92400e; }
+.set-tokens__badge--critical { background: #fee2e2; color: #991b1b; }
+.set-tokens__badge--expired  { background: #fecaca; color: #7f1d1d; }
+.set-tokens__badge--unknown  { background: var(--color-bg-tertiary); color: var(--color-text-muted); }
+
+.set-tokens__btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: background var(--transition-fast);
+}
+.set-tokens__btn:hover:not(:disabled) { background: var(--color-bg-tertiary); }
+.set-tokens__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 768px) {
+  .set-tokens__row { grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 14px; }
+  .set-tokens__row--header { display: none; }
+  .set-tokens__updated { display: none; }
+}
+
+/* ─────────────────────────────────────────────────────────
    NOTIFICAÇÕES
    ───────────────────────────────────────────────────────── */
 .set-notif__legend {

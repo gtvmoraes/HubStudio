@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   LuShieldCheck, LuCircleCheck, LuCircleAlert, LuWifiOff,
-  LuCheck, LuLock, LuRefreshCw, LuLoader, LuUnplug,
+  LuCheck, LuLock, LuRefreshCw, LuLoader, LuUnplug, LuKey,
+  LuClockAlert, LuCircleX,
 } from 'react-icons/lu'
 import { FaInstagram, FaTiktok, FaYoutube, FaFacebook, FaLinkedin } from 'react-icons/fa'
 import Button from '../../../../components/Button/Button'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { networkColor } from '../../../../services/posts'
-import { authFetch, API_BASE } from '../../../../services/api'
+import { authFetch } from '../../../../services/api'
 import { useTheme } from '../../../../contexts/ThemeContext'
 
 const ALL_PLATFORMS = [
@@ -35,8 +36,10 @@ export default function RedesTab() {
   const { theme } = useTheme()
   const [accounts, setAccounts] = useState([])   // dados da API
   const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState(null)   // platform id em progresso
+  const [connecting, setConnecting] = useState(null)     // platform id em progresso
   const [disconnecting, setDisconnecting] = useState(null) // account id em progresso
+  const [refreshing, setRefreshing] = useState(null)     // account id sendo renovado
+  const [refreshAll, setRefreshAll] = useState(false)
   const [error, setError] = useState('')
 
   const fetchAccounts = useCallback(async () => {
@@ -122,6 +125,40 @@ export default function RedesTab() {
     } finally {
       setDisconnecting(null)
     }
+  }
+
+  const handleRefreshToken = async (accountId) => {
+    setRefreshing(accountId)
+    setError('')
+    try {
+      const res = await authFetch(`/social/accounts/${accountId}/refresh`, { method: 'POST' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.message || `Erro ${res.status}`)
+      }
+      const updated = await res.json()
+      setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, ...updated } : a))
+    } catch (e) {
+      setError(`Erro ao renovar token: ${e.message}`)
+    } finally {
+      setRefreshing(null)
+    }
+  }
+
+  const handleRefreshAll = async () => {
+    setRefreshAll(true)
+    setError('')
+    const connected = accounts.filter(a => a.status === 'connected' || a.status === 'expired')
+    for (const acc of connected) {
+      try {
+        const res = await authFetch(`/social/accounts/${acc.id}/refresh`, { method: 'POST' })
+        if (res.ok) {
+          const updated = await res.json()
+          setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, ...updated } : a))
+        }
+      } catch { /* continua para as demais */ }
+    }
+    setRefreshAll(false)
   }
 
   const isAuthenticated = Boolean(localStorage.getItem('hs-token'))
@@ -223,6 +260,123 @@ export default function RedesTab() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Painel de tokens ── */}
+      {accounts.length > 0 && (
+        <div className="set-tokens">
+          <div className="set-tokens__head">
+            <div className="set-tokens__title">
+              <LuKey size={16} />
+              <strong>Status dos tokens</strong>
+              <span className="set-tokens__subtitle">Renovação automática a cada 15 min — use o botão para forçar agora</span>
+            </div>
+            <button
+              type="button"
+              className="set-tokens__refresh-all"
+              onClick={handleRefreshAll}
+              disabled={refreshAll}
+            >
+              {refreshAll
+                ? <LuLoader size={13} className="spin" />
+                : <LuRefreshCw size={13} />}
+              Renovar todos
+            </button>
+          </div>
+
+          <div className="set-tokens__table">
+            <div className="set-tokens__row set-tokens__row--header">
+              <span>Plataforma</span>
+              <span>Token expira em</span>
+              <span>Refresh token</span>
+              <span>Última renovação</span>
+              <span>Status</span>
+              <span></span>
+            </div>
+
+            {accounts.map(acc => {
+              const Icon = { instagram: FaInstagram, tiktok: FaTiktok, youtube: FaYoutube, facebook: FaFacebook, linkedin: FaLinkedin }[acc.platform]
+              const color = networkColor(acc.platform, theme)
+              const now = new Date()
+              const expiresAt = acc.tokenExpiresAt ? new Date(acc.tokenExpiresAt) : null
+              const msLeft = expiresAt ? expiresAt - now : null
+              const daysLeft = msLeft !== null ? Math.ceil(msLeft / 86400000) : null
+              const hoursLeft = msLeft !== null ? Math.ceil(msLeft / 3600000) : null
+
+              let tokenHealth = 'ok'
+              let expiryLabel = '—'
+              if (expiresAt === null) {
+                tokenHealth = 'unknown'
+                expiryLabel = 'Sem expiração'
+              } else if (msLeft < 0) {
+                tokenHealth = 'expired'
+                expiryLabel = 'Expirado'
+              } else if (daysLeft <= 1) {
+                tokenHealth = 'critical'
+                expiryLabel = hoursLeft <= 1 ? '< 1h' : `${hoursLeft}h`
+              } else if (daysLeft <= 7) {
+                tokenHealth = 'warning'
+                expiryLabel = `${daysLeft} dias`
+              } else {
+                expiryLabel = `${daysLeft} dias`
+              }
+
+              const refreshExpires = acc.refreshTokenExpiresAt ? new Date(acc.refreshTokenExpiresAt) : null
+              const refreshDays = refreshExpires ? Math.ceil((refreshExpires - now) / 86400000) : null
+              const refreshLabel = acc.hasRefreshToken
+                ? (refreshDays !== null ? (refreshDays > 0 ? `${refreshDays}d` : 'Expirado') : 'Disponível')
+                : 'Indisponível'
+
+              const updatedAt = acc.updatedAt ? new Date(acc.updatedAt) : null
+              const updatedLabel = updatedAt
+                ? updatedAt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                : '—'
+
+              const isRefreshing = refreshing === acc.id
+
+              return (
+                <div key={acc.id} className={`set-tokens__row set-tokens__row--${tokenHealth}`}>
+                  <span className="set-tokens__platform">
+                    {Icon && <Icon size={14} style={{ color }} />}
+                    {acc.username || acc.platform}
+                  </span>
+                  <span className={`set-tokens__expiry set-tokens__expiry--${tokenHealth}`}>
+                    {tokenHealth === 'expired' && <LuCircleX size={13} />}
+                    {tokenHealth === 'critical' && <LuClockAlert size={13} />}
+                    {tokenHealth === 'warning' && <LuCircleAlert size={13} />}
+                    {(tokenHealth === 'ok' || tokenHealth === 'unknown') && <LuCircleCheck size={13} />}
+                    {expiryLabel}
+                  </span>
+                  <span className={`set-tokens__refresh-status ${!acc.hasRefreshToken ? 'set-tokens__refresh-status--none' : ''}`}>
+                    {refreshLabel}
+                  </span>
+                  <span className="set-tokens__updated">{updatedLabel}</span>
+                  <span className={`set-tokens__badge set-tokens__badge--${tokenHealth}`}>
+                    {tokenHealth === 'expired' ? 'Expirado'
+                      : tokenHealth === 'critical' ? 'Crítico'
+                      : tokenHealth === 'warning' ? 'Atenção'
+                      : tokenHealth === 'unknown' ? 'Sem data'
+                      : 'OK'}
+                  </span>
+                  <span>
+                    <button
+                      type="button"
+                      className="set-tokens__btn"
+                      onClick={() => handleRefreshToken(acc.id)}
+                      disabled={isRefreshing || refreshAll}
+                      title="Forçar renovação do token agora"
+                    >
+                      {isRefreshing
+                        ? <LuLoader size={12} className="spin" />
+                        : <LuRefreshCw size={12} />}
+                      Renovar
+                    </button>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="set-net-bottom">
         <div className="set-card set-perms">
