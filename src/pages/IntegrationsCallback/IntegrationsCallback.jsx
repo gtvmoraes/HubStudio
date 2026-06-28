@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import './IntegrationsCallback.css'
 
 const PLATFORM_LABELS = {
@@ -12,10 +12,12 @@ const PLATFORM_LABELS = {
 
 export default function IntegrationsCallback() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const platform = params.get('platform')
   const username = params.get('username')
   const error = params.get('error')
   const [copied, setCopied] = useState(false)
+  const [countdown, setCountdown] = useState(3)
 
   const allParams = Object.fromEntries(params.entries())
   const success = !error && platform
@@ -31,6 +33,21 @@ export default function IntegrationsCallback() {
       ? `✓ ${PLATFORM_LABELS[platform] ?? platform} conectado`
       : '✗ Erro no callback'
   }, [success, platform])
+
+  useEffect(() => {
+    if (!success) return
+    const interval = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) {
+          clearInterval(interval)
+          navigate('/dashboard/configuracoes?tab=redes', { replace: true })
+          return 0
+        }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [success, navigate])
 
   return (
     <div className="cb-root">
@@ -72,12 +89,19 @@ export default function IntegrationsCallback() {
         </div>
 
         <div className="cb-actions">
-          <button className="cb-btn" onClick={() => window.close()}>
-            Fechar aba
-          </button>
-          <button className="cb-btn ghost" onClick={() => window.location.href = '/dev/tiktok'}>
-            Voltar ao teste
-          </button>
+          {success ? (
+            <>
+              <button className="cb-btn" onClick={() => navigate('/dashboard/configuracoes?tab=redes', { replace: true })}>
+                Ir para Redes ({countdown}s)
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="cb-btn" onClick={() => navigate('/dashboard/configuracoes?tab=redes', { replace: true })}>
+                Voltar para Redes
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
