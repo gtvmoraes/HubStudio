@@ -42,13 +42,20 @@ export default function RedesTab() {
   const fetchAccounts = useCallback(async () => {
     setLoading(true)
     setError('')
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 12000)
     try {
-      const res = await authFetch('/social/accounts')
+      const res = await authFetch('/social/accounts', { signal: controller.signal })
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       setAccounts(await res.json())
     } catch (e) {
-      setError('Não foi possível carregar as contas. Verifique sua sessão.')
+      if (e.name === 'AbortError') {
+        setError('Tempo limite excedido. Verifique sua conexão e tente novamente.')
+      } else {
+        setError('Não foi possível carregar as contas. Verifique sua sessão.')
+      }
     } finally {
+      clearTimeout(timeoutId)
       setLoading(false)
     }
   }, [])
@@ -197,7 +204,7 @@ export default function RedesTab() {
                     size="sm"
                     fullWidth
                     onClick={() => handleConnect(id)}
-                    disabled={isBusy || loading || !isAuthenticated}
+                    disabled={isBusy || !isAuthenticated}
                   >
                     {status === 'expired' ? 'Reconectar' : 'Conectar'}
                   </Button>
