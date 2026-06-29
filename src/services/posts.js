@@ -320,6 +320,41 @@ export const NETWORK_META = {
   },
 }
 
+/**
+ * Formatos de imagem aceitos por plataforma/tipo.
+ * null  = o tipo só aceita vídeo (sem upload de imagem)
+ * array = lista de MIME types permitidos
+ * key ausente = sem restrição de formato
+ */
+export const PLATFORM_IMAGE_TYPES = {
+  tiktok: {
+    photo: ['image/jpeg', 'image/webp'],
+    video: null,
+  },
+  instagram: {
+    feed:     ['image/jpeg', 'image/png'],
+    carousel: ['image/jpeg', 'image/png'],
+    story:    ['image/jpeg', 'image/png'],
+    reel:     null,
+  },
+  youtube: {
+    video:  null,
+    shorts: null,
+  },
+  facebook: {
+    post: ['image/jpeg', 'image/png', 'image/gif'],
+    reel: null,
+  },
+  linkedin: {
+    post:    ['image/jpeg', 'image/png', 'image/gif'],
+    article: ['image/jpeg', 'image/png', 'image/gif'],
+  },
+  twitter: {
+    tweet:  ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    thread: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  },
+}
+
 // Helper — cor da rede ajustada ao tema (preto vira claro no modo escuro)
 export const networkColor = (id, theme) => {
   const meta = NETWORK_META[id]

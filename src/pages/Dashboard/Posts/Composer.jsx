@@ -9,7 +9,7 @@ import { FaXTwitter } from 'react-icons/fa6'
 import {
   getPostById, NETWORK_META, networkColor,
   getContentTypeInsight, getBestTimeSlots,
-  getSocialAccounts,
+  getSocialAccounts, PLATFORM_IMAGE_TYPES,
 } from '../../../services/posts'
 import { API_BASE } from '../../../services/api'
 import { showToast } from '../../../components/Toast'
@@ -100,24 +100,87 @@ export default function Composer() {
     })
   }, [id])
 
-  // Verifica incompatibilidade ao adicionar uma nova rede.
-  // Retorna null (compatível) ou string com o motivo do bloqueio.
+  // Retorna a orientação do tipo selecionado de uma rede ('vertical' | 'horizontal' | 'square')
+  const getTypeOrientation = (networkId, typeId) => {
+    const meta = NETWORK_META[networkId]
+    return meta?.types.find(t => t.id === typeId)?.orientation || 'square'
+  }
+
+  // Retorna true se o tipo aceita apenas vídeo (sem upload de imagem)
+  const isVideoOnly = (networkId, typeId) =>
+    PLATFORM_IMAGE_TYPES[networkId]?.[typeId] === null
+
+  // Dado o conjunto atual de redes, retorna o tipo mais compatível para uma nova rede candidata.
+  // Prioriza manter a orientação da sessão atual.
+  const bestTypeForNetwork = (candidateId, networks, typesByNetwork) => {
+    const meta = NETWORK_META[candidateId]
+    if (!meta) return undefined
+
+    // Orientações já em uso na sessão
+    const sessionOrientations = new Set(
+      networks.map(n => getTypeOrientation(n, typesByNetwork[n]))
+    )
+    // Verifica se a sessão é de imagem (algum tipo selecionado é image-only / não-vídeo)
+    const sessionHasImageType = networks.some(n => !isVideoOnly(n, typesByNetwork[n]) && PLATFORM_IMAGE_TYPES[n]?.[typesByNetwork[n]] !== undefined)
+
+    // Prefere tipo com orientação já usada na sessão (vertical > horizontal > square)
+    for (const orientation of ['vertical', 'horizontal', 'square']) {
+      if (sessionOrientations.has(orientation)) {
+        const match = meta.types.find(t => t.orientation === orientation)
+        if (match) return match.id
+      }
+    }
+    return meta.types[0]?.id
+  }
+
+  // Retorna a razão de incompatibilidade ao tentar adicionar `candidateId`.
+  // null = compatível.
   const getIncompatibilityReason = (candidateId, networks, typesByNetwork) => {
+    const candidateMeta = NETWORK_META[candidateId]
+    if (!candidateMeta) return null
+
     for (const existingId of networks) {
       const existingType = typesByNetwork[existingId]
-      // TikTok foto bloqueia YouTube (YouTube só aceita vídeo)
-      if (existingId === 'tiktok' && existingType === 'photo' && candidateId === 'youtube') {
-        return 'TikTok Foto não é compatível com YouTube (plataforma de vídeo)'
+      const existingOrientation = getTypeOrientation(existingId, existingType)
+      const existingIsVideoOnly = isVideoOnly(existingId, existingType)
+
+      // Se a sessão atual é de IMAGEM (tipo sem vídeo, como TikTok foto ou Instagram feed)
+      // e o candidato só tem tipos de vídeo → incompatível
+      if (!existingIsVideoOnly) {
+        const platformTypes = PLATFORM_IMAGE_TYPES[existingId]
+        const existingAcceptsImages = platformTypes && platformTypes[existingType] !== null
+        if (existingAcceptsImages) {
+          const candidateHasImageType = candidateMeta.types.some(
+            t => PLATFORM_IMAGE_TYPES[candidateId]?.[t.id] !== null
+          )
+          if (!candidateHasImageType) {
+            const existingLabel = NETWORK_META[existingId]?.label
+            return `${existingLabel} (${existingType}) publica imagens, mas ${candidateMeta.label} só aceita vídeo`
+          }
+        }
       }
-      // YouTube Vídeo (horizontal) bloqueia TikTok
-      if (existingId === 'youtube' && existingType === 'video' && candidateId === 'tiktok') {
-        return 'YouTube Vídeo (horizontal) não é compatível com TikTok. Mude para YouTube Shorts primeiro.'
+
+      // Conflito de orientação: vertical ↔ horizontal
+      if (existingOrientation === 'vertical' || existingOrientation === 'horizontal') {
+        const oppositeOrientation = existingOrientation === 'vertical' ? 'horizontal' : 'vertical'
+        // O candidato tem ALGUM tipo compatível? (não bloqueia se ele tem alternativa)
+        const candidateBestType = bestTypeForNetwork(candidateId, networks, typesByNetwork)
+        const candidateBestOrientation = getTypeOrientation(candidateId, candidateBestType)
+        if (candidateBestOrientation === oppositeOrientation) {
+          // Sem alternativa compatível
+          const allCandidateOrientations = candidateMeta.types.map(t => t.orientation)
+          const hasCompatibleType = allCandidateOrientations.some(o => o !== oppositeOrientation)
+          if (!hasCompatibleType) {
+            const existingLabel = NETWORK_META[existingId]?.label
+            return `${existingLabel} (${existingOrientation}) não é compatível com ${candidateMeta.label}`
+          }
+        }
       }
     }
     return null
   }
 
-  // Toggle de rede: ao adicionar, inicia tipo + content vazio. Ao remover, limpa tudo.
+  // Toggle de rede: ao adicionar, escolhe o tipo mais compatível com a sessão atual.
   const toggleNetwork = (networkId) => {
     setForm(f => {
       const isSelected = f.networks.includes(networkId)
@@ -139,15 +202,12 @@ export default function Composer() {
         return f
       }
 
-      const meta = NETWORK_META[networkId]
-      // TikTok vídeo ativo → YouTube deve entrar como Shorts
-      const tiktokVideoActive = f.networks.includes('tiktok') && f.typesByNetwork['tiktok'] === 'video'
-      const defaultType = (networkId === 'youtube' && tiktokVideoActive)
-        ? 'shorts'
-        : meta?.types[0]?.id
-
-      if (networkId === 'youtube' && tiktokVideoActive && meta?.types[0]?.id !== 'shorts') {
-        setFeedback('YouTube adicionado como Shorts (compatível com TikTok Vídeo)')
+      const chosenType = bestTypeForNetwork(networkId, f.networks, f.typesByNetwork)
+      const defaultType = NETWORK_META[networkId]?.types[0]?.id
+      if (chosenType && chosenType !== defaultType) {
+        const label = NETWORK_META[networkId]?.label
+        const typeLabel = NETWORK_META[networkId]?.types.find(t => t.id === chosenType)?.label
+        setFeedback(`${label} adicionado como ${typeLabel} (compatível com a sessão atual)`)
         setTimeout(() => setFeedback(''), 3000)
       }
 
@@ -156,7 +216,7 @@ export default function Composer() {
       return {
         ...f,
         networks: newNetworks,
-        typesByNetwork: { ...f.typesByNetwork, [networkId]: defaultType },
+        typesByNetwork: { ...f.typesByNetwork, [networkId]: chosenType },
         contentByNetwork: { ...f.contentByNetwork, [networkId]: emptyNetworkContent() },
       }
     })
@@ -164,11 +224,22 @@ export default function Composer() {
 
   const setTypeForNetwork = (networkId, typeId) => {
     setForm(f => {
-      // Bloqueia mudar YouTube para Vídeo enquanto TikTok vídeo está ativo
-      if (networkId === 'youtube' && typeId === 'video' && f.networks.includes('tiktok') && f.typesByNetwork['tiktok'] === 'video') {
-        setFeedback('YouTube Vídeo (horizontal) não é compatível com TikTok Vídeo. Use Shorts.')
-        setTimeout(() => setFeedback(''), 4000)
-        return f
+      // Verifica se o novo tipo cria conflito de orientação com as outras redes
+      const otherNetworks = f.networks.filter(n => n !== networkId)
+      const newOrientation = getTypeOrientation(networkId, typeId)
+
+      for (const otherId of otherNetworks) {
+        const otherOrientation = getTypeOrientation(otherId, f.typesByNetwork[otherId])
+        if (
+          (newOrientation === 'vertical' && otherOrientation === 'horizontal') ||
+          (newOrientation === 'horizontal' && otherOrientation === 'vertical')
+        ) {
+          const otherLabel = NETWORK_META[otherId]?.label
+          const typeLabel = NETWORK_META[networkId]?.types.find(t => t.id === typeId)?.label
+          setFeedback(`${typeLabel} (${newOrientation}) não é compatível com ${otherLabel} (${otherOrientation})`)
+          setTimeout(() => setFeedback(''), 4000)
+          return f
+        }
       }
       return { ...f, typesByNetwork: { ...f.typesByNetwork, [networkId]: typeId } }
     })
@@ -227,15 +298,27 @@ export default function Composer() {
 
   const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle)
 
-  const tiktokPhotoSelected =
-    form.networks.includes('tiktok') && form.typesByNetwork['tiktok'] === 'photo'
-
-  const TIKTOK_IMAGE_TYPES = ['image/jpeg', 'image/webp']
+  // Interseção dos formatos de imagem aceitos por todas as redes selecionadas
+  const allowedImageMimeTypes = useMemo(() => {
+    const typeSets = []
+    for (const networkId of form.networks) {
+      const typeId = form.typesByNetwork[networkId]
+      const allowed = PLATFORM_IMAGE_TYPES[networkId]?.[typeId]
+      if (allowed === null) continue // tipo só aceita vídeo, ignora restrição de imagem
+      if (Array.isArray(allowed)) typeSets.push(new Set(allowed))
+    }
+    if (typeSets.length === 0) return null
+    const intersection = [...typeSets[0]].filter(t => typeSets.every(s => s.has(t)))
+    return intersection.length > 0 ? intersection : null
+  }, [form.networks, form.typesByNetwork])
 
   const handleMediaRejected = (rejectedFiles) => {
     const names = rejectedFiles.map(f => f.name).join(', ')
-    setFeedback(`Formato não suportado pelo TikTok: ${names}. Use JPEG ou WebP.`)
-    setTimeout(() => setFeedback(''), 4000)
+    const formatsAllowed = allowedImageMimeTypes
+      ? allowedImageMimeTypes.map(t => t.split('/')[1].toUpperCase()).join(', ')
+      : 'qualquer formato'
+    setFeedback(`Formato não suportado pelas redes selecionadas: ${names}. Aceitos: ${formatsAllowed}.`)
+    setTimeout(() => setFeedback(''), 5000)
   }
   const hasAnyContent = validationByNetwork.some(v => v.hasContent)
 
@@ -742,8 +825,8 @@ const xhrUpload = (endpoint, formData, onProgress) =>
               <MediaUploader
                 media={form.media}
                 onChange={(media) => setForm(f => ({ ...f, media }))}
-                allowedImageMimeTypes={tiktokPhotoSelected ? TIKTOK_IMAGE_TYPES : null}
-                onRejected={tiktokPhotoSelected ? handleMediaRejected : null}
+                allowedImageMimeTypes={allowedImageMimeTypes}
+                onRejected={allowedImageMimeTypes ? handleMediaRejected : null}
               />
             </div>
           )}
