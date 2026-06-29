@@ -125,6 +125,14 @@
   background: var(--color-card-bg);
   font-weight: 700;
 }
+.composer__network-pill--blocked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+.composer__network-pill--blocked:hover {
+  background: transparent;
+}
 
 /* Type groups (per network) */
 .composer__type-groups {

@@ -100,6 +100,23 @@ export default function Composer() {
     })
   }, [id])
 
+  // Verifica incompatibilidade ao adicionar uma nova rede.
+  // Retorna null (compatível) ou string com o motivo do bloqueio.
+  const getIncompatibilityReason = (candidateId, networks, typesByNetwork) => {
+    for (const existingId of networks) {
+      const existingType = typesByNetwork[existingId]
+      // TikTok foto bloqueia YouTube (YouTube só aceita vídeo)
+      if (existingId === 'tiktok' && existingType === 'photo' && candidateId === 'youtube') {
+        return 'TikTok Foto não é compatível com YouTube (plataforma de vídeo)'
+      }
+      // YouTube Vídeo (horizontal) bloqueia TikTok
+      if (existingId === 'youtube' && existingType === 'video' && candidateId === 'tiktok') {
+        return 'YouTube Vídeo (horizontal) não é compatível com TikTok. Mude para YouTube Shorts primeiro.'
+      }
+    }
+    return null
+  }
+
   // Toggle de rede: ao adicionar, inicia tipo + content vazio. Ao remover, limpa tudo.
   const toggleNetwork = (networkId) => {
     setForm(f => {
@@ -114,10 +131,27 @@ export default function Composer() {
           contentByNetwork: restContent,
         }
       }
+
+      const reason = getIncompatibilityReason(networkId, f.networks, f.typesByNetwork)
+      if (reason) {
+        setFeedback(reason)
+        setTimeout(() => setFeedback(''), 4000)
+        return f
+      }
+
       const meta = NETWORK_META[networkId]
-      const defaultType = meta?.types[0]?.id
+      // TikTok vídeo ativo → YouTube deve entrar como Shorts
+      const tiktokVideoActive = f.networks.includes('tiktok') && f.typesByNetwork['tiktok'] === 'video'
+      const defaultType = (networkId === 'youtube' && tiktokVideoActive)
+        ? 'shorts'
+        : meta?.types[0]?.id
+
+      if (networkId === 'youtube' && tiktokVideoActive && meta?.types[0]?.id !== 'shorts') {
+        setFeedback('YouTube adicionado como Shorts (compatível com TikTok Vídeo)')
+        setTimeout(() => setFeedback(''), 3000)
+      }
+
       const newNetworks = [...f.networks, networkId]
-      // Define rede ativa se for a primeira
       if (newNetworks.length === 1) setActiveNetwork(networkId)
       return {
         ...f,
@@ -129,10 +163,15 @@ export default function Composer() {
   }
 
   const setTypeForNetwork = (networkId, typeId) => {
-    setForm(f => ({
-      ...f,
-      typesByNetwork: { ...f.typesByNetwork, [networkId]: typeId },
-    }))
+    setForm(f => {
+      // Bloqueia mudar YouTube para Vídeo enquanto TikTok vídeo está ativo
+      if (networkId === 'youtube' && typeId === 'video' && f.networks.includes('tiktok') && f.typesByNetwork['tiktok'] === 'video') {
+        setFeedback('YouTube Vídeo (horizontal) não é compatível com TikTok Vídeo. Use Shorts.')
+        setTimeout(() => setFeedback(''), 4000)
+        return f
+      }
+      return { ...f, typesByNetwork: { ...f.typesByNetwork, [networkId]: typeId } }
+    })
   }
 
   // Atualiza um campo do conteúdo de uma rede específica
@@ -187,6 +226,17 @@ export default function Composer() {
   }, [form.networks, form.contentByNetwork, form.typesByNetwork])
 
   const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle)
+
+  const tiktokPhotoSelected =
+    form.networks.includes('tiktok') && form.typesByNetwork['tiktok'] === 'photo'
+
+  const TIKTOK_IMAGE_TYPES = ['image/jpeg', 'image/webp']
+
+  const handleMediaRejected = (rejectedFiles) => {
+    const names = rejectedFiles.map(f => f.name).join(', ')
+    setFeedback(`Formato não suportado pelo TikTok: ${names}. Use JPEG ou WebP.`)
+    setTimeout(() => setFeedback(''), 4000)
+  }
   const hasAnyContent = validationByNetwork.some(v => v.hasContent)
 
   // Garante pelo menos 5 minutos de antecedência no agendamento
@@ -483,11 +533,17 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                 const meta = NETWORK_META[id]
                 const Icon = NETWORK_ICONS[id]
                 const selected = form.networks.includes(id)
+                const incompatReason = !selected
+                  ? getIncompatibilityReason(id, form.networks, form.typesByNetwork)
+                  : null
+                const blocked = Boolean(incompatReason)
                 return (
                   <button
                     key={id}
                     type="button"
-                    className={`composer__network-pill${selected ? ' composer__network-pill--active' : ''}`}
+                    disabled={blocked}
+                    title={blocked ? incompatReason : undefined}
+                    className={`composer__network-pill${selected ? ' composer__network-pill--active' : ''}${blocked ? ' composer__network-pill--blocked' : ''}`}
                     style={selected ? { borderColor: networkColor(id, theme), color: networkColor(id, theme) } : {}}
                     onClick={() => toggleNetwork(id)}
                   >
@@ -686,6 +742,8 @@ const xhrUpload = (endpoint, formData, onProgress) =>
               <MediaUploader
                 media={form.media}
                 onChange={(media) => setForm(f => ({ ...f, media }))}
+                allowedImageMimeTypes={tiktokPhotoSelected ? TIKTOK_IMAGE_TYPES : null}
+                onRejected={tiktokPhotoSelected ? handleMediaRejected : null}
               />
             </div>
           )}
