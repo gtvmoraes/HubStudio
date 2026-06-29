@@ -4,7 +4,7 @@ import { LuSearch, LuUserPlus } from 'react-icons/lu'
 import { ROLES, ROLE_ORDER } from '../../../../services/team'
 import MemberRow from './MemberRow'
 
-export default function MembrosTab({ members, currentUserId, onRoleChange, onRemove, onInviteClick }) {
+export default function MembrosTab({ members, currentUserId, currentRole, onRoleChange, onRemove, onInviteClick }) {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
 
@@ -83,6 +83,7 @@ export default function MembrosTab({ members, currentUserId, onRoleChange, onRem
                 <MemberRow
                   member={m}
                   isMe={m.id === currentUserId}
+                  currentRole={currentRole}
                   onRoleChange={onRoleChange}
                   onRemove={onRemove}
                 />

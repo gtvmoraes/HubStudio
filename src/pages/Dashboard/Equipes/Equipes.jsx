@@ -291,6 +291,7 @@ export default function Equipes() {
               <MembrosTab
                 members={members}
                 currentUserId={user?.id}
+                currentRole={currentTeam.role?.toLowerCase?.() || currentTeam.role}
                 onRoleChange={handleRoleChange}
                 onRemove={handleRemove}
                 onInviteClick={() => setShowShareCode(true)}

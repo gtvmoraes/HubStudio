@@ -3,7 +3,7 @@ import { LuEllipsisVertical, LuUserMinus, LuShield, LuMail } from 'react-icons/l
 import { getInitials } from '../../../../utils/string'
 import RolePicker from './RolePicker'
 
-export default function MemberRow({ member, isMe, onRoleChange, onRemove }) {
+export default function MemberRow({ member, isMe, currentRole, onRoleChange, onRemove }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const ref = useRef(null)
 
@@ -32,7 +32,7 @@ export default function MemberRow({ member, isMe, onRoleChange, onRemove }) {
         <RolePicker
           value={member.role}
           onChange={(newRole) => onRoleChange(member.id, newRole)}
-          disabled={isMe || member.role === 'admin'}
+          disabled={isMe || member.role === 'admin' || currentRole !== 'admin'}
         />
       </div>
 
