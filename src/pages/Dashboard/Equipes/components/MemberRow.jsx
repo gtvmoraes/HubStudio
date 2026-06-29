@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { LuEllipsisVertical, LuUserMinus, LuShield, LuMail } from 'react-icons/lu'
 import { getInitials } from '../../../../utils/string'
+import { timeAgo } from '../../../../utils/date'
 import RolePicker from './RolePicker'
 
 export default function MemberRow({ member, isMe, currentRole, onRoleChange, onRemove }) {
@@ -37,7 +38,11 @@ export default function MemberRow({ member, isMe, currentRole, onRoleChange, onR
       </div>
 
       <div className="member-row__last">
-        Visto {member.lastActive === 'agora' ? 'agora' : `há ${member.lastActive}`}
+        {(() => {
+          const ago = timeAgo(member.lastSeenAt)
+          if (!ago) return <span className="member-row__last--unknown">—</span>
+          return <>Visto {ago === 'agora' ? 'agora' : `há ${ago}`}</>
+        })()}
       </div>
 
       <div className="member-row__menu" ref={ref}>
