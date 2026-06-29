@@ -228,6 +228,20 @@ O campo "Visto há" exibia `undefined` porque usava `member.lastActive`, campo i
 
 ---
 
+## 17. Aviso de requisitos técnicos para YouTube Shorts
+
+**Commit:** `5d395d0`
+**Arquivos:**
+- `src/pages/Dashboard/Posts/Composer.jsx`
+- `src/pages/Dashboard/Posts/Composer.css`
+
+Quando o usuário seleciona o tipo "Shorts" para o YouTube no Compositor, um aviso informativo é exibido abaixo dos pills de tipo explicando que o YouTube classifica vídeos como Shorts **automaticamente** com base no arquivo enviado — duração máxima de 60 segundos e proporção vertical (9:16). O hashtag `#Shorts` é adicionado pelo backend para auxiliar na descoberta, mas não substitui os requisitos técnicos do vídeo.
+
+- Aviso estilizado com fundo amarelo claro (dark mode: amarelo escuro sobre fundo escuro)
+- Não exige interação do usuário; aparece e desaparece conforme o tipo selecionado
+
+---
+
 ## Resumo dos arquivos alterados
 
 | Arquivo | Tipo de alteração |
@@ -260,3 +274,5 @@ O campo "Visto há" exibia `undefined` porque usava `member.lastActive`, campo i
 | `services/posts.js` | `PLATFORM_IMAGE_TYPES` adicionado |
 | `utils/date.js` | Novo utilitário `timeAgo()` |
 | `Equipes/components/MemberRow.jsx` | Usa `lastSeenAt` + `timeAgo()` em vez de `lastActive` |
+| `Composer.jsx` | Aviso de requisitos YouTube Shorts (≤60s, 9:16) |
+| `Composer.css` | Estilo `.composer__type-warning` (light/dark) |
