@@ -358,13 +358,14 @@ export default function Composer() {
       setAiBusy(null)
       throw new Error(err.message || `Erro ${res.status}`)
     }
-    const { captions } = await res.json()
+    const data = await res.json()
     setAiBusy(null)
-    return captions
+    return data
   }
 
-  const handleCaptionSelect = (caption) => {
-    updateNetworkField(activeNetwork, 'content', caption)
+  const handleCaptionSelect = (caption, cta) => {
+    const content = cta ? `${caption}\n\n${cta}` : caption
+    updateNetworkField(activeNetwork, 'content', content)
     setCaptionModalOpen(false)
     setFeedback('Legenda gerada pela IA!')
     setTimeout(() => setFeedback(''), 2000)

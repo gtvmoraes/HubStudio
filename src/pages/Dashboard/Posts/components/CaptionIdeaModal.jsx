@@ -8,6 +8,7 @@ export default function CaptionIdeaModal({ networkLabel, onGenerate, onSelect, o
   const [idea, setIdea] = useState('')
   const [phase, setPhase] = useState('input') // 'input' | 'select'
   const [captions, setCaptions] = useState([])
+  const [cta, setCta] = useState('')
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [regenCount, setRegenCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -23,7 +24,8 @@ export default function CaptionIdeaModal({ networkLabel, onGenerate, onSelect, o
     setError('')
     try {
       const result = await onGenerate(currentIdea)
-      setCaptions(result)
+      setCaptions(result.captions ?? result)
+      setCta(result.cta ?? '')
       setSelectedIdx(0)
       setPhase('select')
     } catch (err) {
@@ -46,7 +48,7 @@ export default function CaptionIdeaModal({ networkLabel, onGenerate, onSelect, o
   }
 
   const handleUse = () => {
-    onSelect(captions[selectedIdx])
+    onSelect(captions[selectedIdx], cta)
   }
 
   const handleKeyDown = (e) => {
