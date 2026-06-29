@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { LuArrowLeft, LuCheck, LuCircleAlert } from 'react-icons/lu'
 import { useAuth } from '../../contexts/AuthContext'
+import { joinByCodeApi } from '../../services/team'
 import { useTheme } from '../../contexts/ThemeContext'
 import { GoogleIcon, FacebookIcon } from '../../components/OAuthIcons/OAuthIcons'
 import { AuthPasswordField, StrengthMeter } from '../../components/PasswordField/PasswordField'
@@ -17,7 +18,7 @@ import './Cadastro.css'
 
 export default function Cadastro() {
   const [form, setForm] = useState({
-    name: '', email: '', password: '', confirm: '', acceptTerms: false,
+    name: '', email: '', password: '', confirm: '', acceptTerms: false, teamCode: '',
   })
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
@@ -68,6 +69,9 @@ export default function Cadastro() {
         email: form.email,
         password: form.password,
       })
+      if (form.teamCode.trim()) {
+        try { await joinByCodeApi(form.teamCode.trim().toUpperCase()) } catch { /* ignora se código inválido */ }
+      }
       navigate('/dashboard')
     } catch {
       setGlobalError('Não foi possível criar sua conta. Tente novamente.')
@@ -230,6 +234,23 @@ export default function Cadastro() {
               autoComplete="new-password"
               ariaLabel="Confirmar senha"
             />
+
+            {/* Código de equipe */}
+            <motion.div className="auth__field" variants={fieldVariants}>
+              <div className="auth__input-wrap">
+                <input
+                  id="teamCode"
+                  type="text"
+                  placeholder="Código de equipe (opcional)"
+                  value={form.teamCode}
+                  onChange={e => updateField('teamCode', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  className="auth__input"
+                  autoComplete="off"
+                  maxLength={5}
+                  aria-label="Código de equipe"
+                />
+              </div>
+            </motion.div>
 
             {/* Termos */}
             <motion.label className="auth__checkbox" variants={fieldVariants}>

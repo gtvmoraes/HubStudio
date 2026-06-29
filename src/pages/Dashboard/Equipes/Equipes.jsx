@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   getTeamMembers, getPendingInvites, getApprovalConfig, getTeamActivity,
-  sendInviteApi, cancelInviteApi, resendInviteApi,
+  cancelInviteApi, resendInviteApi,
   changeRoleApi, removeMemberApi, updateApprovalConfigApi,
 } from '../../../services/team'
 import { useAuth } from '../../../contexts/AuthContext'
@@ -15,7 +15,7 @@ import PapeisTab from './components/PapeisTab'
 import AprovacaoTab from './components/AprovacaoTab'
 import AtividadeTab from './components/AtividadeTab'
 import ConfiguracoesTab from './components/ConfiguracoesTab'
-import InviteModal from './components/InviteModal'
+import ShareCodeModal from './components/ShareCodeModal'
 import CreateTeamModal from './components/CreateTeamModal'
 import './Equipes.css'
 
@@ -29,8 +29,9 @@ export default function Equipes() {
   const [activity, setActivity] = useState([])
 
   const [activeTab, setActiveTab] = useState('membros')
-  const [showInvite, setShowInvite] = useState(false)
+  const [showShareCode, setShowShareCode] = useState(false)
   const [showCreateTeam, setShowCreateTeam] = useState(false)
+  const [showJoinInput, setShowJoinInput] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
   const [joinLoading, setJoinLoading] = useState(false)
@@ -81,17 +82,6 @@ export default function Equipes() {
   }
 
   // ── Convites ──
-  const handleInvite = async ({ email, role, message }) => {
-    try {
-      const invite = await sendInviteApi(currentTeam.id, email, role, message)
-      setInvites(prev => [invite, ...prev])
-      setActiveTab('convites')
-      flashMsg(`Convite enviado pra ${email}!`)
-    } catch (e) {
-      flashMsg(e.message || 'Erro ao enviar convite.')
-    }
-  }
-
   const handleResend = async (inviteId) => {
     try {
       await resendInviteApi(currentTeam.id, inviteId)
@@ -245,8 +235,8 @@ export default function Equipes() {
                 type="text"
                 placeholder="Código da equipe"
                 value={joinCode}
-                onChange={e => { setJoinCode(e.target.value.replace(/\D/g, '')); setJoinError('') }}
-                maxLength={6}
+                onChange={e => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setJoinError('') }}
+                maxLength={5}
               />
               <button type="submit" disabled={joinLoading || !joinCode.trim()}>
                 {joinLoading ? 'Entrando...' : 'Entrar'}
@@ -279,7 +269,34 @@ export default function Equipes() {
         invites={invites}
         pendingPosts={currentTeam.pendingPosts}
         onCreateTeam={() => setShowCreateTeam(true)}
+        onJoinTeam={() => setShowJoinInput(v => !v)}
       />
+
+      <AnimatePresence>
+        {showJoinInput && (
+          <motion.form
+            className="eq-join-inline"
+            onSubmit={handleJoinByCode}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22 }}
+          >
+            <input
+              type="text"
+              placeholder="Código da equipe (ex: A3K7B)"
+              value={joinCode}
+              onChange={e => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setJoinError('') }}
+              maxLength={5}
+              autoFocus
+            />
+            <button type="submit" disabled={joinLoading || !joinCode.trim()}>
+              {joinLoading ? 'Entrando...' : 'Entrar'}
+            </button>
+            {joinError && <span className="eq-empty__error">{joinError}</span>}
+          </motion.form>
+        )}
+      </AnimatePresence>
 
       <EquipesTabs
         active={activeTab}
@@ -303,7 +320,7 @@ export default function Equipes() {
                 currentUserId={user?.id}
                 onRoleChange={handleRoleChange}
                 onRemove={handleRemove}
-                onInviteClick={() => setShowInvite(true)}
+                onInviteClick={() => setShowShareCode(true)}
               />
             )}
 
@@ -312,7 +329,7 @@ export default function Equipes() {
                 invites={invites}
                 onResend={handleResend}
                 onCancel={handleCancelInvite}
-                onInviteClick={() => setShowInvite(true)}
+                onInviteClick={() => setShowShareCode(true)}
               />
             )}
 
@@ -343,10 +360,10 @@ export default function Equipes() {
         </AnimatePresence>
       </div>
 
-      <InviteModal
-        isOpen={showInvite}
-        onClose={() => setShowInvite(false)}
-        onInvite={handleInvite}
+      <ShareCodeModal
+        isOpen={showShareCode}
+        onClose={() => setShowShareCode(false)}
+        team={currentTeam}
       />
 
       <CreateTeamModal
