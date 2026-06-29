@@ -11,6 +11,7 @@ import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { networkColor } from '../../../../services/posts'
 import { authFetch } from '../../../../services/api'
 import { useTheme } from '../../../../contexts/ThemeContext'
+import { useTeam } from '../../../../contexts/TeamContext'
 
 const ALL_PLATFORMS = [
   { id: 'instagram', name: 'Instagram',   icon: FaInstagram, connectPath: '/social/instagram/connect' },
@@ -34,6 +35,8 @@ const PERMISSIONS = [
 
 export default function RedesTab() {
   const { theme } = useTheme()
+  const { currentTeam } = useTeam()
+  const companyId = currentTeam?.id ?? null
   const [accounts, setAccounts] = useState([])   // dados da API
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(null)     // platform id em progresso
@@ -48,7 +51,8 @@ export default function RedesTab() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 12000)
     try {
-      const res = await authFetch('/social/accounts', { signal: controller.signal })
+      const url = companyId ? `/social/accounts?companyId=${companyId}` : '/social/accounts'
+      const res = await authFetch(url, { signal: controller.signal })
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       setAccounts(await res.json())
     } catch (e) {
@@ -61,7 +65,7 @@ export default function RedesTab() {
       clearTimeout(timeoutId)
       setLoading(false)
     }
-  }, [])
+  }, [companyId])
 
   useEffect(() => {
     const token = localStorage.getItem('hs-token')
@@ -99,7 +103,8 @@ export default function RedesTab() {
     setConnecting(platform)
     setError('')
     try {
-      const res = await authFetch(meta.connectPath)
+      const connectUrl = companyId ? `${meta.connectPath}?companyId=${companyId}` : meta.connectPath
+      const res = await authFetch(connectUrl)
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       const data = await res.json()
       const url = data.authorizationUrl || data.authorization_url
@@ -117,7 +122,8 @@ export default function RedesTab() {
     setDisconnecting(accountId)
     setError('')
     try {
-      const res = await authFetch(`/social/accounts/${accountId}`, { method: 'DELETE' })
+      const deleteUrl = companyId ? `/social/accounts/${accountId}?companyId=${companyId}` : `/social/accounts/${accountId}`
+      const res = await authFetch(deleteUrl, { method: 'DELETE' })
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       setAccounts(prev => prev.filter(a => a.id !== accountId))
     } catch (e) {
@@ -131,7 +137,8 @@ export default function RedesTab() {
     setRefreshing(accountId)
     setError('')
     try {
-      const res = await authFetch(`/social/accounts/${accountId}/refresh`, { method: 'POST' })
+      const refreshUrl = companyId ? `/social/accounts/${accountId}/refresh?companyId=${companyId}` : `/social/accounts/${accountId}/refresh`
+      const res = await authFetch(refreshUrl, { method: 'POST' })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
         throw new Error(d.message || `Erro ${res.status}`)
@@ -151,7 +158,8 @@ export default function RedesTab() {
     const connected = accounts.filter(a => a.status === 'connected' || a.status === 'expired')
     for (const acc of connected) {
       try {
-        const res = await authFetch(`/social/accounts/${acc.id}/refresh`, { method: 'POST' })
+        const rUrl = companyId ? `/social/accounts/${acc.id}/refresh?companyId=${companyId}` : `/social/accounts/${acc.id}/refresh`
+        const res = await authFetch(rUrl, { method: 'POST' })
         if (res.ok) {
           const updated = await res.json()
           setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, ...updated } : a))

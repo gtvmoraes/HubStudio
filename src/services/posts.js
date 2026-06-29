@@ -1,11 +1,12 @@
 import { LuMessageSquare, LuChartBar, LuHash } from 'react-icons/lu'
 import { authFetch } from './api'
 
-export const getSocialAccounts = async () => {
+export const getSocialAccounts = async (companyId) => {
   const token = localStorage.getItem('hs-token')
   if (!token) return []
   try {
-    const res = await authFetch('/social/accounts')
+    const url = companyId ? `/social/accounts?companyId=${companyId}` : '/social/accounts'
+    const res = await authFetch(url)
     if (!res.ok) return []
     return await res.json()
   } catch { return [] }
