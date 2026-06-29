@@ -1,14 +1,7 @@
 import { createContext, useContext, useState } from 'react'
-import { loginService, registerService } from '../services/auth'
+import { loginService, registerService, fetchMe } from '../services/auth'
 
 const AuthContext = createContext(null)
-
-const MOCK_USER = {
-  name: 'Breno Dantas',
-  email: 'breno.dantas.pc@gmail.com',
-  avatar: null,
-  plan: 'pro',
-}
 
 function isTokenExpired(token) {
   try {
@@ -38,20 +31,21 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     await loginService(email, password)
-    const loggedUser = { ...MOCK_USER, email }
-    localStorage.setItem('hs-user', JSON.stringify(loggedUser))
+    const profile = await fetchMe()
+    localStorage.setItem('hs-user', JSON.stringify(profile))
     localStorage.removeItem('hs-show-onboarding')
-    setUser(loggedUser)
-    return loggedUser
+    setUser(profile)
+    return profile
   }
 
   const register = async (data) => {
     await registerService(data)
-    const newUser = { ...MOCK_USER, ...data }
-    localStorage.setItem('hs-user', JSON.stringify(newUser))
+    await loginService(data.email, data.password)
+    const profile = await fetchMe()
+    localStorage.setItem('hs-user', JSON.stringify(profile))
     localStorage.setItem('hs-show-onboarding', '1')
-    setUser(newUser)
-    return newUser
+    setUser(profile)
+    return profile
   }
 
   const logout = () => {

@@ -15,6 +15,15 @@ export const loginService = async (email, password) => {
   return data
 }
 
+export const fetchMe = async () => {
+  const token = localStorage.getItem('hs-token')
+  const res = await fetch(`${API_BASE}/users/me`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Não foi possível carregar o perfil')
+  return res.json()
+}
+
 export const registerService = async (data) => {
   const formData = new FormData()
   formData.append('name', data.name)
