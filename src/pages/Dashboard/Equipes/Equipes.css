@@ -1587,6 +1587,43 @@
 .config-type__icon { font-size: 1.5rem; }
 .config-type strong { font-size: var(--font-size-sm); }
 
+/* Código de entrada */
+.config-join {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-bg, #f8f8f8);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  width: fit-content;
+}
+.config-join__code {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.config-join__copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-card-bg);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.18s, border-color 0.18s;
+}
+.config-join__copy:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 /* Save bar flutuante */
 .config-savebar {
   position: fixed;

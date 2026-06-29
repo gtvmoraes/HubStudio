@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   LuCamera, LuTrash2, LuLogOut, LuCheck, LuTriangleAlert, LuLock,
-  LuUser, LuBuilding2, LuStore,
+  LuUser, LuBuilding2, LuStore, LuCopy,
 } from 'react-icons/lu'
 import { TEAM_COLORS, TEAM_TYPES, PERMISSION_MATRIX } from '../../../../services/team'
 
@@ -209,6 +209,15 @@ export default function ConfiguracoesTab({ team, currentRole, onUpdate, onDelete
         </div>
       </section>
 
+      {/* Card: código de entrada */}
+      <section className="config-card">
+        <header>
+          <h3>Código de entrada</h3>
+          <p>Compartilhe este código para que alguém entre na equipe sem precisar de convite.</p>
+        </header>
+        <JoinCodeDisplay code={team.joinCode} />
+      </section>
+
       {/* Save bar (flutua quando há mudanças) */}
       {canEdit && (
         <motion.div
@@ -295,6 +304,24 @@ export default function ConfiguracoesTab({ team, currentRole, onUpdate, onDelete
         </div>
       </section>
     </motion.div>
+  )
+}
+
+function JoinCodeDisplay({ code }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div className="config-join">
+      <span className="config-join__code">{code}</span>
+      <button type="button" className="config-join__copy" onClick={handleCopy}>
+        {copied ? <LuCheck size={14} /> : <LuCopy size={14} />}
+        {copied ? 'Copiado!' : 'Copiar'}
+      </button>
+    </div>
   )
 }
 

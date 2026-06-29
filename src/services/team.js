@@ -116,11 +116,11 @@ export const getTeamActivity = async (teamId) => {
   return res.json()
 }
 
-export const sendInviteApi = async (teamId, email, role) => {
+export const sendInviteApi = async (teamId, email, role, message) => {
   const res = await authFetch(`/teams/${teamId}/invites`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, role, message }),
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

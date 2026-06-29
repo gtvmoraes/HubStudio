@@ -81,9 +81,9 @@ export default function Equipes() {
   }
 
   // ── Convites ──
-  const handleInvite = async ({ email, role }) => {
+  const handleInvite = async ({ email, role, message }) => {
     try {
-      const invite = await sendInviteApi(currentTeam.id, email, role)
+      const invite = await sendInviteApi(currentTeam.id, email, role, message)
       setInvites(prev => [invite, ...prev])
       setActiveTab('convites')
       flashMsg(`Convite enviado pra ${email}!`)
@@ -245,8 +245,8 @@ export default function Equipes() {
                 type="text"
                 placeholder="Código da equipe"
                 value={joinCode}
-                onChange={e => { setJoinCode(e.target.value.toUpperCase()); setJoinError('') }}
-                maxLength={8}
+                onChange={e => { setJoinCode(e.target.value.replace(/\D/g, '')); setJoinError('') }}
+                maxLength={6}
               />
               <button type="submit" disabled={joinLoading || !joinCode.trim()}>
                 {joinLoading ? 'Entrando...' : 'Entrar'}
