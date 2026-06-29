@@ -228,21 +228,81 @@ const xhrUpload = (endpoint, formData, onProgress) =>
         return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
       })()
 
-      // Todas as redes de vídeo selecionadas — independente de qual aba tem o arquivo
-      const videoNetworks = form.networks.filter(n => n === 'tiktok' || n === 'youtube')
+      const tiktokType = form.typesByNetwork['tiktok']
+      const youtubeType = form.typesByNetwork['youtube']
 
-      // Busca o arquivo de vídeo na mídia compartilhada
-      let videoFile = null
-      let videoTitle = ''
-      const videoItem = form.media.find(m => m.type === 'video' && m.file)
-      if (videoItem) {
-        videoFile = videoItem.file
-        for (const n of videoNetworks) {
-          const c = form.contentByNetwork[n]
-          if (c?.title || c?.content) {
-            videoTitle = c.title || c.content.slice(0, 60)
-            break
+      // Redes de vídeo: TikTok(video) + YouTube(video ou shorts)
+      const videoNetworks = form.networks.filter(n => {
+        if (n === 'tiktok') return tiktokType === 'video'
+        if (n === 'youtube') return true
+        return false
+      })
+
+      // TikTok foto (fluxo separado)
+      const tiktokPhotoSelected = form.networks.includes('tiktok') && tiktokType === 'photo'
+
+      const isoDate = effectiveDate.length === 16 ? effectiveDate + ':00' : effectiveDate
+
+      // ── Fluxo de FOTOS (TikTok Photo) ──────────────────────────────
+      if (tiktokPhotoSelected) {
+        const imageItems = form.media.filter(m => m.type === 'image' && m.file)
+        if (imageItems.length === 0) {
+          setFeedback('Selecione ao menos uma imagem para publicar no TikTok.')
+          setLoading(false)
+          return
+        }
+        try {
+          const accounts = await getSocialAccounts()
+          const matchingIds = accounts
+            .filter(a => (a.platform || '').toLowerCase() === 'tiktok')
+            .map(a => a.id)
+
+          if (matchingIds.length === 0) {
+            setFeedback('Nenhuma conta TikTok conectada. Vá em Configurações > Redes.')
+            setLoading(false)
+            return
           }
+
+          const tiktokContent = form.contentByNetwork['tiktok'] || {}
+          const photoTitle = tiktokContent.title || tiktokContent.content?.slice(0, 60) || ''
+          const fd = new FormData()
+          imageItems.forEach(item => fd.append('photos', item.file))
+          fd.append('title', photoTitle)
+          fd.append('scheduledAt', isoDate)
+          matchingIds.forEach(id => fd.append('socialAccountIds', id))
+
+          setFeedback('Enviando fotos…')
+          await xhrUpload('/posts/schedule/photo', fd, pct => {
+            setUploadProgress(pct)
+            setFeedback(pct < 100 ? `Enviando fotos… ${pct}%` : 'Registrando agendamento…')
+          })
+
+          const label = form.scheduledFor
+            ? `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
+            : 'Publicando agora…'
+          showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
+
+          // Se também há vídeo para YouTube, continua; senão, sai
+          if (videoNetworks.length === 0) {
+            setTimeout(() => navigate('/dashboard/posts'), 700)
+            setLoading(false)
+            return
+          }
+        } catch (err) {
+          setFeedback(`Erro ao publicar fotos: ${err.message}`)
+          setLoading(false)
+          return
+        }
+      }
+
+      // ── Fluxo de VÍDEO (TikTok Video + YouTube Video/Shorts) ───────
+      const videoFile = form.media.find(m => m.type === 'video' && m.file)?.file
+      let videoTitle = ''
+      for (const n of videoNetworks) {
+        const c = form.contentByNetwork[n]
+        if (c?.title || c?.content) {
+          videoTitle = c.title || c.content.slice(0, 60)
+          break
         }
       }
 
@@ -259,12 +319,13 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             return
           }
 
-          const isoDate = effectiveDate.length === 16 ? effectiveDate + ':00' : effectiveDate
+          const youtubeIsShort = form.networks.includes('youtube') && youtubeType === 'shorts'
           const fd = new FormData()
           fd.append('video', videoFile)
           fd.append('title', videoTitle)
           fd.append('scheduledAt', isoDate)
           matchingIds.forEach(id => fd.append('socialAccountIds', id))
+          if (youtubeIsShort) fd.append('youtubeIsShort', 'true')
 
           setFeedback('Enviando vídeo…')
           await xhrUpload('/posts/schedule/video', fd, pct => {
