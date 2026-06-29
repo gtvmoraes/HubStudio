@@ -176,3 +176,69 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Fase de seleção ── */
+.caption-modal__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2rem 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.87rem;
+}
+
+.caption-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.caption-modal__option {
+  width: 100%;
+  text-align: left;
+  background: var(--bg-input, #fff);
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.caption-modal__option:hover {
+  border-color: var(--accent, #7c3aed);
+  background: var(--bg-hover, #f9f7ff);
+}
+
+.caption-modal__option--selected {
+  border-color: var(--accent, #7c3aed);
+  background: var(--accent-soft, #f5f0ff);
+}
+
+.caption-modal__option p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text, #111);
+  white-space: pre-wrap;
+}
+
+.caption-modal__option-check {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  color: var(--accent, #7c3aed);
+  flex-shrink: 0;
+}
+
+.caption-modal__actions--select {
+  justify-content: space-between;
+}
+
+.caption-modal__regen-count {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  margin-left: 0.2rem;
+}

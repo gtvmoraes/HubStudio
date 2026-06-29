@@ -358,10 +358,14 @@ export default function Composer() {
       setAiBusy(null)
       throw new Error(err.message || `Erro ${res.status}`)
     }
-    const { caption } = await res.json()
+    const { captions } = await res.json()
+    setAiBusy(null)
+    return captions
+  }
+
+  const handleCaptionSelect = (caption) => {
     updateNetworkField(activeNetwork, 'content', caption)
     setCaptionModalOpen(false)
-    setAiBusy(null)
     setFeedback('Legenda gerada pela IA!')
     setTimeout(() => setFeedback(''), 2000)
   }
@@ -680,6 +684,7 @@ export default function Composer() {
         <CaptionIdeaModal
           networkLabel={activeMeta?.label || activeNetwork}
           onGenerate={handleCaptionGenerate}
+          onSelect={handleCaptionSelect}
           onClose={() => { setCaptionModalOpen(false); setAiBusy(null) }}
         />
       )}
