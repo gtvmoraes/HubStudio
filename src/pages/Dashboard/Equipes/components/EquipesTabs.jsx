@@ -1,12 +1,11 @@
 import { motion } from 'framer-motion'
 import {
-  LuUsers, LuMail, LuShieldCheck, LuCheck, LuActivity, LuSettings,
+  LuUsers, LuShieldCheck, LuCheck, LuActivity, LuSettings,
 } from 'react-icons/lu'
 import { PERMISSION_MATRIX } from '../../../../services/team'
 
 const ALL_TABS = [
   { id: 'membros',       label: 'Membros',       Icon: LuUsers },
-  { id: 'convites',      label: 'Convites',      Icon: LuMail,        countKey: 'invites', warn: true },
   { id: 'papeis',        label: 'Papéis',        Icon: LuShieldCheck },
   { id: 'aprovacao',     label: 'Aprovação',     Icon: LuCheck },
   { id: 'atividade',     label: 'Atividade',     Icon: LuActivity },

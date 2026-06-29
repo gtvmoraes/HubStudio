@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { LuUsers, LuMail, LuClock, LuCrown } from 'react-icons/lu'
+import { LuUsers, LuClock, LuCrown } from 'react-icons/lu'
 import { PLAN_LIMITS } from '../../../../services/team'
 import TeamSwitcher from './TeamSwitcher'
 
@@ -11,7 +11,7 @@ const statVariants = {
   }),
 }
 
-export default function EquipesHeader({ team, members, invites, pendingPosts, onCreateTeam }) {
+export default function EquipesHeader({ team, members, pendingPosts, onCreateTeam, onJoinTeam }) {
   if (!team) return null
 
   const planMeta = PLAN_LIMITS[team.plan] ?? PLAN_LIMITS.lite
@@ -43,7 +43,6 @@ export default function EquipesHeader({ team, members, invites, pendingPosts, on
       <div className="eq-header__stats">
         {[
           { Icon: LuUsers, color: 'var(--color-primary)', value: `${usedSlots}${!isUnlimited ? ` / ${planMeta.maxUsers}` : ''}`, label: 'Membros' },
-          { Icon: LuMail,  color: 'var(--color-warning)', value: invites.length, label: 'Convites pendentes' },
           { Icon: LuClock, color: 'var(--color-success)', value: pendingPosts,  label: 'Posts aguardando' },
         ].map((stat, i) => (
           <motion.div

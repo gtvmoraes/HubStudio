@@ -98,12 +98,6 @@ export const getTeamMembers = async (teamId) => {
   return res.json()
 }
 
-export const getPendingInvites = async (teamId) => {
-  const res = await authFetch(`/teams/${teamId}/invites`)
-  if (!res.ok) return []
-  return res.json()
-}
-
 export const getApprovalConfig = async (teamId) => {
   const res = await authFetch(`/teams/${teamId}/approval-config`)
   if (!res.ok) return null
@@ -114,27 +108,6 @@ export const getTeamActivity = async (teamId) => {
   const res = await authFetch(`/teams/${teamId}/activity`)
   if (!res.ok) return []
   return res.json()
-}
-
-export const sendInviteApi = async (teamId, email, role, message) => {
-  const res = await authFetch(`/teams/${teamId}/invites`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, role, message }),
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.message || 'Erro ao enviar convite')
-  }
-  return res.json()
-}
-
-export const cancelInviteApi = async (teamId, inviteId) => {
-  await authFetch(`/teams/${teamId}/invites/${inviteId}`, { method: 'DELETE' })
-}
-
-export const resendInviteApi = async (teamId, inviteId) => {
-  await authFetch(`/teams/${teamId}/invites/${inviteId}/resend`, { method: 'POST' })
 }
 
 export const changeRoleApi = async (teamId, memberId, role) => {

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  getTeamMembers, getPendingInvites, getApprovalConfig, getTeamActivity,
-  cancelInviteApi, resendInviteApi,
+  getTeamMembers, getApprovalConfig, getTeamActivity,
   changeRoleApi, removeMemberApi, updateApprovalConfigApi,
 } from '../../../services/team'
 import { useAuth } from '../../../contexts/AuthContext'
@@ -10,7 +9,6 @@ import { useTeam } from '../../../contexts/TeamContext'
 import EquipesHeader from './components/EquipesHeader'
 import EquipesTabs from './components/EquipesTabs'
 import MembrosTab from './components/MembrosTab'
-import ConvitesTab from './components/ConvitesTab'
 import PapeisTab from './components/PapeisTab'
 import AprovacaoTab from './components/AprovacaoTab'
 import AtividadeTab from './components/AtividadeTab'
@@ -24,7 +22,6 @@ export default function Equipes() {
   const { currentTeam, loading, createTeam, joinTeam, updateTeam, deleteTeam } = useTeam()
 
   const [members, setMembers] = useState([])
-  const [invites, setInvites] = useState([])
   const [config, setConfig] = useState(null)
   const [activity, setActivity] = useState([])
 
@@ -41,12 +38,10 @@ export default function Equipes() {
     if (!currentTeam) return
     Promise.all([
       getTeamMembers(currentTeam.id),
-      getPendingInvites(currentTeam.id),
       getApprovalConfig(currentTeam.id),
       getTeamActivity(currentTeam.id),
-    ]).then(([m, i, c, a]) => {
+    ]).then(([m, c, a]) => {
       setMembers(m)
-      setInvites(i)
       setConfig(c)
       setActivity(a)
     })
@@ -78,27 +73,6 @@ export default function Equipes() {
       flashMsg('Membro removido.')
     } catch (e) {
       flashMsg(e.message || 'Erro ao remover membro.')
-    }
-  }
-
-  // ── Convites ──
-  const handleResend = async (inviteId) => {
-    try {
-      await resendInviteApi(currentTeam.id, inviteId)
-      const inv = invites.find(i => i.id === inviteId)
-      flashMsg(`Convite reenviado pra ${inv?.email}.`)
-    } catch (e) {
-      flashMsg(e.message || 'Erro ao reenviar convite.')
-    }
-  }
-
-  const handleCancelInvite = async (inviteId) => {
-    try {
-      await cancelInviteApi(currentTeam.id, inviteId)
-      setInvites(prev => prev.filter(i => i.id !== inviteId))
-      flashMsg('Convite cancelado.')
-    } catch (e) {
-      flashMsg(e.message || 'Erro ao cancelar convite.')
     }
   }
 
@@ -266,7 +240,6 @@ export default function Equipes() {
       <EquipesHeader
         team={currentTeam}
         members={members}
-        invites={invites}
         pendingPosts={currentTeam.pendingPosts}
         onCreateTeam={() => setShowCreateTeam(true)}
         onJoinTeam={() => setShowJoinInput(v => !v)}
@@ -301,7 +274,7 @@ export default function Equipes() {
       <EquipesTabs
         active={activeTab}
         onChange={setActiveTab}
-        counts={{ invites: invites.length }}
+        counts={{}}
         currentRole={currentTeam.role?.toLowerCase?.() || currentTeam.role}
       />
 
@@ -320,15 +293,6 @@ export default function Equipes() {
                 currentUserId={user?.id}
                 onRoleChange={handleRoleChange}
                 onRemove={handleRemove}
-                onInviteClick={() => setShowShareCode(true)}
-              />
-            )}
-
-            {activeTab === 'convites' && (
-              <ConvitesTab
-                invites={invites}
-                onResend={handleResend}
-                onCancel={handleCancelInvite}
                 onInviteClick={() => setShowShareCode(true)}
               />
             )}
