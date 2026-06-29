@@ -689,6 +689,11 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                           </span>
                         </p>
                       )}
+                      {networkId === 'youtube' && selectedType === 'shorts' && (
+                        <p className="composer__type-warning">
+                          O YouTube classifica vídeos como Shorts <strong>automaticamente</strong> com base no arquivo enviado: duração máxima de <strong>60 segundos</strong> e proporção <strong>vertical (9:16)</strong>. O hashtag #Shorts é adicionado para ajudar na descoberta, mas não substitui esses requisitos.
+                        </p>
+                      )}
                     </div>
                   )
                 })}

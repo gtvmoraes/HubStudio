@@ -881,6 +881,23 @@
 }
 .composer__type-insight svg { color: var(--color-primary); flex-shrink: 0; margin-top: 1px; }
 .composer__type-insight strong { color: var(--color-text); font-weight: 700; }
+.composer__type-warning {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #7a5800;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+}
+[data-theme='dark'] .composer__type-warning {
+  color: #ffd54f;
+  background: #2a2000;
+  border-color: #5a4500;
+}
+.composer__type-warning strong { font-weight: 700; }
+
 .composer__type-pill--rec {
   border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
 }
