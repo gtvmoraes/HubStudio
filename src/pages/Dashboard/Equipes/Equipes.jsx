@@ -210,7 +210,7 @@ export default function Equipes() {
                 placeholder="Código da equipe"
                 value={joinCode}
                 onChange={e => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setJoinError('') }}
-                maxLength={5}
+                maxLength={6}
               />
               <button type="submit" disabled={joinLoading || !joinCode.trim()}>
                 {joinLoading ? 'Entrando...' : 'Entrar'}
@@ -260,7 +260,7 @@ export default function Equipes() {
               placeholder="Código da equipe (ex: A3K7B)"
               value={joinCode}
               onChange={e => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setJoinError('') }}
-              maxLength={5}
+              maxLength={6}
               autoFocus
             />
             <button type="submit" disabled={joinLoading || !joinCode.trim()}>
