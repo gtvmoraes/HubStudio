@@ -14,7 +14,7 @@ const statVariants = {
 export default function EquipesHeader({ team, members, invites, pendingPosts, onCreateTeam }) {
   if (!team) return null
 
-  const planMeta = PLAN_LIMITS[team.plan]
+  const planMeta = PLAN_LIMITS[team.plan] ?? PLAN_LIMITS.lite
   const usedSlots = members.length
   const isUnlimited = planMeta.maxUsers === Infinity
 
