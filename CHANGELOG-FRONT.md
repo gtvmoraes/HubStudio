@@ -194,6 +194,40 @@ A tela de Equipes era inteiramente mockada com dados hardcoded. Agora consome a 
 
 ---
 
+## 15. Restrição de formatos de imagem por plataforma no Compositor
+
+**Commits:** `636d3b2`, `880e979`
+**Arquivos:**
+- `src/pages/Dashboard/Posts/components/MediaUploader.jsx`
+- `src/pages/Dashboard/Posts/Composer.jsx`
+- `src/pages/Dashboard/Posts/Composer.css`
+- `src/services/posts.js`
+
+O `MediaUploader` agora valida os formatos de imagem em tempo real conforme as redes selecionadas.
+
+- `PLATFORM_IMAGE_TYPES` adicionado em `posts.js`: tabela com os MIME types aceitos por plataforma/tipo (TikTok foto → JPEG/WebP; Instagram → JPEG/PNG; Facebook/LinkedIn → JPEG/PNG/GIF; Twitter → JPEG/PNG/GIF/WebP; YouTube → vídeo only)
+- `MediaUploader` ganhou props `allowedImageMimeTypes` e `onRejected`; o `accept` do `<input>` e o hint de formatos se atualizam dinamicamente; drag-and-drop também bloqueia formatos inválidos
+- `Composer.jsx` calcula `allowedImageMimeTypes` via interseção dos formatos aceitos por todas as redes selecionadas; arquivos rejeitados disparam mensagem com os formatos aceitos
+- Incompatibilidade entre plataformas bloqueada com lógica baseada em orientação (vertical ↔ horizontal): ao adicionar uma nova rede, o sistema escolhe automaticamente o tipo mais compatível com a sessão atual (ex: YouTube entra como Shorts quando TikTok Vídeo está ativo)
+- Pills de redes incompatíveis ficam desabilitados com opacidade reduzida e tooltip explicativo
+- `Composer.css`: classe `.composer__network-pill--blocked` adicionada
+
+---
+
+## 16. Correção "Visto há undefined" na tela de Equipes
+
+**Commit:** `8508951`
+**Arquivos:**
+- `src/utils/date.js` (novo)
+- `src/pages/Dashboard/Equipes/components/MemberRow.jsx`
+
+O campo "Visto há" exibia `undefined` porque usava `member.lastActive`, campo inexistente na resposta da API.
+
+- Novo utilitário `timeAgo(dateStr)` em `src/utils/date.js`: converte data ISO para string legível ("agora", "3 horas", "ontem", "5 dias", "2 meses")
+- `MemberRow.jsx` atualizado para usar `member.lastSeenAt` (novo campo da API) com `timeAgo()`; exibe `—` quando o campo é nulo (usuário nunca logou após a atualização)
+
+---
+
 ## Resumo dos arquivos alterados
 
 | Arquivo | Tipo de alteração |
@@ -220,3 +254,9 @@ A tela de Equipes era inteiramente mockada com dados hardcoded. Agora consome a 
 | `contexts/TeamContext.jsx` | CRUD de equipes via API, `joinTeam` adicionado |
 | `Equipes/Equipes.jsx` | Estado vazio, ações via API, erros inline |
 | `Equipes/Equipes.css` | Estilos do estado vazio |
+| `components/MediaUploader.jsx` | Restrição de formatos por plataforma, drag-and-drop bloqueado |
+| `Composer.jsx` | Interseção de formatos, bloqueio de plataformas incompatíveis, auto-switch de tipo |
+| `Composer.css` | Estilo `.composer__network-pill--blocked` |
+| `services/posts.js` | `PLATFORM_IMAGE_TYPES` adicionado |
+| `utils/date.js` | Novo utilitário `timeAgo()` |
+| `Equipes/components/MemberRow.jsx` | Usa `lastSeenAt` + `timeAgo()` em vez de `lastActive` |
