@@ -179,8 +179,8 @@ export default function Composer() {
       const needsT = typeNeedsTitle(n, t)
       return {
         network: n,
-        hasContent: c.content.trim().length > 0,
-        hasTitle: !needsT || c.title.trim().length > 0,
+        hasContent: (c.content?.trim().length || 0) > 0,
+        hasTitle: !needsT || (c.title?.trim().length || 0) > 0,
         needsTitle: needsT,
       }
     })
