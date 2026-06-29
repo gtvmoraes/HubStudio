@@ -220,7 +220,14 @@ const xhrUpload = (endpoint, formData, onProgress) =>
 
     const token = localStorage.getItem('hs-token')
 
-    if (status === 'scheduled' && token && form.scheduledFor) {
+    if (status === 'scheduled' && token) {
+      // Quando não há data definida, publica imediatamente usando o horário atual
+      const effectiveDate = form.scheduledFor || (() => {
+        const now = new Date()
+        const pad = n => String(n).padStart(2, '0')
+        return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+      })()
+
       // Todas as redes de vídeo selecionadas — independente de qual aba tem o arquivo
       const videoNetworks = form.networks.filter(n => n === 'tiktok' || n === 'youtube')
 
@@ -252,10 +259,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             return
           }
 
-          // Envia o horário local diretamente — evita conversão UTC que deslocaria o fuso
-          const isoDate = form.scheduledFor.length === 16
-            ? form.scheduledFor + ':00'
-            : form.scheduledFor
+          const isoDate = effectiveDate.length === 16 ? effectiveDate + ':00' : effectiveDate
           const fd = new FormData()
           fd.append('video', videoFile)
           fd.append('title', videoTitle)
@@ -268,29 +272,18 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             setFeedback(pct < 100 ? `Enviando vídeo… ${pct}%` : 'Registrando agendamento…')
           })
 
-          showToast({
-            type: 'success',
-            title: 'Post agendado com sucesso',
-            message: `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`,
-          })
+          const label = form.scheduledFor
+            ? `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
+            : 'Publicando agora…'
+          showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
           setTimeout(() => navigate('/dashboard/posts'), 700)
           setLoading(false)
           return
         } catch (err) {
-          setFeedback(`Erro ao agendar: ${err.message}`)
+          setFeedback(`Erro ao publicar: ${err.message}`)
           setLoading(false)
           return
         }
-      }
-    }
-
-    if (status === 'scheduled' && token && !form.scheduledFor) {
-      const hasVideoNetwork = form.networks.some(n => n === 'tiktok' || n === 'youtube')
-      const hasVideoFile = form.media.some(m => m.type === 'video' && m.file)
-      if (hasVideoNetwork && hasVideoFile) {
-        setFeedback('Defina a data e hora antes de agendar.')
-        setLoading(false)
-        return
       }
     }
 
@@ -716,9 +709,9 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           type="button"
           className="composer__btn composer__btn--primary"
           onClick={() => handleSave('scheduled')}
-          disabled={loading || !canSubmit || !form.scheduledFor}
+          disabled={loading || !canSubmit}
         >
-          <LuCalendarClock size={15} /> Agendar
+          <LuCalendarClock size={15} /> {form.scheduledFor ? 'Agendar' : 'Publicar agora'}
         </button>
       </div>
     </div>
