@@ -1,4 +1,5 @@
 import { LuPlay, LuThumbsUp, LuShare2, LuDownload, LuBell } from 'react-icons/lu'
+import PreviewVideo from './PreviewVideo'
 
 export default function YoutubePreview({ type = 'video', title, content, user, media = [] }) {
   const isShorts = type === 'shorts'
@@ -12,7 +13,7 @@ export default function YoutubePreview({ type = 'video', title, content, user, m
         <div className={`np-yt__shorts-media${firstMedia ? ' np-yt__shorts-media--filled' : ''}`}>
           {firstMedia ? (
             firstMedia.type === 'video'
-              ? <video src={firstMedia.url} muted playsInline />
+              ? <PreviewVideo src={firstMedia.url} />
               : <img src={firstMedia.url} alt="" />
           ) : (
             <LuPlay size={48} />
@@ -38,7 +39,7 @@ export default function YoutubePreview({ type = 'video', title, content, user, m
       <div className={`np-yt__player${firstMedia ? ' np-yt__player--filled' : ''}`}>
         {firstMedia ? (
           firstMedia.type === 'video'
-            ? <video src={firstMedia.url} muted playsInline />
+            ? <PreviewVideo src={firstMedia.url} />
             : <img src={firstMedia.url} alt="" />
         ) : (
           <LuPlay size={36} />

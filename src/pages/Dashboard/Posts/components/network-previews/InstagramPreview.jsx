@@ -1,4 +1,5 @@
 import { LuHeart, LuMessageCircle, LuSend, LuBookmark, LuPlay, LuImage } from 'react-icons/lu'
+import PreviewVideo from './PreviewVideo'
 
 const handle = (user) => (user?.name || 'voce').toLowerCase().replace(/\s+/g, '_')
 
@@ -6,7 +7,7 @@ const handle = (user) => (user?.name || 'voce').toLowerCase().replace(/\s+/g, '_
 function MediaSlot({ media, placeholderIcon }) {
   const first = media?.[0]
   if (!first) return placeholderIcon
-  if (first.type === 'video') return <video src={first.url} muted playsInline />
+  if (first.type === 'video') return <PreviewVideo src={first.url} />
   return <img src={first.url} alt="" />
 }
 
@@ -56,7 +57,6 @@ export default function InstagramPreview({ type = 'feed', content, user, media =
           placeholderIcon={!isVertical ? <LuImage size={36} /> : null}
         />
         {type === 'reel' && !firstMedia && <LuPlay size={36} className="np-ig__play" />}
-        {type === 'reel' && firstMedia?.type === 'video' && <LuPlay size={28} className="np-ig__play" />}
         {isCarousel && <span className="np-ig__indicator">1/{Math.max(media.length, 3)}</span>}
       </div>
 

@@ -1,4 +1,5 @@
 import { LuThumbsUp, LuMessageCircle, LuShare2, LuImage, LuPlay, LuEarth, LuHeart } from 'react-icons/lu'
+import PreviewVideo from './PreviewVideo'
 
 export default function FacebookPreview({ type = 'post', content, user, media = [] }) {
   const name = user?.name || 'Você'
@@ -27,7 +28,7 @@ export default function FacebookPreview({ type = 'post', content, user, media = 
       <div className={`np-fb__media np-fb__media--${isReel ? 'vert' : 'square'}${firstMedia ? ' np-fb__media--filled' : ''}`}>
         {firstMedia ? (
           firstMedia.type === 'video'
-            ? <video src={firstMedia.url} muted playsInline />
+            ? <PreviewVideo src={firstMedia.url} />
             : <img src={firstMedia.url} alt="" />
         ) : (
           isReel ? <LuPlay size={36} /> : <LuImage size={36} />

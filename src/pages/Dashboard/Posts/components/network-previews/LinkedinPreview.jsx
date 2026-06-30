@@ -1,4 +1,5 @@
 import { LuThumbsUp, LuMessageCircle, LuRepeat, LuSend, LuImage, LuGlobe, LuLightbulb, LuTarget } from 'react-icons/lu'
+import PreviewVideo from './PreviewVideo'
 
 export default function LinkedinPreview({ type = 'post', title, content, user, media = [] }) {
   const name = user?.name || 'Você'
@@ -12,7 +13,7 @@ export default function LinkedinPreview({ type = 'post', title, content, user, m
         <div className={`np-li__article-cover${firstMedia ? ' np-li__article-cover--filled' : ''}`}>
           {firstMedia ? (
             firstMedia.type === 'video'
-              ? <video src={firstMedia.url} muted playsInline />
+              ? <PreviewVideo src={firstMedia.url} />
               : <img src={firstMedia.url} alt="" />
           ) : (
             <LuImage size={36} />
@@ -51,7 +52,7 @@ export default function LinkedinPreview({ type = 'post', title, content, user, m
       <div className={`np-li__media${firstMedia ? ' np-li__media--filled' : ''}`}>
         {firstMedia ? (
           firstMedia.type === 'video'
-            ? <video src={firstMedia.url} muted playsInline />
+            ? <PreviewVideo src={firstMedia.url} />
             : <img src={firstMedia.url} alt="" />
         ) : (
           <LuImage size={36} />

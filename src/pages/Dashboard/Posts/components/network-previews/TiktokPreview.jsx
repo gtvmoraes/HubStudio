@@ -1,4 +1,5 @@
 import { LuHeart, LuMessageCircle, LuShare2, LuMusic, LuPlay, LuImage } from 'react-icons/lu'
+import PreviewVideo from './PreviewVideo'
 
 const handle = (user) => (user?.name || 'voce').toLowerCase().replace(/\s+/g, '_')
 
@@ -11,7 +12,7 @@ export default function TiktokPreview({ type = 'video', content, user, media = [
       <div className={`np-tt__media${firstMedia ? ' np-tt__media--filled' : ''}`}>
         {firstMedia ? (
           firstMedia.type === 'video'
-            ? <video src={firstMedia.url} muted playsInline />
+            ? <PreviewVideo src={firstMedia.url} />
             : <img src={firstMedia.url} alt="" />
         ) : (
           type === 'video' ? <LuPlay size={48} /> : <LuImage size={48} />

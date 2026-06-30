@@ -1,5 +1,6 @@
 import { LuMessageCircle, LuRepeat, LuHeart, LuShare2, LuChartBar } from 'react-icons/lu'
 import { FaXTwitter } from 'react-icons/fa6'
+import PreviewVideo from './PreviewVideo'
 
 const handle = (user) => (user?.name || 'voce').toLowerCase().replace(/\s+/g, '')
 
@@ -33,7 +34,7 @@ export default function TwitterPreview({ content, user, media = [] }) {
           {firstMedia && (
             <div className="np-tw__media">
               {firstMedia.type === 'video' ? (
-                <video src={firstMedia.url} muted />
+                <PreviewVideo src={firstMedia.url} />
               ) : (
                 <img src={firstMedia.url} alt="" />
               )}

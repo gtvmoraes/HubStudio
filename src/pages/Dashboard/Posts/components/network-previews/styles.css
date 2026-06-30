@@ -801,6 +801,55 @@
   object-fit: cover;
   display: block;
 }
+/* Contêineres de mídia precisam ser contexto de posicionamento pro vídeo */
+.np-ig__media,
+.np-ig__story-media,
+.np-tt__media,
+.np-yt__player,
+.np-yt__shorts-media,
+.np-fb__media,
+.np-li__media,
+.np-li__article-cover,
+.np-tw__media {
+  position: relative;
+}
+
+/* Vídeo funcional — wrapper clicável que preenche o slot */
+.np-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  background: #000;
+}
+.np-video__btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding-left: 2px;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+  z-index: 3;
+}
+.np-video__btn:hover { background: rgba(0, 0, 0, 0.75); }
+/* Esconde o botão enquanto reproduz; reaparece no hover */
+.np-video__btn--playing {
+  opacity: 0;
+  padding-left: 0;
+}
+.np-video:hover .np-video__btn--playing { opacity: 1; }
+
 /* Quando tem mídia preenchida, esconde o placeholder de ícone */
 .np-ig__media--filled,
 .np-tt__media--filled,
