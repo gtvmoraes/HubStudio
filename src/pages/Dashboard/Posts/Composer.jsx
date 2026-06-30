@@ -322,7 +322,6 @@ export default function Composer() {
   }
   const hasAnyContent = validationByNetwork.some(v => v.hasContent)
 
-  // Garante pelo menos 5 minutos de antecedência no agendamento
 const xhrUpload = (endpoint, formData, onProgress) =>
     new Promise((resolve, reject) => {
       const token = localStorage.getItem('hs-token')

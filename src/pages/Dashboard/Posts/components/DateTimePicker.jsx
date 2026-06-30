@@ -14,8 +14,6 @@ const TIME_PRESETS = [
   { label: '20:00', h: 20, m: 0  },
 ]
 
-const MIN_AHEAD_MS = 5 * 60 * 1000   // 5 minutos em ms
-
 const pad = (n) => String(n).padStart(2, '0')
 
 // Converte "YYYY-MM-DDTHH:MM" → Date local (sem timezone shift)
@@ -113,12 +111,6 @@ export default function DateTimePicker({
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     return new Date(view.year, view.month, day) < todayMidnight
   }
-
-  // True quando a data+hora selecionada está a menos de 5 min do momento atual
-  const tooSoon = useMemo(() => {
-    if (!selected) return false
-    return selected < new Date(today.getTime() + MIN_AHEAD_MS)
-  }, [selected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const goPrev = () => setView(v => {
     const m = v.month - 1
@@ -348,13 +340,6 @@ export default function DateTimePicker({
             )}
           </div>
 
-          {/* Aviso de antecedência mínima */}
-          {tooSoon && (
-            <p className="dtpicker__warn">
-              O agendamento deve ter no mínimo 5 minutos de antecedência.
-            </p>
-          )}
-
           {/* Footer */}
           <div className="dtpicker__footer">
             <button type="button" className="dtpicker__today-btn" onClick={goToday}>
@@ -363,7 +348,6 @@ export default function DateTimePicker({
             <button
               type="button"
               className="dtpicker__confirm"
-              disabled={tooSoon}
               onClick={() => setOpen(false)}
             >
               Confirmar
