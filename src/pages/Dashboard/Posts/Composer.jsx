@@ -867,6 +867,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             networks={form.networks}
             typesByNetwork={form.typesByNetwork}
             contentByNetwork={form.contentByNetwork}
+            media={form.media}
             user={user}
             activeNetwork={activeNetwork}
             onActiveNetworkChange={setActiveNetwork}
