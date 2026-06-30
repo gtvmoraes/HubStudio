@@ -214,6 +214,8 @@
   padding: 12px;
   height: 100%;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 .np-ig__story-header {
   display: flex;
@@ -244,6 +246,7 @@
   align-items: center;
   justify-content: center;
   color: rgba(255,255,255,0.5);
+  position: relative;
 }
 .np-ig__story-text {
   position: absolute;
@@ -801,12 +804,11 @@
   object-fit: cover;
   display: block;
 }
-/* Contêineres de mídia precisam ser contexto de posicionamento pro vídeo */
+/* Contêineres de mídia estáticos precisam virar contexto de posicionamento
+   pro vídeo. (np-tt__media, np-yt__shorts-media e np-ig__story-media já são
+   position:absolute — não entram aqui pra não perder o inset:0.) */
 .np-ig__media,
-.np-ig__story-media,
-.np-tt__media,
 .np-yt__player,
-.np-yt__shorts-media,
 .np-fb__media,
 .np-li__media,
 .np-li__article-cover,
