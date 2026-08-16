@@ -11,7 +11,7 @@ import {
   getContentTypeInsight, getBestTimeSlots,
   getSocialAccounts, PLATFORM_IMAGE_TYPES,
 } from '../../../services/posts'
-import { API_BASE } from '../../../services/api'
+import { API_BASE, authFetch } from '../../../services/api'
 import { showToast } from '../../../components/Toast'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTheme } from '../../../contexts/ThemeContext'
@@ -468,6 +468,71 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           const label = form.scheduledFor
             ? `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
             : 'Publicando agora…'
+          showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
+          setTimeout(() => navigate('/dashboard/posts'), 700)
+          setLoading(false)
+          return
+        } catch (err) {
+          setFeedback(`Erro ao publicar: ${err.message}`)
+          setLoading(false)
+          return
+        }
+      }
+
+      // ── Fluxo por URL (Instagram/Facebook/LinkedIn) ────────────────
+      // Sem data → /posts/publish (imediato, sem gastar mensagem de fila).
+      // Com data → /posts/schedule (mesmo endpoint JSON usado pra qualquer agendamento).
+      const urlNetworks = form.networks.filter(n => ['instagram', 'facebook', 'linkedin'].includes(n))
+      if (urlNetworks.length > 0) {
+        try {
+          const accounts = await getSocialAccounts()
+          const matchingIds = accounts
+            .filter(a => urlNetworks.includes((a.platform || '').toLowerCase()))
+            .map(a => a.id)
+
+          if (matchingIds.length === 0) {
+            setFeedback('Nenhuma conta Instagram/Facebook/LinkedIn conectada. Vá em Configurações > Redes.')
+            setLoading(false)
+            return
+          }
+
+          let postContent = ''
+          for (const n of urlNetworks) {
+            const c = form.contentByNetwork[n]
+            if (c?.content) { postContent = c.content; break }
+          }
+
+          const imageFile = form.media.find(m => m.type === 'image' && m.file)?.file
+          let mediaUrl = null
+          if (imageFile) {
+            setFeedback('Enviando imagem…')
+            const fd = new FormData()
+            fd.append('file', imageFile)
+            const uploadRes = await authFetch('/posts/media', { method: 'POST', body: fd })
+            if (!uploadRes.ok) throw new Error('Falha ao enviar imagem')
+            mediaUrl = (await uploadRes.json()).mediaUrl
+          }
+
+          const immediate = !form.scheduledFor
+          setFeedback(immediate ? 'Publicando agora…' : 'Registrando agendamento…')
+          const res = await authFetch(immediate ? '/posts/publish' : '/posts/schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: postContent,
+              mediaUrl,
+              ...(immediate ? {} : { scheduledAt: isoDate }),
+              socialAccountIds: matchingIds,
+            }),
+          })
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}))
+            throw new Error(d.message || d.detail || `Erro HTTP ${res.status}`)
+          }
+
+          const label = immediate
+            ? 'Publicado agora'
+            : `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
           showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
           setTimeout(() => navigate('/dashboard/posts'), 700)
           setLoading(false)
