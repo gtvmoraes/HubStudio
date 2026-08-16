@@ -343,7 +343,18 @@ export default function Composer() {
     return check.valid ? [] : [check]
   }, [form.media, form.networks, form.typesByNetwork, imageDims])
 
-  const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle) && aspectRatioIssues.length === 0
+  // Instagram Carrossel exige entre 2 e 10 imagens
+  const carouselIssue = useMemo(() => {
+    const isCarousel = form.networks.includes('instagram') && form.typesByNetwork.instagram === 'carousel'
+    if (!isCarousel) return null
+    const count = form.media.filter(m => m.type === 'image').length
+    if (count === 0) return null // sem mídia anexada ainda, a validação de conteúdo cuida disso
+    if (count < 2) return 'O carrossel do Instagram precisa de pelo menos 2 imagens.'
+    if (count > 10) return 'O carrossel do Instagram aceita no máximo 10 imagens.'
+    return null
+  }, [form.networks, form.typesByNetwork, form.media])
+
+  const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle) && aspectRatioIssues.length === 0 && !carouselIssue
 
   // Interseção dos formatos de imagem aceitos por todas as redes selecionadas
   const allowedImageMimeTypes = useMemo(() => {
@@ -541,52 +552,84 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       // ── Fluxo por URL (Instagram/Facebook/LinkedIn) ────────────────
       // Sem data → /posts/publish (imediato, sem gastar mensagem de fila).
       // Com data → /posts/schedule (mesmo endpoint JSON usado pra qualquer agendamento).
+      // Instagram Carrossel manda todas as imagens (2-10) num Post à parte,
+      // já que ele usa mediaUrl com várias URLs separadas por vírgula — as
+      // demais redes (Facebook/LinkedIn) não entendem isso, então recebem
+      // só a primeira imagem, num Post separado.
       const urlNetworks = form.networks.filter(n => ['instagram', 'facebook', 'linkedin'].includes(n))
       if (urlNetworks.length > 0) {
         try {
           const accounts = await getSocialAccounts()
-          const matchingIds = accounts
-            .filter(a => urlNetworks.includes((a.platform || '').toLowerCase()))
-            .map(a => a.id)
+          const immediate = !form.scheduledFor
+          const instagramIsCarousel = form.networks.includes('instagram') && form.typesByNetwork['instagram'] === 'carousel'
+          const imageItems = form.media.filter(m => m.type === 'image' && m.file)
 
-          if (matchingIds.length === 0) {
+          if (instagramIsCarousel) {
+            if (imageItems.length < 2) throw new Error('Selecione pelo menos 2 imagens pra publicar um carrossel no Instagram.')
+            if (imageItems.length > 10) throw new Error('O Instagram aceita no máximo 10 imagens por carrossel.')
+          }
+
+          const urls = []
+          if (imageItems.length > 0) {
+            setFeedback(imageItems.length > 1 ? 'Enviando imagens…' : 'Enviando imagem…')
+            for (const item of imageItems) {
+              const fd = new FormData()
+              fd.append('file', item.file)
+              const uploadRes = await authFetch('/posts/media', { method: 'POST', body: fd })
+              if (!uploadRes.ok) throw new Error('Falha ao enviar imagem')
+              urls.push((await uploadRes.json()).mediaUrl)
+            }
+          }
+
+          const contentFor = (networks) => {
+            for (const n of networks) {
+              const c = form.contentByNetwork[n]
+              if (c?.content) return c.content
+            }
+            return ''
+          }
+
+          const publishBatch = async (networks, content, mediaUrl) => {
+            const matchingIds = accounts
+              .filter(a => networks.includes((a.platform || '').toLowerCase()))
+              .map(a => a.id)
+            if (matchingIds.length === 0) return false
+
+            const res = await authFetch(immediate ? '/posts/publish' : '/posts/schedule', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content,
+                mediaUrl,
+                ...(immediate ? {} : { scheduledAt: isoDate }),
+                socialAccountIds: matchingIds,
+              }),
+            })
+            if (!res.ok) {
+              const d = await res.json().catch(() => ({}))
+              throw new Error(d.message || d.detail || `Erro HTTP ${res.status}`)
+            }
+            return true
+          }
+
+          setFeedback(immediate ? 'Publicando agora…' : 'Registrando agendamento…')
+
+          let published
+          if (instagramIsCarousel) {
+            const otherNetworks = urlNetworks.filter(n => n !== 'instagram')
+            const igPublished = await publishBatch(['instagram'], contentFor(['instagram']), urls.join(','))
+            const otherPublished = otherNetworks.length > 0
+              ? await publishBatch(otherNetworks, contentFor(otherNetworks), urls[0] || null)
+              : false
+            published = igPublished || otherPublished
+          } else {
+            published = await publishBatch(urlNetworks, contentFor(urlNetworks), urls[0] || null)
+          }
+
+          if (!published) {
             setFeedback('Nenhuma conta Instagram/Facebook/LinkedIn conectada. Vá em Configurações > Redes.')
             setLoading(false)
             return
-          }
-
-          let postContent = ''
-          for (const n of urlNetworks) {
-            const c = form.contentByNetwork[n]
-            if (c?.content) { postContent = c.content; break }
-          }
-
-          const imageFile = form.media.find(m => m.type === 'image' && m.file)?.file
-          let mediaUrl = null
-          if (imageFile) {
-            setFeedback('Enviando imagem…')
-            const fd = new FormData()
-            fd.append('file', imageFile)
-            const uploadRes = await authFetch('/posts/media', { method: 'POST', body: fd })
-            if (!uploadRes.ok) throw new Error('Falha ao enviar imagem')
-            mediaUrl = (await uploadRes.json()).mediaUrl
-          }
-
-          const immediate = !form.scheduledFor
-          setFeedback(immediate ? 'Publicando agora…' : 'Registrando agendamento…')
-          const res = await authFetch(immediate ? '/posts/publish' : '/posts/schedule', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: postContent,
-              mediaUrl,
-              ...(immediate ? {} : { scheduledAt: isoDate }),
-              socialAccountIds: matchingIds,
-            }),
-          })
-          if (!res.ok) {
-            const d = await res.json().catch(() => ({}))
-            throw new Error(d.message || d.detail || `Erro HTTP ${res.status}`)
           }
 
           const label = immediate
@@ -963,6 +1006,9 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                   {issue.message}
                 </p>
               ))}
+              {carouselIssue && (
+                <p className="composer__type-warning">{carouselIssue}</p>
+              )}
             </div>
           )}
 
