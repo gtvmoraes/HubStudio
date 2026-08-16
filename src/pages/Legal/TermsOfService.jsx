@@ -1,11 +1,17 @@
+import { useEffect } from 'react'
+
 const S = { color: '#595959', fontSize: 15, fontFamily: 'Arial, sans-serif' }
 const link = { color: '#3030F1' }
 
 export default function TermsOfService() {
+  useEffect(() => {
+    document.title = 'HubStudio Terms of Service'
+  }, [])
+
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 24px', fontFamily: 'Arial, sans-serif', color: '#595959', lineHeight: 1.6 }}>
 
-      <h1 style={{ fontSize: 26, color: '#000', marginBottom: 4 }}>TERMS OF SERVICE</h1>
+      <h1 style={{ fontSize: 26, color: '#000', marginBottom: 4 }}>HubStudio Terms of Service</h1>
       <p style={{ color: '#7f7f7f', fontSize: 14, marginBottom: 48 }}>Last updated June 27, 2026</p>
 
       <h2 style={{ color: '#000', fontSize: 19 }}>AGREEMENT TO OUR LEGAL TERMS</h2>

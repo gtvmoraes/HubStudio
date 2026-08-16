@@ -82,6 +82,10 @@ export default function Footer() {
       <div className="footer__bottom">
         <div className="container footer__bottom-inner">
           <p>© 2026 HubStudio. Todos os direitos reservados.</p>
+          <div className="footer__bottom-links">
+            <Link to="/terms">Termos de Serviço</Link>
+            <Link to="/privacy">Política de Privacidade</Link>
+          </div>
         </div>
       </div>
     </footer>

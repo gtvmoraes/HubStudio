@@ -1,8 +1,14 @@
+import { useEffect } from 'react'
+
 export default function PrivacyPolicy() {
+  useEffect(() => {
+    document.title = 'HubStudio Privacy Policy'
+  }, [])
+
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 24px', fontFamily: 'Arial, sans-serif', color: '#595959', lineHeight: 1.6 }}>
 
-      <h1 style={{ fontSize: 26, color: '#000', marginBottom: 4 }}>PRIVACY POLICY</h1>
+      <h1 style={{ fontSize: 26, color: '#000', marginBottom: 4 }}>HubStudio Privacy Policy</h1>
       <p style={{ color: '#7f7f7f', fontSize: 14, marginBottom: 48 }}>Last updated June 23, 2026</p>
 
       <p>
