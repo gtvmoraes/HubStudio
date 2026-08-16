@@ -32,6 +32,26 @@ const NETWORK_ICONS = {
 
 const NETWORK_IDS = ['instagram', 'tiktok', 'youtube', 'facebook', 'linkedin', 'twitter']
 
+// Instagram/Facebook rejeitam fotos de feed fora da proporção 4:5–1.91:1
+// (retrato–paisagem). Reels/Stories têm faixas próprias, não entram aqui.
+const FEED_PHOTO_TYPES = { instagram: ['feed', 'carousel'], facebook: ['post'] }
+
+// Usado tanto na validação no momento do upload (MediaUploader) quanto na
+// checagem de segurança se a rede/tipo mudar depois que a imagem já foi anexada.
+function checkFeedAspectRatio(width, height, networks, typesByNetwork) {
+  const affected = networks.filter(n => FEED_PHOTO_TYPES[n]?.includes(typesByNetwork[n]))
+  if (affected.length === 0) return { valid: true }
+
+  const ratio = width / height
+  if (ratio >= 0.8 && ratio <= 1.91) return { valid: true }
+
+  const labels = affected.map(n => NETWORK_META[n].label).join(' e ')
+  return {
+    valid: false,
+    message: `Imagem com proporção ${ratio.toFixed(2)}:1 não é aceita pelo feed do ${labels} (precisa ficar entre 4:5 e 1.91:1). Recorte a imagem e tente de novo.`,
+  }
+}
+
 // Estrutura padrão pra conteúdo de uma rede (mídia é compartilhada em form.media)
 const emptyNetworkContent = () => ({ title: '', content: '' })
 
@@ -311,25 +331,16 @@ export default function Composer() {
     })
   }, [form.networks, form.contentByNetwork, form.typesByNetwork])
 
-  // Instagram/Facebook rejeitam fotos de feed fora da proporção 4:5–1.91:1
-  // (retrato–paisagem). Reels/Stories têm faixas próprias, não entram aqui.
-  const FEED_PHOTO_TYPES = { instagram: ['feed', 'carousel'], facebook: ['post'] }
+  // Rede de segurança: se a rede/tipo mudar DEPOIS que a imagem já foi anexada
+  // (a validação principal roda no upload, dentro do MediaUploader).
   const aspectRatioIssues = useMemo(() => {
     const imageItem = form.media.find(m => m.type === 'image')
     if (!imageItem) return []
     const dims = imageDims[imageItem.id]
     if (!dims) return [] // ainda carregando a resolução da imagem
 
-    const ratio = dims.width / dims.height
-    if (ratio >= 0.8 && ratio <= 1.91) return []
-
-    const affected = form.networks.filter(n => FEED_PHOTO_TYPES[n]?.includes(form.typesByNetwork[n]))
-    if (affected.length === 0) return []
-
-    return affected.map(n => ({
-      network: n,
-      message: `A imagem anexada tem proporção ${ratio.toFixed(2)}:1, fora do aceito pelo ${NETWORK_META[n].label} em posts de feed (entre 4:5 e 1.91:1). Recorte a imagem e tente de novo.`,
-    }))
+    const check = checkFeedAspectRatio(dims.width, dims.height, form.networks, form.typesByNetwork)
+    return check.valid ? [] : [check]
   }, [form.media, form.networks, form.typesByNetwork, imageDims])
 
   const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle) && aspectRatioIssues.length === 0
@@ -356,6 +367,18 @@ export default function Composer() {
     setFeedback(`Formato não suportado pelas redes selecionadas: ${names}. Aceitos: ${formatsAllowed}.`)
     setTimeout(() => setFeedback(''), 5000)
   }
+
+  // Impede a imagem de entrar na galeria se a proporção não servir pra
+  // nenhuma rede/tipo selecionado (em vez de só avisar depois de já anexada).
+  const validateImageAspect = (width, height) =>
+    checkFeedAspectRatio(width, height, form.networks, form.typesByNetwork)
+
+  const handleAspectRejected = (rejectedFiles, message) => {
+    const names = rejectedFiles.map(f => f.name).join(', ')
+    setFeedback(message || `Imagem fora da proporção aceita: ${names}`)
+    setTimeout(() => setFeedback(''), 5000)
+  }
+
   const hasAnyContent = validationByNetwork.some(v => v.hasContent)
 
 const xhrUpload = (endpoint, formData, onProgress) =>
@@ -932,9 +955,11 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                 onChange={(media) => setForm(f => ({ ...f, media }))}
                 allowedImageMimeTypes={allowedImageMimeTypes}
                 onRejected={allowedImageMimeTypes ? handleMediaRejected : null}
+                validateImage={validateImageAspect}
+                onAspectRejected={handleAspectRejected}
               />
-              {aspectRatioIssues.map(issue => (
-                <p key={issue.network} className="composer__type-warning">
+              {aspectRatioIssues.map((issue, idx) => (
+                <p key={idx} className="composer__type-warning">
                   {issue.message}
                 </p>
               ))}
