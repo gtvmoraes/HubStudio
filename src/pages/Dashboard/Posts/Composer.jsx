@@ -70,6 +70,21 @@ export default function Composer() {
   const [aiBusy, setAiBusy] = useState(null)          // 'caption' | 'hashtags' | null
   const [captionModalOpen, setCaptionModalOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [imageDims, setImageDims] = useState({}) // { [mediaId]: { width, height } }
+
+  // Mede a resolução de cada imagem anexada (o Instagram/Facebook rejeitam
+  // posts de feed fora da proporção 4:5–1.91:1 — ver aspectRatioIssues abaixo)
+  useEffect(() => {
+    const images = form.media.filter(m => m.type === 'image' && !imageDims[m.id])
+    images.forEach(m => {
+      const img = new Image()
+      img.onload = () => {
+        setImageDims(prev => ({ ...prev, [m.id]: { width: img.naturalWidth, height: img.naturalHeight } }))
+      }
+      img.src = m.url
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.media])
 
   // Carrega o post quando estamos em modo edição
   useEffect(() => {
@@ -296,7 +311,28 @@ export default function Composer() {
     })
   }, [form.networks, form.contentByNetwork, form.typesByNetwork])
 
-  const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle)
+  // Instagram/Facebook rejeitam fotos de feed fora da proporção 4:5–1.91:1
+  // (retrato–paisagem). Reels/Stories têm faixas próprias, não entram aqui.
+  const FEED_PHOTO_TYPES = { instagram: ['feed', 'carousel'], facebook: ['post'] }
+  const aspectRatioIssues = useMemo(() => {
+    const imageItem = form.media.find(m => m.type === 'image')
+    if (!imageItem) return []
+    const dims = imageDims[imageItem.id]
+    if (!dims) return [] // ainda carregando a resolução da imagem
+
+    const ratio = dims.width / dims.height
+    if (ratio >= 0.8 && ratio <= 1.91) return []
+
+    const affected = form.networks.filter(n => FEED_PHOTO_TYPES[n]?.includes(form.typesByNetwork[n]))
+    if (affected.length === 0) return []
+
+    return affected.map(n => ({
+      network: n,
+      message: `A imagem anexada tem proporção ${ratio.toFixed(2)}:1, fora do aceito pelo ${NETWORK_META[n].label} em posts de feed (entre 4:5 e 1.91:1). Recorte a imagem e tente de novo.`,
+    }))
+  }, [form.media, form.networks, form.typesByNetwork, imageDims])
+
+  const canSubmit = hasNetworks && validationByNetwork.every(v => v.hasContent && v.hasTitle) && aspectRatioIssues.length === 0
 
   // Interseção dos formatos de imagem aceitos por todas as redes selecionadas
   const allowedImageMimeTypes = useMemo(() => {
@@ -897,6 +933,11 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                 allowedImageMimeTypes={allowedImageMimeTypes}
                 onRejected={allowedImageMimeTypes ? handleMediaRejected : null}
               />
+              {aspectRatioIssues.map(issue => (
+                <p key={issue.network} className="composer__type-warning">
+                  {issue.message}
+                </p>
+              ))}
             </div>
           )}
 
