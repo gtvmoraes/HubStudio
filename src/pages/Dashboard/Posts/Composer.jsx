@@ -467,16 +467,17 @@ const xhrUpload = (endpoint, formData, onProgress) =>
 
           const tiktokContent = form.contentByNetwork['tiktok'] || {}
           const photoTitle = tiktokContent.title || tiktokContent.content?.slice(0, 60) || ''
+          const immediate = !form.scheduledFor
           const fd = new FormData()
           imageItems.forEach(item => fd.append('photos', item.file))
           fd.append('title', photoTitle)
-          fd.append('scheduledAt', isoDate)
+          if (!immediate) fd.append('scheduledAt', isoDate)
           matchingIds.forEach(id => fd.append('socialAccountIds', id))
 
           setFeedback('Enviando fotos…')
-          await xhrUpload('/posts/schedule/photo', fd, pct => {
+          await xhrUpload(immediate ? '/posts/publish/photo' : '/posts/schedule/photo', fd, pct => {
             setUploadProgress(pct)
-            setFeedback(pct < 100 ? `Enviando fotos… ${pct}%` : 'Registrando agendamento…')
+            setFeedback(pct < 100 ? `Enviando fotos… ${pct}%` : (immediate ? 'Publicando no TikTok…' : 'Registrando agendamento…'))
           })
 
           const label = form.scheduledFor
@@ -522,17 +523,18 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           }
 
           const youtubeIsShort = form.networks.includes('youtube') && youtubeType === 'shorts'
+          const immediate = !form.scheduledFor
           const fd = new FormData()
           fd.append('video', videoFile)
           fd.append('title', videoTitle)
-          fd.append('scheduledAt', isoDate)
+          if (!immediate) fd.append('scheduledAt', isoDate)
           matchingIds.forEach(id => fd.append('socialAccountIds', id))
           if (youtubeIsShort) fd.append('youtubeIsShort', 'true')
 
           setFeedback('Enviando vídeo…')
-          await xhrUpload('/posts/schedule/video', fd, pct => {
+          await xhrUpload(immediate ? '/posts/publish/video' : '/posts/schedule/video', fd, pct => {
             setUploadProgress(pct)
-            setFeedback(pct < 100 ? `Enviando vídeo… ${pct}%` : 'Registrando agendamento…')
+            setFeedback(pct < 100 ? `Enviando vídeo… ${pct}%` : (immediate ? 'Publicando…' : 'Registrando agendamento…'))
           })
 
           const label = form.scheduledFor
