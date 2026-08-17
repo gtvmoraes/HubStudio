@@ -1,14 +1,14 @@
-import { LuHeart, LuMessageCircle, LuSend, LuBookmark, LuPlay, LuImage } from 'react-icons/lu'
+import { useState, useEffect } from 'react'
+import { LuHeart, LuMessageCircle, LuSend, LuBookmark, LuPlay, LuImage, LuChevronLeft, LuChevronRight } from 'react-icons/lu'
 import PreviewVideo from './PreviewVideo'
 
 const handle = (user) => (user?.name || 'voce').toLowerCase().replace(/\s+/g, '_')
 
 // Renderiza a mídia (image/video) ou um placeholder
-function MediaSlot({ media, placeholderIcon }) {
-  const first = media?.[0]
-  if (!first) return placeholderIcon
-  if (first.type === 'video') return <PreviewVideo src={first.url} />
-  return <img src={first.url} alt="" />
+function MediaSlot({ item, placeholderIcon }) {
+  if (!item) return placeholderIcon
+  if (item.type === 'video') return <PreviewVideo src={item.url} />
+  return <img src={item.url} alt="" />
 }
 
 export default function InstagramPreview({ type = 'feed', content, user, media = [] }) {
@@ -17,6 +17,14 @@ export default function InstagramPreview({ type = 'feed', content, user, media =
   const isStory = type === 'story'
   const isCarousel = type === 'carousel'
   const firstMedia = media[0]
+
+  // Navegação real do carrossel: volta pro início se a mídia mudar (imagem removida/trocada)
+  const [activeIndex, setActiveIndex] = useState(0)
+  useEffect(() => { setActiveIndex(0) }, [media.length])
+
+  const activeMedia = isCarousel ? media[activeIndex] : firstMedia
+  const goPrev = (e) => { e.stopPropagation(); setActiveIndex(i => (i - 1 + media.length) % media.length) }
+  const goNext = (e) => { e.stopPropagation(); setActiveIndex(i => (i + 1) % media.length) }
 
   // Story tem layout diferente — quase fullscreen, texto sobreposto
   if (isStory) {
@@ -29,7 +37,7 @@ export default function InstagramPreview({ type = 'feed', content, user, media =
         </div>
         <div className="np-ig__story-bar"><span /></div>
         <div className="np-ig__story-media">
-          <MediaSlot media={media} placeholderIcon={<LuImage size={48} />} />
+          <MediaSlot item={firstMedia} placeholderIcon={<LuImage size={48} />} />
         </div>
         {content && (
           <div className="np-ig__story-text">{content.split('\n')[0]}</div>
@@ -53,11 +61,30 @@ export default function InstagramPreview({ type = 'feed', content, user, media =
       {/* Mídia */}
       <div className={`np-ig__media np-ig__media--${isVertical ? 'vert' : 'square'}${firstMedia ? ' np-ig__media--filled' : ''}`}>
         <MediaSlot
-          media={media}
+          item={activeMedia}
           placeholderIcon={!isVertical ? <LuImage size={36} /> : null}
         />
         {type === 'reel' && !firstMedia && <LuPlay size={36} className="np-ig__play" />}
-        {isCarousel && <span className="np-ig__indicator">1/{Math.max(media.length, 3)}</span>}
+
+        {isCarousel && media.length > 1 && (
+          <>
+            <button type="button" className="np-ig__nav np-ig__nav--prev" onClick={goPrev} aria-label="Imagem anterior">
+              <LuChevronLeft size={16} />
+            </button>
+            <button type="button" className="np-ig__nav np-ig__nav--next" onClick={goNext} aria-label="Próxima imagem">
+              <LuChevronRight size={16} />
+            </button>
+            <div className="np-ig__dots">
+              {media.map((m, i) => (
+                <span key={m.id ?? i} className={`np-ig__dot${i === activeIndex ? ' np-ig__dot--active' : ''}`} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {isCarousel && (
+          <span className="np-ig__indicator">{media.length > 0 ? activeIndex + 1 : 1}/{Math.max(media.length, 1)}</span>
+        )}
       </div>
 
       {/* Ações */}

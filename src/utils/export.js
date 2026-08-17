@@ -1,10 +1,10 @@
 // Helpers para exportar dados como CSV no browser (download direto).
 
 const STAT_LABELS = {
-  views: 'Crescimento de visualizações',
-  followers: 'Crescimento de seguidores',
+  views: 'Total de visualizações',
   likes: 'Total de curtidas',
-  newFollowers: 'Novos seguidores',
+  comments: 'Total de comentários',
+  shares: 'Total de compartilhamentos',
 }
 
 function downloadCsv(rows, filename) {

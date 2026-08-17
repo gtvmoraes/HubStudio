@@ -7,25 +7,34 @@ import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { networkColor } from '../../../../services/posts'
 import { useTheme } from '../../../../contexts/ThemeContext'
 
-const NETWORKS = [
-  { id: 'instagram', name: 'Instagram',   icon: FaInstagram, followers: '8.6K', growth: '+12.4%', trend: 'up'   },
-  { id: 'tiktok',    name: 'TikTok',      icon: FaTiktok,    followers: '4.2K', growth: '+24.8%', trend: 'up'   },
-  { id: 'youtube',   name: 'YouTube',     icon: FaYoutube,   followers: '1.8K', growth: '+6.1%',  trend: 'up'   },
-  { id: 'facebook',  name: 'Facebook',    icon: FaFacebook,  followers: '3.1K', growth: '+8.3%',  trend: 'up'   },
-  { id: 'linkedin',  name: 'LinkedIn',    icon: FaLinkedin,  followers: '1.2K', growth: '+15.6%', trend: 'up'   },
-  { id: 'twitter',   name: 'X (Twitter)', icon: FaXTwitter,  followers: '912',  growth: '-2.3%',  trend: 'down' },
-]
+const ICON_BY_ID = {
+  instagram: FaInstagram,
+  tiktok:    FaTiktok,
+  youtube:   FaYoutube,
+  facebook:  FaFacebook,
+  linkedin:  FaLinkedin,
+  twitter:   FaXTwitter,
+}
 
+// Engajamento (curtidas + comentários + compartilhamentos) das métricas reais
+// coletadas por post — não "seguidores", que nenhuma rede expõe hoje.
 const PERIOD_LABELS = {
-  '24h': 'Crescimento nas últimas 24h',
-  '7d':  'Crescimento nos últimos 7 dias',
-  '30d': 'Crescimento nos últimos 30 dias',
-  'all': 'Crescimento acumulado total',
+  '24h': 'Engajamento nas últimas 24h',
+  '7d':  'Engajamento nos últimos 7 dias',
+  '30d': 'Engajamento nos últimos 30 dias',
+  'all': 'Engajamento acumulado total',
+}
+
+const fmtCompact = (n) => {
+  const num = Number(n) || 0
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`
+  return `${num}`
 }
 
 const SCROLL_STEP = 220
 
-export default function NetworkComparison({ period = '30d' }) {
+export default function NetworkComparison({ period = '30d', data = [] }) {
   const { theme } = useTheme()
   const trackRef = useRef(null)
   const [canLeft,  setCanLeft]  = useState(false)
@@ -96,20 +105,23 @@ export default function NetworkComparison({ period = '30d' }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        {NETWORKS.map(({ id, name, icon: Icon, followers, growth, trend }) => {
-          const TrendIcon = trend === 'up' ? LuTrendingUp : LuTrendingDown
+        {data.map(({ id, name, engagement, change, trend }) => {
+          const Icon = ICON_BY_ID[id]
+          const TrendIcon = trend === 'down' ? LuTrendingDown : LuTrendingUp
           const color = networkColor(id, theme)
           return (
             <div key={id} className="net-compare__card" style={{ '--net': color }}>
               <div className="net-compare__icon" style={{ background: `${color}18`, color }}>
-                <Icon size={18} />
+                {Icon && <Icon size={18} />}
               </div>
               <div className="net-compare__body">
                 <span className="net-compare__name">{name}</span>
-                <strong className="net-compare__value">{followers}</strong>
-                <span className={`net-compare__growth net-compare__growth--${trend}`}>
-                  <TrendIcon size={11} /> {growth}
-                </span>
+                <strong className="net-compare__value">{fmtCompact(engagement)}</strong>
+                {change && (
+                  <span className={`net-compare__growth net-compare__growth--${trend}`}>
+                    <TrendIcon size={11} /> {change}
+                  </span>
+                )}
               </div>
             </div>
           )

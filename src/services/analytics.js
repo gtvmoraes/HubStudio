@@ -1,5 +1,8 @@
-// Modificadores para simular variação dos dados conforme os filtros.
-// Quando o backend for plugado, esses params serão enviados como query string.
+import { authFetch } from './api'
+
+const hasToken = () => !!localStorage.getItem('hs-token')
+
+// Modificadores só usados no fallback mock (sem sessão ou falha na API real).
 const PERIOD_MULT = {
   '24h': 0.036,
   '7d':  0.25,
@@ -24,15 +27,30 @@ const applyMult = (n, period, network) => {
 
 const fmtK = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`
 
-export const getStats = (period = '30d', network = 'all') => {
-  const base = { views: 127800, followers: 8642, likes: 23700, newFollowers: 1286 }
-  const changes = { views: '+16.6%', followers: '+12.4%', likes: '+21.3%', newFollowers: '+16.7%' }
-  return Promise.resolve({
-    views:        { value: fmtK(applyMult(base.views, period, network)),        raw: applyMult(base.views, period, network),        change: changes.views,        trend: 'up' },
-    followers:    { value: applyMult(base.followers, period, network).toLocaleString('pt-BR'),    raw: applyMult(base.followers, period, network),    change: changes.followers,    trend: 'up' },
-    likes:        { value: fmtK(applyMult(base.likes, period, network)),        raw: applyMult(base.likes, period, network),        change: changes.likes,        trend: 'up' },
-    newFollowers: { value: applyMult(base.newFollowers, period, network).toLocaleString('pt-BR'), raw: applyMult(base.newFollowers, period, network), change: changes.newFollowers, trend: 'up' },
+const mockStats = (period, network) => {
+  const base = { views: 127800, likes: 23700, comments: 8900, shares: 1400 }
+  const changes = { views: '+16.6%', likes: '+21.3%', comments: '+9.4%', shares: '+11.2%' }
+  const build = (key) => ({
+    value: fmtK(applyMult(base[key], period, network)),
+    raw: applyMult(base[key], period, network),
+    change: changes[key],
+    trend: 'up',
   })
+  return { views: build('views'), likes: build('likes'), comments: build('comments'), shares: build('shares') }
+}
+
+// KPIs reais (views/likes/comments/shares agregados das métricas coletadas por rede).
+// "Seguidores" não existe em lugar nenhum: nenhuma rede tem coleta de contagem de
+// seguidores implementada, então esse KPI foi removido em vez de ser fabricado.
+export const getStats = async (period = '30d', network = 'all') => {
+  if (!hasToken()) return mockStats(period, network)
+  try {
+    const res = await authFetch(`/analytics/stats?period=${period}&network=${network}`)
+    if (!res.ok) return mockStats(period, network)
+    return await res.json()
+  } catch {
+    return mockStats(period, network)
+  }
 }
 
 const ENGAGEMENT_DAILY = [
@@ -64,18 +82,53 @@ const ENGAGEMENT_MONTHLY = [
   { date: 'Mai', views: 980000, likes: 47500, comments: 16800 },
 ]
 
-export const getEngagementData = (granularity = 'daily', network = 'all') => {
+const mockEngagement = (granularity, network) => {
   const dataset =
     granularity === 'weekly'  ? ENGAGEMENT_WEEKLY  :
     granularity === 'monthly' ? ENGAGEMENT_MONTHLY :
                                 ENGAGEMENT_DAILY
   const mult = NETWORK_MULT[network] ?? 1
-  return Promise.resolve(dataset.map(d => ({
+  return dataset.map(d => ({
     ...d,
     views:    Math.round(d.views    * mult),
     likes:    Math.round(d.likes    * mult),
     comments: Math.round(d.comments * mult),
-  })))
+  }))
+}
+
+export const getEngagementData = async (granularity = 'daily', network = 'all') => {
+  if (!hasToken()) return mockEngagement(granularity, network)
+  try {
+    const res = await authFetch(`/analytics/engagement?granularity=${granularity}&network=${network}`)
+    if (!res.ok) return mockEngagement(granularity, network)
+    const data = await res.json()
+    return Array.isArray(data) && data.length > 0 ? data : mockEngagement(granularity, network)
+  } catch {
+    return mockEngagement(granularity, network)
+  }
+}
+
+const NETWORK_COMPARISON_MOCK = [
+  { id: 'instagram', name: 'Instagram',   engagement: 8600, change: '+12.4%', trend: 'up'   },
+  { id: 'tiktok',    name: 'TikTok',      engagement: 4200, change: '+24.8%', trend: 'up'   },
+  { id: 'youtube',   name: 'YouTube',     engagement: 1800, change: '+6.1%',  trend: 'up'   },
+  { id: 'facebook',  name: 'Facebook',    engagement: 3100, change: '+8.3%',  trend: 'up'   },
+  { id: 'linkedin',  name: 'LinkedIn',    engagement: 1200, change: '+15.6%', trend: 'up'   },
+  { id: 'twitter',   name: 'X (Twitter)', engagement: 912,  change: '-2.3%',  trend: 'down' },
+]
+
+// Engajamento real (likes+comentários+compartilhamentos) por rede conectada —
+// substitui a contagem de seguidores fabricada, que nenhuma rede expõe hoje.
+export const getNetworkComparison = async (period = '30d') => {
+  if (!hasToken()) return NETWORK_COMPARISON_MOCK
+  try {
+    const res = await authFetch(`/analytics/network-comparison?period=${period}`)
+    if (!res.ok) return NETWORK_COMPARISON_MOCK
+    const data = await res.json()
+    return Array.isArray(data) && data.length > 0 ? data : NETWORK_COMPARISON_MOCK
+  } catch {
+    return NETWORK_COMPARISON_MOCK
+  }
 }
 
 export const getSocialBreakdown = () => Promise.resolve([

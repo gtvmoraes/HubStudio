@@ -4,7 +4,7 @@ import { motion, Reorder } from 'framer-motion'
 import { LuLayoutGrid, LuGripVertical, LuRotateCcw, LuCheck } from 'react-icons/lu'
 import { useAuth } from '../../../contexts/AuthContext'
 import {
-  getStats, getEngagementData, getSocialBreakdown,
+  getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
   getContentReach, getAudience, getAiInsights, getActivityFeed,
 } from '../../../services/analytics'
 import {
@@ -60,6 +60,7 @@ export default function DashboardHome() {
   const [stats, setStats] = useState(null)
   const [engagement, setEngagement] = useState([])
   const [socialBreakdown, setSocialBreakdown] = useState([])
+  const [networkComparison, setNetworkComparison] = useState([])
   const [contentReach, setContentReach] = useState([])
   const [audience, setAudience] = useState(null)
   const [topPosts, setTopPosts] = useState([])
@@ -127,6 +128,10 @@ export default function DashboardHome() {
   useEffect(() => {
     getContentReach(network).then(setContentReach)
   }, [network])
+
+  useEffect(() => {
+    getNetworkComparison(period).then(setNetworkComparison)
+  }, [period])
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
 
@@ -202,7 +207,7 @@ export default function DashboardHome() {
         </motion.div>
       </div>
     ),
-    networks: <NetworkComparison period={period} />,
+    networks: <NetworkComparison period={period} data={networkComparison} />,
     bottom: (
       <div className="dash-home__bottom">
         <ContentReachCard data={contentReach} />
