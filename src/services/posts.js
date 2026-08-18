@@ -43,10 +43,20 @@ export const getTopPosts = async () => {
       date: p.date,
       views: fmtCompact(p.views),
       likes: fmtCompact(p.likes),
+      network: p.network,
     }))
   } catch {
     return TOP_POSTS_MOCK
   }
+}
+
+// Força a coleta de métricas (curtidas, comentários, views) de um post direto
+// na rede social, em vez de esperar o job automático de 6 em 6h no backend.
+// `postPlatformId` é o id do vínculo post-rede (ex: o `id` retornado por getTopPosts).
+export const collectMetrics = async (postPlatformId) => {
+  const res = await authFetch(`/posts/${postPlatformId}/metrics/collect`, { method: 'POST' })
+  if (!res.ok) throw new Error(`Falha ao coletar métricas do post ${postPlatformId}`)
+  return res.json()
 }
 
 const RECENT_POSTS_MOCK = [

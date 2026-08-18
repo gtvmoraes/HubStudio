@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, Reorder } from 'framer-motion'
-import { LuLayoutGrid, LuGripVertical, LuRotateCcw, LuCheck } from 'react-icons/lu'
+import { LuLayoutGrid, LuGripVertical, LuRotateCcw, LuCheck, LuRefreshCw } from 'react-icons/lu'
 import { useAuth } from '../../../contexts/AuthContext'
 import {
   getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
@@ -9,6 +9,7 @@ import {
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
+  collectMetrics,
 } from '../../../services/posts'
 import { dashFadeUp as fadeUp } from '../../../styles/animations'
 import { exportDashboardReport } from '../../../utils/export'
@@ -77,6 +78,7 @@ export default function DashboardHome() {
 
   const [feedback, setFeedback] = useState({})
   const [showCalendarModal, setShowCalendarModal] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Layout modular
   const [editMode, setEditMode] = useState(false)
@@ -89,33 +91,40 @@ export default function DashboardHome() {
   const resetLayout = () => { setLeftOrder(LEFT_DEFAULT); setRightOrder(RIGHT_DEFAULT) }
 
   // Dados estáticos (não dependem dos filtros).
-  useEffect(() => {
-    Promise.all([
-      getSocialBreakdown(),
-      getAudience(),
-      getTopPosts(),
-      getRecentPosts(),
-      getCalendarMarkers(),
-      getAiSuggestions(),
-      getAiInsights(),
-      getUpcomingPosts(),
-      getActivityFeed(),
-    ]).then(([
-      socialBreakdownRes, audienceRes,
-      topPostsRes, recentPostsRes, markersRes, aiSuggestionsRes, aiInsightsRes,
-      upcomingRes, activityRes,
-    ]) => {
-      setSocialBreakdown(socialBreakdownRes)
-      setAudience(audienceRes)
-      setTopPosts(topPostsRes)
-      setRecentPosts(recentPostsRes)
-      setCalendarMarkers(markersRes)
-      setAiSuggestions(aiSuggestionsRes)
-      setAiInsights(aiInsightsRes)
-      setUpcomingPosts(upcomingRes)
-      setActivity(activityRes)
-    })
-  }, [])
+  const loadStaticData = () => Promise.all([
+    getSocialBreakdown(),
+    getAudience(),
+    getTopPosts(),
+    getRecentPosts(),
+    getCalendarMarkers(),
+    getAiSuggestions(),
+    getAiInsights(),
+    getUpcomingPosts(),
+    getActivityFeed(),
+  ]).then(([
+    socialBreakdownRes, audienceRes,
+    topPostsRes, recentPostsRes, markersRes, aiSuggestionsRes, aiInsightsRes,
+    upcomingRes, activityRes,
+  ]) => {
+    setSocialBreakdown(socialBreakdownRes)
+    setAudience(audienceRes)
+    setTopPosts(topPostsRes)
+    setRecentPosts(recentPostsRes)
+    setCalendarMarkers(markersRes)
+    setAiSuggestions(aiSuggestionsRes)
+    setAiInsights(aiInsightsRes)
+    setUpcomingPosts(upcomingRes)
+    setActivity(activityRes)
+  })
+
+  useEffect(() => { loadStaticData() }, [])
+
+  const loadFilteredData = () => Promise.all([
+    getStats(period, network).then(setStats),
+    getEngagementData(granularity, network).then(setEngagement),
+    getContentReach(network).then(setContentReach),
+    getNetworkComparison(period).then(setNetworkComparison),
+  ])
 
   useEffect(() => {
     getStats(period, network).then(setStats)
@@ -146,6 +155,25 @@ export default function DashboardHome() {
   const handleExport = () => {
     exportDashboardReport(stats, engagement)
     flashFeedback('export', 'Baixado!')
+  }
+
+  // Força a coleta de métricas direto nas redes (em vez de esperar o job
+  // automático do backend, que roda a cada 6h) e recarrega o dashboard.
+  const handleRefresh = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      if (localStorage.getItem('hs-token')) {
+        const ids = [...new Set(topPosts.map(p => p.id).filter(id => typeof id === 'string'))]
+        await Promise.allSettled(ids.map(id => collectMetrics(id)))
+      }
+      await Promise.all([loadStaticData(), loadFilteredData()])
+      flashFeedback('refresh', 'Atualizado!')
+    } catch {
+      flashFeedback('refresh', 'Erro ao atualizar')
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const handleAiAction = async (suggestion) => {
@@ -308,13 +336,24 @@ export default function DashboardHome() {
             </button>
           </>
         ) : (
-          <button
-            type="button"
-            className="dash-home__toolbar-btn"
-            onClick={() => setEditMode(true)}
-          >
-            <LuLayoutGrid size={14} /> Personalizar
-          </button>
+          <>
+            <button
+              type="button"
+              className="dash-home__toolbar-btn"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <LuRefreshCw size={14} className={refreshing ? 'dash-home__spin' : ''} />
+              {' '}{feedback.refresh || (refreshing ? 'Atualizando...' : 'Atualizar')}
+            </button>
+            <button
+              type="button"
+              className="dash-home__toolbar-btn"
+              onClick={() => setEditMode(true)}
+            >
+              <LuLayoutGrid size={14} /> Personalizar
+            </button>
+          </>
         )}
       </div>
 
