@@ -9,7 +9,7 @@ import {
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
-  collectMetrics,
+  refreshAllMetrics,
 } from '../../../services/posts'
 import { dashFadeUp as fadeUp } from '../../../styles/animations'
 import { exportDashboardReport } from '../../../utils/export'
@@ -164,8 +164,7 @@ export default function DashboardHome() {
     setRefreshing(true)
     try {
       if (localStorage.getItem('hs-token')) {
-        const ids = [...new Set(topPosts.map(p => p.id).filter(id => typeof id === 'string'))]
-        await Promise.allSettled(ids.map(id => collectMetrics(id)))
+        await refreshAllMetrics()
       }
       await Promise.all([loadStaticData(), loadFilteredData()])
       flashFeedback('refresh', 'Atualizado!')
