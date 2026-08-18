@@ -185,10 +185,22 @@ const CONTENT_REACH = {
   ],
 }
 
-export const getContentReach = (network = 'all') =>
-  Promise.resolve(CONTENT_REACH[network] ?? CONTENT_REACH.all)
+// Alcance real por tipo de conteúdo (só Instagram tem contentType rastreado
+// hoje) — backend retorna vazio pra outras redes, e a gente cai pro mock.
+export const getContentReach = async (network = 'all') => {
+  const mock = CONTENT_REACH[network] ?? CONTENT_REACH.all
+  if (!hasToken()) return mock
+  try {
+    const res = await authFetch(`/analytics/content-reach?network=${network}`)
+    if (!res.ok) return mock
+    const data = await res.json()
+    return Array.isArray(data) && data.length > 0 ? data : mock
+  } catch {
+    return mock
+  }
+}
 
-export const getAudience = () => Promise.resolve({
+const AUDIENCE_MOCK = {
   ageGroups: [
     { range: '13–17', value: 14 },
     { range: '18–24', value: 42 },
@@ -202,7 +214,21 @@ export const getAudience = () => Promise.resolve({
     { city: 'Rio de Janeiro', value: 18 },
     { city: 'Belo Horizonte', value: 9  },
   ],
-})
+}
+
+// Demografia real de seguidores do Instagram (idade/gênero/localização).
+// 204 = sem conta Instagram conectada ou sem dado suficiente ainda — cai pro mock.
+export const getAudience = async () => {
+  if (!hasToken()) return AUDIENCE_MOCK
+  try {
+    const res = await authFetch('/analytics/audience')
+    if (!res.ok || res.status === 204) return AUDIENCE_MOCK
+    const data = await res.json()
+    return data?.gender ? data : AUDIENCE_MOCK
+  } catch {
+    return AUDIENCE_MOCK
+  }
+}
 
 export const getActivityFeed = () => Promise.resolve([
   { id: 1, type: 'publish',   text: 'Post "5 dicas para aumentar seu engajamento" foi publicado', time: 'há 2h' },
