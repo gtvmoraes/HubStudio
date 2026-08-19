@@ -171,7 +171,9 @@
 }
 .sidebar__context {
   margin: 0 12px 8px;
-  overflow: hidden;
+  /* Sem overflow:hidden aqui — o dropdown do ContextSwitcher (position:
+     absolute) é filho desta div e ficaria cortado/invisível. */
+  min-width: 0;
 }
 .sidebar--collapsed .sidebar__context {
   display: none;

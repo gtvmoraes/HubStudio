@@ -99,4 +99,8 @@
   --shadow-card-hover: 0 4px 12px rgba(79, 53, 232, 0.25), 0 8px 32px rgba(0, 0, 0, 0.3);
   --color-primary-light: rgba(79, 53, 232, 0.2);
   --color-primary-muted: rgba(79, 53, 232, 0.15);
+  --color-success-light: rgba(16, 185, 129, 0.16);
+  --color-warning-light: rgba(245, 158, 11, 0.16);
+  --color-error-light: rgba(239, 68, 68, 0.16);
+  --color-info-light: rgba(59, 130, 246, 0.16);
 }

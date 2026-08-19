@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { getUserTeams, createTeamApi, updateTeamApi, deleteTeamApi, joinByCodeApi } from '../services/team'
+import { getSocialAccounts } from '../services/posts'
 import { useAuth } from './AuthContext'
+
+// O backend as vezes manda o cargo em maiusculo (enum bruto) as vezes em
+// minusculo (ja normalizado) — o front sempre trabalha em minusculo.
+const normalizeTeam = (t) => t ? { ...t, role: t.role?.toLowerCase?.() ?? t.role } : t
 
 const TeamContext = createContext(null)
 const STORAGE_KEY = 'hs-current-team'
@@ -28,7 +33,7 @@ export function TeamProvider({ children }) {
   useEffect(() => {
     if (!user) { setLoading(false); return }
     getUserTeams().then(list => {
-      setTeams(list)
+      setTeams(list.map(normalizeTeam))
       const saved = list.find(t => t.id === currentTeamId)
       if (saved) {
         setCurrentTeamId(currentTeamId)
@@ -49,26 +54,36 @@ export function TeamProvider({ children }) {
     else localStorage.setItem(STORAGE_KEY, teamId)
   }
 
+  // Só oferece a importação se a equipe ainda não tem contas E o usuário tem
+  // alguma conta pessoal conectada pra trazer — evita abrir o modal e fechar
+  // ele sozinho na hora (nada pra mostrar).
+  const maybeOfferImport = async (team) => {
+    if (team.hasSocialAccounts) return
+    const personalAccounts = await getSocialAccounts().catch(() => [])
+    const hasImportable = personalAccounts.some(a => a.status === 'connected' || a.status === 'expired')
+    if (hasImportable) setPendingImport(team)
+  }
+
   const createTeam = async (data) => {
-    const newTeam = await createTeamApi(data)
+    const newTeam = normalizeTeam(await createTeamApi(data))
     setTeams(prev => [...prev, newTeam])
     setCurrentTeamId(newTeam.id)
     localStorage.setItem(STORAGE_KEY, newTeam.id)
-    if (!newTeam.hasSocialAccounts) setPendingImport(newTeam)
+    maybeOfferImport(newTeam)
     return newTeam
   }
 
   const joinTeam = async (code) => {
-    const team = await joinByCodeApi(code)
+    const team = normalizeTeam(await joinByCodeApi(code))
     setTeams(prev => [...prev, team])
     setCurrentTeamId(team.id)
     localStorage.setItem(STORAGE_KEY, team.id)
-    if (!team.hasSocialAccounts) setPendingImport(team)
+    maybeOfferImport(team)
     return team
   }
 
   const updateTeam = async (teamId, updates) => {
-    const updated = await updateTeamApi(teamId, updates)
+    const updated = normalizeTeam(await updateTeamApi(teamId, updates))
     setTeams(prev => prev.map(t => t.id === teamId ? updated : t))
     return updated
   }

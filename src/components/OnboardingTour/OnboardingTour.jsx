@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LuPartyPopper, LuShare2, LuCalendarClock,
-  LuSparkles, LuArrowRight, LuX, LuLink,
+  LuSparkles, LuArrowRight, LuX, LuLink, LuUsers,
 } from 'react-icons/lu'
 import './OnboardingTour.css'
 
@@ -18,9 +18,14 @@ const STEPS = [
     text: 'Sua conta está pronta. Em poucos passos você vai conectar suas redes e começar a gerenciar tudo de um só lugar. Leva menos de um minuto.',
   },
   {
+    icon: LuUsers,
+    title: 'Pessoal ou equipe — você escolhe',
+    text: 'No topo do menu lateral tem o seletor de contexto: suas contas pessoais ficam separadas das contas de cada equipe que você participa. Tudo que você faz (conectar redes, postar, ver dados) usa o contexto selecionado ali.',
+  },
+  {
     icon: LuShare2,
     title: 'Conecte suas redes sociais',
-    text: 'Esse é o passo mais importante: em Configurações → Redes sociais você vincula Instagram, TikTok, YouTube, Facebook, LinkedIn e X. Sem isso, não dá pra agendar nem ver métricas.',
+    text: 'Esse é o passo mais importante: em Configurações → Redes sociais você vincula Instagram, TikTok, YouTube, Facebook, LinkedIn e X — no contexto (pessoal ou equipe) que estiver selecionado. Sem isso, não dá pra agendar nem ver métricas.',
   },
   {
     icon: LuCalendarClock,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LuChevronDown, LuCheck, LuPlus, LuUser } from 'react-icons/lu'
+import { LuChevronDown, LuCheck, LuPlus, LuUser, LuLogIn } from 'react-icons/lu'
 import { useTeam } from '../../contexts/TeamContext'
 import { ROLES } from '../../services/team'
 import './ContextSwitcher.css'
@@ -36,6 +37,7 @@ function ContextAvatar({ context, size = 'md' }) {
 // só existia dentro da página Equipes e desaparecia sem uma equipe ativa).
 export default function ContextSwitcher({ onCreateClick }) {
   const { contexts, activeContext, switchTeam } = useTeam()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -118,6 +120,13 @@ export default function ContextSwitcher({ onCreateClick }) {
               onClick={() => { setOpen(false); onCreateClick() }}
             >
               <LuPlus size={14} /> Criar nova equipe
+            </button>
+            <button
+              type="button"
+              className="context-switcher__action"
+              onClick={() => { setOpen(false); navigate('/dashboard/equipes') }}
+            >
+              <LuLogIn size={14} /> Entrar em uma equipe
             </button>
           </motion.div>
         )}
