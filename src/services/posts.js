@@ -287,11 +287,12 @@ const ALL_POSTS = [
   },
 ]
 
-export const getAllPosts = async () => {
+export const getAllPosts = async (companyId) => {
   const token = localStorage.getItem('hs-token')
   if (!token) return ALL_POSTS
   try {
-    const res = await authFetch('/posts/schedule/all-posts')
+    const url = companyId ? `/posts/schedule/all-posts?companyId=${companyId}` : '/posts/schedule/all-posts'
+    const res = await authFetch(url)
     if (!res.ok) return ALL_POSTS
     return await res.json()
   } catch {

@@ -15,6 +15,8 @@ import { API_BASE, authFetch } from '../../../services/api'
 import { showToast } from '../../../components/Toast'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTheme } from '../../../contexts/ThemeContext'
+import { useTeam } from '../../../contexts/TeamContext'
+import { PERMISSION_MATRIX } from '../../../services/team'
 import PhonePreview from './components/PhonePreview'
 import MediaUploader from './components/MediaUploader'
 import DateTimePicker from './components/DateTimePicker'
@@ -70,6 +72,12 @@ export default function Composer() {
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { theme } = useTheme()
+  const { activeContext } = useTeam()
+  const companyId = activeContext.personal ? null : activeContext.id
+  const canCreatePost = activeContext.personal || Boolean(PERMISSION_MATRIX[activeContext.role]?.createPost)
+  const canScheduleDirectly = activeContext.personal || Boolean(PERMISSION_MATRIX[activeContext.role]?.scheduleDirectly)
+  // Endpoints de post recebem companyId como query param (nunca no corpo JSON).
+  const withCompany = (path) => companyId ? `${path}${path.includes('?') ? '&' : '?'}companyId=${companyId}` : path
   const isEditing = Boolean(id)
 
   const initialDate = searchParams.get('date') || ''
@@ -454,7 +462,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           return
         }
         try {
-          const accounts = await getSocialAccounts()
+          const accounts = await getSocialAccounts(companyId)
           const matchingIds = accounts
             .filter(a => (a.platform || '').toLowerCase() === 'tiktok')
             .map(a => a.id)
@@ -468,6 +476,11 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           const tiktokContent = form.contentByNetwork['tiktok'] || {}
           const photoTitle = tiktokContent.title || tiktokContent.content?.slice(0, 60) || ''
           const immediate = !form.scheduledFor
+          if (!(immediate ? canScheduleDirectly : canCreatePost)) {
+            setFeedback(`Você não tem permissão para ${immediate ? 'publicar' : 'agendar'} em ${activeContext.name}.`)
+            setLoading(false)
+            return
+          }
           const fd = new FormData()
           imageItems.forEach(item => fd.append('photos', item.file))
           fd.append('title', photoTitle)
@@ -475,7 +488,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           matchingIds.forEach(id => fd.append('socialAccountIds', id))
 
           setFeedback('Enviando fotos…')
-          await xhrUpload(immediate ? '/posts/publish/photo' : '/posts/schedule/photo', fd, pct => {
+          await xhrUpload(withCompany(immediate ? '/posts/publish/photo' : '/posts/schedule/photo'), fd, pct => {
             setUploadProgress(pct)
             setFeedback(pct < 100 ? `Enviando fotos… ${pct}%` : (immediate ? 'Publicando no TikTok…' : 'Registrando agendamento…'))
           })
@@ -511,7 +524,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
 
       if (videoNetworks.length > 0 && videoFile) {
         try {
-          const accounts = await getSocialAccounts()
+          const accounts = await getSocialAccounts(companyId)
           const matchingIds = accounts
             .filter(a => videoNetworks.includes((a.platform || '').toLowerCase()))
             .map(a => a.id)
@@ -524,6 +537,11 @@ const xhrUpload = (endpoint, formData, onProgress) =>
 
           const youtubeIsShort = form.networks.includes('youtube') && youtubeType === 'shorts'
           const immediate = !form.scheduledFor
+          if (!(immediate ? canScheduleDirectly : canCreatePost)) {
+            setFeedback(`Você não tem permissão para ${immediate ? 'publicar' : 'agendar'} em ${activeContext.name}.`)
+            setLoading(false)
+            return
+          }
           const fd = new FormData()
           fd.append('video', videoFile)
           fd.append('title', videoTitle)
@@ -532,7 +550,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           if (youtubeIsShort) fd.append('youtubeIsShort', 'true')
 
           setFeedback('Enviando vídeo…')
-          await xhrUpload(immediate ? '/posts/publish/video' : '/posts/schedule/video', fd, pct => {
+          await xhrUpload(withCompany(immediate ? '/posts/publish/video' : '/posts/schedule/video'), fd, pct => {
             setUploadProgress(pct)
             setFeedback(pct < 100 ? `Enviando vídeo… ${pct}%` : (immediate ? 'Publicando…' : 'Registrando agendamento…'))
           })
@@ -561,8 +579,13 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       const urlNetworks = form.networks.filter(n => ['instagram', 'facebook', 'linkedin'].includes(n))
       if (urlNetworks.length > 0) {
         try {
-          const accounts = await getSocialAccounts()
+          const accounts = await getSocialAccounts(companyId)
           const immediate = !form.scheduledFor
+          if (!(immediate ? canScheduleDirectly : canCreatePost)) {
+            setFeedback(`Você não tem permissão para ${immediate ? 'publicar' : 'agendar'} em ${activeContext.name}.`)
+            setLoading(false)
+            return
+          }
           const instagramIsCarousel = form.networks.includes('instagram') && form.typesByNetwork['instagram'] === 'carousel'
           const imageItems = form.media.filter(m => m.type === 'image' && m.file)
 
@@ -597,7 +620,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
               .map(a => a.id)
             if (matchingIds.length === 0) return false
 
-            const res = await authFetch(immediate ? '/posts/publish' : '/posts/schedule', {
+            const res = await authFetch(withCompany(immediate ? '/posts/publish' : '/posts/schedule'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -767,6 +790,9 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           <LuArrowLeft size={16} /> Voltar
         </button>
         <h1>{isEditing ? 'Editar post' : 'Novo post'}</h1>
+        <span className="composer__context-badge" title="Trocar contexto no menu lateral">
+          Publicando como: <strong>{activeContext.personal ? 'Pessoal' : activeContext.name}</strong>
+        </span>
       </div>
 
       <div className="composer__layout">

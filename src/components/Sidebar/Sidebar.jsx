@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -7,7 +8,10 @@ import {
 } from 'react-icons/lu'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useTeam } from '../../contexts/TeamContext'
 import { getInitials } from '../../utils/string'
+import ContextSwitcher from '../ContextSwitcher/ContextSwitcher'
+import CreateTeamModal from '../../pages/Dashboard/Equipes/components/CreateTeamModal'
 import logoHub from '../../assets/images/logo-hub.png'
 import logoHubDark from '../../assets/images/logo-hub-dark.png'
 import logoHubIcon from '../../assets/images/logo-hub-icon.png'
@@ -27,11 +31,17 @@ const BOTTOM_ITEMS = [
 export default function Sidebar({ isCollapsed, onToggle, onNewPost, onOpenSearch }) {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const { createTeam } = useTeam()
   const navigate = useNavigate()
+  const [showCreateTeam, setShowCreateTeam] = useState(false)
 
   const handleLogout = () => {
     logout()
     navigate('/')
+  }
+
+  const handleCreateTeam = async (data) => {
+    await createTeam(data)
   }
 
   return (
@@ -67,6 +77,11 @@ export default function Sidebar({ isCollapsed, onToggle, onNewPost, onOpenSearch
           <kbd>Ctrl K</kbd>
         </span>
       </button>
+
+      {/* Contexto ativo — Pessoal ou uma das equipes */}
+      <div className="sidebar__context">
+        <ContextSwitcher onCreateClick={() => setShowCreateTeam(true)} />
+      </div>
 
       {/* Main nav */}
       <nav className="sidebar__nav">
@@ -192,6 +207,12 @@ export default function Sidebar({ isCollapsed, onToggle, onNewPost, onOpenSearch
           <LuLogOut size={17} />
         </button>
       </div>
+
+      <CreateTeamModal
+        isOpen={showCreateTeam}
+        onClose={() => setShowCreateTeam(false)}
+        onCreate={handleCreateTeam}
+      />
     </motion.aside>
   )
 }

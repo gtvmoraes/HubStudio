@@ -45,6 +45,12 @@
   font-weight: 800;
   color: var(--color-text);
 }
+.composer__context-badge {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+.composer__context-badge strong { color: var(--color-text); }
 
 /* Layout */
 .composer__layout {

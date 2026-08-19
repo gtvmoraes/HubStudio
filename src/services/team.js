@@ -124,6 +124,19 @@ export const removeMemberApi = async (teamId, memberId) => {
   await authFetch(`/teams/${teamId}/members/${memberId}`, { method: 'DELETE' })
 }
 
+export const importAccountsApi = async (teamId, socialAccountIds) => {
+  const res = await authFetch(`/teams/${teamId}/accounts/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ socialAccountIds }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message || 'Erro ao importar contas.')
+  }
+  return res.json()
+}
+
 export const updateApprovalConfigApi = async (teamId, config) => {
   const res = await authFetch(`/teams/${teamId}/approval-config`, {
     method: 'PUT',

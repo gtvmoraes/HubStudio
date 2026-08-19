@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { LuUsers, LuClock, LuCrown } from 'react-icons/lu'
 import { PLAN_LIMITS } from '../../../../services/team'
-import TeamSwitcher from './TeamSwitcher'
+import ContextSwitcher from '../../../../components/ContextSwitcher/ContextSwitcher'
 
 const statVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -27,7 +27,7 @@ export default function EquipesHeader({ team, members, pendingPosts, onCreateTea
     >
       <div className="eq-header__top">
         <div className="eq-header__title">
-          <TeamSwitcher onCreateClick={onCreateTeam} />
+          <ContextSwitcher onCreateClick={onCreateTeam} />
         </div>
         <motion.span
           className="eq-header__plan"

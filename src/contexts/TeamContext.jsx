@@ -5,22 +5,36 @@ import { useAuth } from './AuthContext'
 const TeamContext = createContext(null)
 const STORAGE_KEY = 'hs-current-team'
 
+// Pseudo-contexto sempre disponível, ao lado das equipes reais — representa
+// a company pessoal do usuário (nunca listada por GET /teams).
+export const PERSONAL_CONTEXT = {
+  id: null,
+  name: 'Pessoal',
+  personal: true,
+  role: 'admin',
+  plan: null,
+  totalMembers: 1,
+}
+
 export function TeamProvider({ children }) {
   const { user } = useAuth()
   const [teams, setTeams] = useState([])
   const [currentTeamId, setCurrentTeamId] = useState(() => localStorage.getItem(STORAGE_KEY))
   const [loading, setLoading] = useState(true)
+  // Equipe recém criada/entrada sem nenhuma conta ainda — dispara a oferta de
+  // importar contas pessoais (ver ImportAccountsModal, montado no DashboardLayout).
+  const [pendingImport, setPendingImport] = useState(null)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
     getUserTeams().then(list => {
       setTeams(list)
-      if (list.length > 0) {
-        const saved = list.find(t => t.id === currentTeamId)
-        const activeId = saved ? currentTeamId : list[0].id
-        setCurrentTeamId(activeId)
-        localStorage.setItem(STORAGE_KEY, activeId)
+      const saved = list.find(t => t.id === currentTeamId)
+      if (saved) {
+        setCurrentTeamId(currentTeamId)
       } else {
+        // Sem seleção salva de uma sessão anterior — o ponto de partida
+        // é sempre Pessoal, mesmo que o usuário já tenha equipes.
         setCurrentTeamId(null)
         localStorage.removeItem(STORAGE_KEY)
       }
@@ -29,9 +43,10 @@ export function TeamProvider({ children }) {
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchTeam = (teamId) => {
-    if (!teams.find(t => t.id === teamId)) return
+    if (teamId !== null && !teams.find(t => t.id === teamId)) return
     setCurrentTeamId(teamId)
-    localStorage.setItem(STORAGE_KEY, teamId)
+    if (teamId === null) localStorage.removeItem(STORAGE_KEY)
+    else localStorage.setItem(STORAGE_KEY, teamId)
   }
 
   const createTeam = async (data) => {
@@ -39,6 +54,7 @@ export function TeamProvider({ children }) {
     setTeams(prev => [...prev, newTeam])
     setCurrentTeamId(newTeam.id)
     localStorage.setItem(STORAGE_KEY, newTeam.id)
+    if (!newTeam.hasSocialAccounts) setPendingImport(newTeam)
     return newTeam
   }
 
@@ -47,6 +63,7 @@ export function TeamProvider({ children }) {
     setTeams(prev => [...prev, team])
     setCurrentTeamId(team.id)
     localStorage.setItem(STORAGE_KEY, team.id)
+    if (!team.hasSocialAccounts) setPendingImport(team)
     return team
   }
 
@@ -71,11 +88,14 @@ export function TeamProvider({ children }) {
   }
 
   const currentTeam = teams.find(t => t.id === currentTeamId) || null
+  const activeContext = currentTeam || PERSONAL_CONTEXT
+  const contexts = [PERSONAL_CONTEXT, ...teams]
 
   return (
     <TeamContext.Provider value={{
-      teams, currentTeam, loading,
+      teams, currentTeam, activeContext, contexts, loading,
       switchTeam, createTeam, joinTeam, updateTeam, deleteTeam,
+      pendingImport, dismissPendingImport: () => setPendingImport(null),
     }}>
       {children}
     </TeamContext.Provider>

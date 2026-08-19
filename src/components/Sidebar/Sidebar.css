@@ -169,6 +169,13 @@
   margin-left: 0;
   opacity: 0;
 }
+.sidebar__context {
+  margin: 0 12px 8px;
+  overflow: hidden;
+}
+.sidebar--collapsed .sidebar__context {
+  display: none;
+}
 
 /* ── Nav ── */
 .sidebar__nav {

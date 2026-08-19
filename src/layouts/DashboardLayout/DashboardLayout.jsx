@@ -4,11 +4,14 @@ import Sidebar from '../../components/Sidebar/Sidebar'
 import SearchModal from '../../components/SearchModal/SearchModal'
 import ShortcutsModal from '../../components/ShortcutsModal/ShortcutsModal'
 import OnboardingTour from '../../components/OnboardingTour/OnboardingTour'
+import ImportAccountsModal from '../../pages/Dashboard/Equipes/components/ImportAccountsModal'
 import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts'
+import { useTeam } from '../../contexts/TeamContext'
 import './DashboardLayout.css'
 
 export default function DashboardLayout() {
   const navigate = useNavigate()
+  const { pendingImport, dismissPendingImport } = useTeam()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -47,6 +50,12 @@ export default function DashboardLayout() {
       />
 
       <OnboardingTour />
+
+      <ImportAccountsModal
+        team={pendingImport}
+        isOpen={Boolean(pendingImport)}
+        onClose={dismissPendingImport}
+      />
     </div>
   )
 }

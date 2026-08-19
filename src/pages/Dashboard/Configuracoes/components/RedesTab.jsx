@@ -12,6 +12,7 @@ import { networkColor } from '../../../../services/posts'
 import { authFetch } from '../../../../services/api'
 import { useTheme } from '../../../../contexts/ThemeContext'
 import { useTeam } from '../../../../contexts/TeamContext'
+import { PERMISSION_MATRIX } from '../../../../services/team'
 
 const ALL_PLATFORMS = [
   { id: 'instagram', name: 'Instagram',   icon: FaInstagram, connectPath: '/social/instagram/connect' },
@@ -35,8 +36,9 @@ const PERMISSIONS = [
 
 export default function RedesTab() {
   const { theme } = useTheme()
-  const { currentTeam } = useTeam()
-  const companyId = currentTeam?.id ?? null
+  const { activeContext } = useTeam()
+  const companyId = activeContext.personal ? null : activeContext.id
+  const canManage = activeContext.personal || Boolean(PERMISSION_MATRIX[activeContext.role]?.accountSettings)
   const [accounts, setAccounts] = useState([])   // dados da API
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(null)     // platform id em progresso
@@ -94,6 +96,8 @@ export default function RedesTab() {
       avatarUrl: connected?.avatarUrl ?? null,
       status: connected?.status ?? 'disconnected',
       tokenExpiresAt: connected?.tokenExpiresAt ?? null,
+      companyName: connected?.companyName ?? null,
+      personal: connected?.personal ?? null,
     }
   })
 
@@ -175,7 +179,16 @@ export default function RedesTab() {
     <div className="set-section">
       <div className="set-section__head">
         <h2>Redes sociais</h2>
-        <p>Vincule suas contas para agendar e analisar tudo num só lugar.</p>
+        <p>
+          Vincule suas contas para agendar e analisar tudo num só lugar. Você está configurando as
+          redes de <strong>{activeContext.personal ? 'Pessoal' : activeContext.name}</strong>
+          {!activeContext.personal ? ' — troque de contexto no menu lateral para gerenciar outra equipe.' : '.'}
+        </p>
+        {!canManage && (
+          <div className="set-net-error">
+            Seu cargo em {activeContext.name} ({activeContext.role}) não tem permissão para gerenciar redes sociais — fale com um admin/gerente.
+          </div>
+        )}
         {isAuthenticated && (
           <button
             type="button"
@@ -199,7 +212,7 @@ export default function RedesTab() {
       )}
 
       <div className="set-net-grid">
-        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, accountId, connectPath }, i) => {
+        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, accountId, companyName, personal }, i) => {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon
           const color = networkColor(id, theme)
@@ -230,6 +243,11 @@ export default function RedesTab() {
               <div className="set-net-card__body">
                 <h3>{name}</h3>
                 <span className="set-net-card__handle">{handle}</span>
+                {companyName && (
+                  <span className="set-net-card__context">
+                    {personal ? 'Pessoal' : companyName}
+                  </span>
+                )}
               </div>
 
               <div className="set-net-card__actions">
@@ -239,7 +257,8 @@ export default function RedesTab() {
                     size="sm"
                     fullWidth
                     onClick={() => handleDisconnect(accountId, name)}
-                    disabled={isBusy || !isAuthenticated}
+                    disabled={isBusy || !isAuthenticated || !canManage}
+                    title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : undefined}
                   >
                     <LuUnplug size={13} /> Desconectar
                   </Button>
@@ -249,7 +268,8 @@ export default function RedesTab() {
                     size="sm"
                     fullWidth
                     onClick={() => handleConnect(id)}
-                    disabled={isBusy || !isAuthenticated}
+                    disabled={isBusy || !isAuthenticated || !canManage}
+                    title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : undefined}
                   >
                     {status === 'expired' ? 'Reconectar' : 'Conectar'}
                   </Button>
@@ -282,7 +302,8 @@ export default function RedesTab() {
               type="button"
               className="set-tokens__refresh-all"
               onClick={handleRefreshAll}
-              disabled={refreshAll}
+              disabled={refreshAll || !canManage}
+              title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : undefined}
             >
               {refreshAll
                 ? <LuLoader size={13} className="spin" />
@@ -370,8 +391,8 @@ export default function RedesTab() {
                       type="button"
                       className="set-tokens__btn"
                       onClick={() => handleRefreshToken(acc.id)}
-                      disabled={isRefreshing || refreshAll}
-                      title="Forçar renovação do token agora"
+                      disabled={isRefreshing || refreshAll || !canManage}
+                      title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : 'Forçar renovação do token agora'}
                     >
                       {isRefreshing
                         ? <LuLoader size={12} className="spin" />

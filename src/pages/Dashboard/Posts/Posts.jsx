@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { LuInbox, LuTrash2, LuCopy, LuSend, LuX, LuSquareCheck } from 'react-icons/lu'
 import { getAllPosts } from '../../../services/posts'
 import { dashFadeUp as fadeUp } from '../../../styles/animations'
+import { useTeam } from '../../../contexts/TeamContext'
 import PostsHeader from './components/PostsHeader'
 import StatusTabs from './components/StatusTabs'
 import PostsFilters from './components/PostsFilters'
@@ -38,6 +39,8 @@ function matchesPeriod(post, period) {
 }
 
 export default function Posts() {
+  const { activeContext } = useTeam()
+  const companyId = activeContext.personal ? null : activeContext.id
   const [posts, setPosts] = useState([])
   const [activeTab, setActiveTab] = useState('all')
   const [query, setQuery] = useState('')
@@ -48,8 +51,8 @@ export default function Posts() {
   const [selectedIds, setSelectedIds] = useState([])  // bulk select
 
   useEffect(() => {
-    getAllPosts().then(setPosts)
-  }, [])
+    getAllPosts(companyId).then(setPosts)
+  }, [companyId])
 
   // Conta posts por status (pros tabs)
   const counts = useMemo(() => {
@@ -163,7 +166,11 @@ export default function Posts() {
 
   return (
     <div className="posts-page">
-      <PostsHeader query={query} onQueryChange={setQuery} />
+      <PostsHeader
+        query={query}
+        onQueryChange={setQuery}
+        contextLabel={activeContext.personal ? 'Pessoal' : activeContext.name}
+      />
 
       <StatusTabs active={activeTab} onChange={setActiveTab} counts={counts} />
 

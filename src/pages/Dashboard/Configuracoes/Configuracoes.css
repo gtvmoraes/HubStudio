@@ -257,6 +257,18 @@
 .set-net-card__body { display: flex; flex-direction: column; gap: 2px; }
 .set-net-card__body h3 { font-size: var(--font-size-base); font-weight: 700; color: var(--color-text); }
 .set-net-card__handle { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.set-net-card__context {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
 
 /* Ações do card de rede */
 .set-net-card__actions { margin-top: auto; }
