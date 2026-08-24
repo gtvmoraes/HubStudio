@@ -238,9 +238,22 @@ export const getActivityFeed = () => Promise.resolve([
   { id: 5, type: 'schedule',  text: 'Post "Como criar conteúdo que conecta" foi agendado',        time: 'ontem' },
 ])
 
-export const getAiInsights = () => Promise.resolve([
+const AI_INSIGHTS_MOCK = [
   { id: 1, type: 'positive', highlight: '2.4x',              text: 'mais alcance nos Reels do que nos outros formatos' },
   { id: 2, type: 'positive', highlight: '+24%',              text: 'de crescimento no TikTok este mês' },
   { id: 3, type: 'negative', highlight: '−18%',              text: 'de engajamento nas postagens de terça-feira' },
   { id: 4, type: 'tip',      highlight: 'Sex · 18h–21h',     text: 'é o melhor horário para postar' },
-])
+]
+
+// Insights da IA para o período selecionado no dashboard.
+export const getAiInsights = async (period = '30d') => {
+  if (!hasToken()) return AI_INSIGHTS_MOCK
+  try {
+    const res = await authFetch(`/analytics/ai-insights?period=${period}`)
+    if (!res.ok) return AI_INSIGHTS_MOCK
+    const data = await res.json()
+    return Array.isArray(data) && data.length > 0 ? data : AI_INSIGHTS_MOCK
+  } catch {
+    return AI_INSIGHTS_MOCK
+  }
+}

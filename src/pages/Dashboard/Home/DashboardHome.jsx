@@ -98,12 +98,11 @@ export default function DashboardHome() {
     getRecentPosts(),
     getCalendarMarkers(),
     getAiSuggestions(),
-    getAiInsights(),
     getUpcomingPosts(),
     getActivityFeed(),
   ]).then(([
     socialBreakdownRes, audienceRes,
-    topPostsRes, recentPostsRes, markersRes, aiSuggestionsRes, aiInsightsRes,
+    topPostsRes, recentPostsRes, markersRes, aiSuggestionsRes,
     upcomingRes, activityRes,
   ]) => {
     setSocialBreakdown(socialBreakdownRes)
@@ -112,7 +111,6 @@ export default function DashboardHome() {
     setRecentPosts(recentPostsRes)
     setCalendarMarkers(markersRes)
     setAiSuggestions(aiSuggestionsRes)
-    setAiInsights(aiInsightsRes)
     setUpcomingPosts(upcomingRes)
     setActivity(activityRes)
   })
@@ -124,11 +122,16 @@ export default function DashboardHome() {
     getEngagementData(granularity, network).then(setEngagement),
     getContentReach(network).then(setContentReach),
     getNetworkComparison(period).then(setNetworkComparison),
+    getAiInsights(period).then(setAiInsights),
   ])
 
   useEffect(() => {
     getStats(period, network).then(setStats)
   }, [period, network])
+
+  useEffect(() => {
+    getAiInsights(period).then(setAiInsights)
+  }, [period])
 
   useEffect(() => {
     getEngagementData(granularity, network).then(setEngagement)
