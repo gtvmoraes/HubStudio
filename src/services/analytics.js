@@ -109,7 +109,9 @@ export const getEngagementData = async (granularity = 'daily', network = 'all', 
     const res = await authFetch(withCompany(`/analytics/engagement?granularity=${granularity}&network=${network}`, companyId))
     if (!res.ok) return mockEngagement(granularity, network)
     const data = await res.json()
-    return Array.isArray(data) && data.length > 0 ? data : mockEngagement(granularity, network)
+    // Vazio aqui não deveria acontecer (backend sempre devolve os buckets do
+    // período, zerados se não há dado), mas se acontecer é real — não mascara.
+    return Array.isArray(data) ? data : mockEngagement(granularity, network)
   } catch {
     return mockEngagement(granularity, network)
   }
@@ -132,7 +134,9 @@ export const getNetworkComparison = async (period = '30d', companyId = null) => 
     const res = await authFetch(withCompany(`/analytics/network-comparison?period=${period}`, companyId))
     if (!res.ok) return NETWORK_COMPARISON_MOCK
     const data = await res.json()
-    return Array.isArray(data) && data.length > 0 ? data : NETWORK_COMPARISON_MOCK
+    // Vazio aqui não deveria acontecer (backend sempre devolve uma entrada por
+    // rede, zerada se não há dado), mas se acontecer é real — não mascara.
+    return Array.isArray(data) ? data : NETWORK_COMPARISON_MOCK
   } catch {
     return NETWORK_COMPARISON_MOCK
   }
@@ -193,7 +197,10 @@ const CONTENT_REACH = {
 }
 
 // Alcance real por tipo de conteúdo (só Instagram tem contentType rastreado
-// hoje) — backend retorna vazio pra outras redes, e a gente cai pro mock.
+// hoje). Sem sessão ou se a request falhar, cai pro mock (preview genérico).
+// Autenticado e a request deu certo: array vazio é um resultado REAL (conta
+// ainda sem alcance coletado) — mostrar o mock aí inventaria tipos de conteúdo
+// (Live, Artigo, Thread) que essa conta nunca usou e o sistema nem rastreia.
 export const getContentReach = async (network = 'all', companyId = null) => {
   const mock = CONTENT_REACH[network] ?? CONTENT_REACH.all
   if (!hasToken()) return mock
@@ -201,7 +208,7 @@ export const getContentReach = async (network = 'all', companyId = null) => {
     const res = await authFetch(withCompany(`/analytics/content-reach?network=${network}`, companyId))
     if (!res.ok) return mock
     const data = await res.json()
-    return Array.isArray(data) && data.length > 0 ? data : mock
+    return Array.isArray(data) ? data : mock
   } catch {
     return mock
   }
@@ -215,15 +222,16 @@ const BEST_TIMES_MOCK = [
 ]
 
 // Ranking real de melhores horários pra postar, com base no engajamento médio
-// das postagens já publicadas (mesmo cálculo por trás do insight de IA de
-// "melhor horário"). Sem posts suficientes com métrica coletada, cai pro mock.
+// das postagens já publicadas. Sem sessão ou se a request falhar, cai pro mock;
+// autenticado e a request deu certo, array vazio é real (sem posts com métrica
+// suficiente ainda) — mostrar o mock inventaria um horário que nunca performou.
 export const getBestTimes = async (network = 'all', companyId = null) => {
   if (!hasToken()) return BEST_TIMES_MOCK
   try {
     const res = await authFetch(withCompany(`/analytics/best-times?network=${network}`, companyId))
     if (!res.ok) return BEST_TIMES_MOCK
     const data = await res.json()
-    return Array.isArray(data) && data.length > 0 ? data : BEST_TIMES_MOCK
+    return Array.isArray(data) ? data : BEST_TIMES_MOCK
   } catch {
     return BEST_TIMES_MOCK
   }
@@ -274,14 +282,17 @@ const AI_INSIGHTS_MOCK = [
   { id: 4, type: 'tip',      highlight: 'Sex · 18h–21h',     text: 'é o melhor horário para postar' },
 ]
 
-// Insights da IA para o período selecionado no dashboard.
+// Insights da IA para o período selecionado no dashboard. Sem sessão ou se a
+// request falhar, cai pro mock; autenticado e a request deu certo, array vazio
+// é real (sem posts no período pra gerar fato nenhum) — mostrar o mock inventaria
+// crescimento/alcance/horário que essa conta nunca teve.
 export const getAiInsights = async (period = '30d', companyId = null) => {
   if (!hasToken()) return AI_INSIGHTS_MOCK
   try {
     const res = await authFetch(withCompany(`/analytics/ai-insights?period=${period}`, companyId))
     if (!res.ok) return AI_INSIGHTS_MOCK
     const data = await res.json()
-    return Array.isArray(data) && data.length > 0 ? data : AI_INSIGHTS_MOCK
+    return Array.isArray(data) ? data : AI_INSIGHTS_MOCK
   } catch {
     return AI_INSIGHTS_MOCK
   }
