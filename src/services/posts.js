@@ -28,16 +28,19 @@ const TOP_POSTS_MOCK = [
 ]
 
 // Ranking real por engajamento (views+likes+comments+shares) via métricas coletadas
-// das redes conectadas — cai pro mock só sem sessão ou se a chamada falhar.
-export const getTopPosts = async (companyId = null) => {
+// das redes conectadas, respeitando os filtros de período/rede do dashboard —
+// cai pro mock só sem sessão ou se a chamada falhar. Vazio autenticado com
+// sucesso é real (sem posts nesse filtro) e não é mascarado com o mock.
+export const getTopPosts = async (period = '30d', network = 'all', companyId = null) => {
   const token = localStorage.getItem('hs-token')
   if (!token) return TOP_POSTS_MOCK
   try {
-    const url = companyId ? `/analytics/top-posts?limit=5&companyId=${companyId}` : '/analytics/top-posts?limit=5'
+    let url = `/analytics/top-posts?limit=5&period=${period}&network=${network}`
+    if (companyId) url += `&companyId=${companyId}`
     const res = await authFetch(url)
     if (!res.ok) return TOP_POSTS_MOCK
     const data = await res.json()
-    if (!Array.isArray(data) || data.length === 0) return TOP_POSTS_MOCK
+    if (!Array.isArray(data)) return TOP_POSTS_MOCK
     return data.map(p => ({
       id: p.id,
       title: p.title,

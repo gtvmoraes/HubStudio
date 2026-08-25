@@ -6,7 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
 import {
   getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
-  getContentReach, getBestTimes, getAudience, getAccountScore, getAiInsights, getActivityFeed,
+  getContentReach, getBestTimes, getAudience, getAccountScore, getFollowers, getAiInsights, getActivityFeed,
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
@@ -69,6 +69,7 @@ export default function DashboardHome() {
   const [bestTimes, setBestTimes] = useState([])
   const [audience, setAudience] = useState(null)
   const [accountScore, setAccountScore] = useState(null)
+  const [followers, setFollowers] = useState(null)
   const [topPosts, setTopPosts] = useState([])
   const [recentPosts, setRecentPosts] = useState([])
   const [calendarMarkers, setCalendarMarkers] = useState({})
@@ -101,7 +102,6 @@ export default function DashboardHome() {
     getSocialBreakdown(),
     getAudience(companyId),
     getAccountScore(companyId),
-    getTopPosts(companyId),
     getRecentPosts(companyId),
     getCalendarMarkers(companyId),
     getAiSuggestions(),
@@ -109,13 +109,12 @@ export default function DashboardHome() {
     getActivityFeed(),
   ]).then(([
     socialBreakdownRes, audienceRes, accountScoreRes,
-    topPostsRes, recentPostsRes, markersRes, aiSuggestionsRes,
+    recentPostsRes, markersRes, aiSuggestionsRes,
     upcomingRes, activityRes,
   ]) => {
     setSocialBreakdown(socialBreakdownRes)
     setAudience(audienceRes)
     setAccountScore(accountScoreRes)
-    setTopPosts(topPostsRes)
     setRecentPosts(recentPostsRes)
     setCalendarMarkers(markersRes)
     setAiSuggestions(aiSuggestionsRes)
@@ -125,18 +124,30 @@ export default function DashboardHome() {
 
   useEffect(() => { loadStaticData() }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Top posts, alcance por tipo de conteúdo e melhores horários dependem tanto
+  // de período quanto de rede — antes ignoravam os dois filtros por completo.
   const loadFilteredData = () => Promise.all([
     getStats(period, network, companyId).then(setStats),
     getEngagementData(granularity, network, companyId).then(setEngagement),
-    getContentReach(network, companyId).then(setContentReach),
-    getBestTimes(network, companyId).then(setBestTimes),
+    getTopPosts(period, network, companyId).then(setTopPosts),
+    getContentReach(period, network, companyId).then(setContentReach),
+    getBestTimes(period, network, companyId).then(setBestTimes),
     getNetworkComparison(period, companyId).then(setNetworkComparison),
+    getFollowers(period, companyId).then(setFollowers),
     getAiInsights(period, companyId).then(setAiInsights),
   ])
 
   useEffect(() => {
     getStats(period, network, companyId).then(setStats)
   }, [period, network, companyId])
+
+  useEffect(() => {
+    getTopPosts(period, network, companyId).then(setTopPosts)
+  }, [period, network, companyId])
+
+  useEffect(() => {
+    getFollowers(period, companyId).then(setFollowers)
+  }, [period, companyId])
 
   useEffect(() => {
     getAiInsights(period, companyId).then(setAiInsights)
@@ -147,12 +158,12 @@ export default function DashboardHome() {
   }, [granularity, network, companyId])
 
   useEffect(() => {
-    getContentReach(network, companyId).then(setContentReach)
-  }, [network, companyId])
+    getContentReach(period, network, companyId).then(setContentReach)
+  }, [period, network, companyId])
 
   useEffect(() => {
-    getBestTimes(network, companyId).then(setBestTimes)
-  }, [network, companyId])
+    getBestTimes(period, network, companyId).then(setBestTimes)
+  }, [period, network, companyId])
 
   useEffect(() => {
     getNetworkComparison(period, companyId).then(setNetworkComparison)
@@ -222,7 +233,7 @@ export default function DashboardHome() {
   // ─── Registry de blocos: cada id → conteúdo. Mantém os pares lado a lado
   //     como uma unidade arrastável (charts, audience, bottom). ───
   const LEFT_BLOCKS = {
-    kpis: <KpiGrid stats={stats} />,
+    kpis: <KpiGrid stats={stats} followers={followers} />,
     insights: <AIInsightsBar insights={aiInsights} onViewAll={() => {}} />,
     charts: (
       <div className="dash-home__charts">

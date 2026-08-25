@@ -60,6 +60,25 @@ export const getStats = async (period = '30d', network = 'all', companyId = null
   }
 }
 
+const FOLLOWERS_MOCK = { value: '12.4K', raw: 12400, change: '+8.2%', trend: 'up' }
+
+// Seguidores reais do Instagram (única rede com contagem rastreada hoje —
+// followers_count via Graph API, ver InstagramFollowerService). Sem sessão ou
+// se a request falhar de verdade, cai pro mock; 204 é real (sem Instagram
+// conectado, ou snapshot ainda não coletado) — retorna null, não mock, pro
+// KpiGrid simplesmente esconder o indicador em vez de inventar um número.
+export const getFollowers = async (period = '30d', companyId = null) => {
+  if (!hasToken()) return FOLLOWERS_MOCK
+  try {
+    const res = await authFetch(withCompany(`/analytics/followers?period=${period}`, companyId))
+    if (res.status === 204) return null
+    if (!res.ok) return FOLLOWERS_MOCK
+    return await res.json()
+  } catch {
+    return FOLLOWERS_MOCK
+  }
+}
+
 const ENGAGEMENT_DAILY = [
   { date: '03/05', views: 28000, likes: 1200, comments: 450 },
   { date: '06/05', views: 31000, likes: 1380, comments: 490 },
@@ -197,15 +216,16 @@ const CONTENT_REACH = {
 }
 
 // Alcance real por tipo de conteúdo (só Instagram tem contentType rastreado
-// hoje). Sem sessão ou se a request falhar, cai pro mock (preview genérico).
-// Autenticado e a request deu certo: array vazio é um resultado REAL (conta
-// ainda sem alcance coletado) — mostrar o mock aí inventaria tipos de conteúdo
-// (Live, Artigo, Thread) que essa conta nunca usou e o sistema nem rastreia.
-export const getContentReach = async (network = 'all', companyId = null) => {
+// hoje), respeitando o período selecionado no dashboard. Sem sessão ou se a
+// request falhar, cai pro mock (preview genérico). Autenticado e a request deu
+// certo: array vazio é um resultado REAL (conta ainda sem alcance coletado
+// nesse período) — mostrar o mock aí inventaria tipos de conteúdo (Live,
+// Artigo, Thread) que essa conta nunca usou e o sistema nem rastreia.
+export const getContentReach = async (period = '30d', network = 'all', companyId = null) => {
   const mock = CONTENT_REACH[network] ?? CONTENT_REACH.all
   if (!hasToken()) return mock
   try {
-    const res = await authFetch(withCompany(`/analytics/content-reach?network=${network}`, companyId))
+    const res = await authFetch(withCompany(`/analytics/content-reach?network=${network}&period=${period}`, companyId))
     if (!res.ok) return mock
     const data = await res.json()
     return Array.isArray(data) ? data : mock
@@ -222,13 +242,14 @@ const BEST_TIMES_MOCK = [
 ]
 
 // Ranking real de melhores horários pra postar, com base no engajamento médio
-// das postagens já publicadas. Sem sessão ou se a request falhar, cai pro mock;
-// autenticado e a request deu certo, array vazio é real (sem posts com métrica
-// suficiente ainda) — mostrar o mock inventaria um horário que nunca performou.
-export const getBestTimes = async (network = 'all', companyId = null) => {
+// das postagens já publicadas dentro do período selecionado. Sem sessão ou se
+// a request falhar, cai pro mock; autenticado e a request deu certo, array
+// vazio é real (sem posts com métrica suficiente ainda) — mostrar o mock
+// inventaria um horário que nunca performou.
+export const getBestTimes = async (period = '30d', network = 'all', companyId = null) => {
   if (!hasToken()) return BEST_TIMES_MOCK
   try {
-    const res = await authFetch(withCompany(`/analytics/best-times?network=${network}`, companyId))
+    const res = await authFetch(withCompany(`/analytics/best-times?network=${network}&period=${period}`, companyId))
     if (!res.ok) return BEST_TIMES_MOCK
     const data = await res.json()
     return Array.isArray(data) ? data : BEST_TIMES_MOCK

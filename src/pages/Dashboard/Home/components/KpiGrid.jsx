@@ -1,19 +1,22 @@
 import { motion } from 'framer-motion'
+import { FaInstagram } from 'react-icons/fa'
 import { LuEye, LuHeart, LuMessageCircle, LuTrendingUp, LuTrendingDown } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 
 const STAT_ICONS = {
-  views: LuEye, likes: LuHeart, comments: LuMessageCircle,
+  views: LuEye, likes: LuHeart, comments: LuMessageCircle, followers: FaInstagram,
 }
 const STAT_LABELS = {
   views: 'Visualizações',
   likes: 'Curtidas',
   comments: 'Comentários',
+  followers: 'Seguidores',
 }
 
-// "Seguidores" saiu daqui — nenhuma rede tem coleta de contagem de seguidores
-// implementada, então esse KPI era 100% fabricado. Os três abaixo vêm das
-// métricas reais coletadas por post (TikTok/YouTube/Instagram/Facebook/LinkedIn).
+// Views/likes/comments vêm das métricas reais coletadas por post (TikTok/
+// YouTube/Instagram/Facebook/LinkedIn). Seguidores é à parte (prop `followers`,
+// só Instagram tem contagem rastreada hoje) — ícone do Instagram no tile deixa
+// o escopo claro sem precisar de texto extra.
 const SHOWN_KEYS = ['views', 'likes', 'comments']
 
 function Skeleton() {
@@ -28,7 +31,7 @@ function Skeleton() {
   )
 }
 
-export default function KpiGrid({ stats }) {
+export default function KpiGrid({ stats, followers }) {
   if (!stats) {
     return (
       <div className="dash-home__kpis">
@@ -37,10 +40,12 @@ export default function KpiGrid({ stats }) {
     )
   }
 
+  const tiles = Object.entries(stats).filter(([key]) => SHOWN_KEYS.includes(key))
+  if (followers) tiles.push(['followers', followers])
+
   return (
     <div className="dash-home__kpis">
-      {Object.entries(stats)
-        .filter(([key]) => SHOWN_KEYS.includes(key))
+      {tiles
         .map(([key, val], i) => {
           const Icon = STAT_ICONS[key]
           const TrendIcon = val.trend === 'down' ? LuTrendingDown : LuTrendingUp
