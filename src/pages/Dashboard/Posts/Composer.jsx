@@ -441,12 +441,19 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       const tiktokType = form.typesByNetwork['tiktok']
       const youtubeType = form.typesByNetwork['youtube']
 
-      // Redes de vídeo: TikTok(video) + YouTube(video ou shorts)
-      const videoNetworks = form.networks.filter(n => {
-        if (n === 'tiktok') return tiktokType === 'video'
-        if (n === 'youtube') return true
-        return false
-      })
+      // Redes de vídeo: qualquer rede cujo tipo selecionado só aceite vídeo
+      // (TikTok Vídeo, YouTube, Instagram Reel, Facebook Reel...) — o arquivo
+      // é enviado uma única vez e publicado em todas via /posts/schedule/video,
+      // que já suporta Instagram/Facebook no dispatch do PostSchedulerJob.
+      const videoNetworks = form.networks.filter(n =>
+        PLATFORM_IMAGE_TYPES[n]?.[form.typesByNetwork[n]] === null
+      )
+
+      // Redes por URL (Instagram/Facebook/LinkedIn) que NÃO são vídeo —
+      // essas já foram roteadas pra videoNetworks acima.
+      const urlNetworks = form.networks.filter(n =>
+        ['instagram', 'facebook', 'linkedin'].includes(n) && !videoNetworks.includes(n)
+      )
 
       // TikTok foto (fluxo separado)
       const tiktokPhotoSelected = form.networks.includes('tiktok') && tiktokType === 'photo'
@@ -511,7 +518,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
         }
       }
 
-      // ── Fluxo de VÍDEO (TikTok Video + YouTube Video/Shorts) ───────
+      // ── Fluxo de VÍDEO (TikTok Vídeo, YouTube, Instagram Reel, Facebook Reel) ───
       const videoFile = form.media.find(m => m.type === 'video' && m.file)?.file
       let videoTitle = ''
       for (const n of videoNetworks) {
@@ -530,7 +537,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             .map(a => a.id)
 
           if (matchingIds.length === 0) {
-            setFeedback('Nenhuma conta TikTok/YouTube conectada. Vá em Configurações > Redes.')
+            setFeedback('Nenhuma conta conectada para as redes de vídeo selecionadas. Vá em Configurações > Redes.')
             setLoading(false)
             return
           }
@@ -559,9 +566,13 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             ? `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
             : 'Publicando agora…'
           showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
-          setTimeout(() => navigate('/dashboard/posts'), 700)
-          setLoading(false)
-          return
+
+          // Se também há redes por URL (ex: Instagram Feed junto de TikTok Vídeo), continua; senão, sai
+          if (urlNetworks.length === 0) {
+            setTimeout(() => navigate('/dashboard/posts'), 700)
+            setLoading(false)
+            return
+          }
         } catch (err) {
           setFeedback(`Erro ao publicar: ${err.message}`)
           setLoading(false)
@@ -576,7 +587,6 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       // já que ele usa mediaUrl com várias URLs separadas por vírgula — as
       // demais redes (Facebook/LinkedIn) não entendem isso, então recebem
       // só a primeira imagem, num Post separado.
-      const urlNetworks = form.networks.filter(n => ['instagram', 'facebook', 'linkedin'].includes(n))
       if (urlNetworks.length > 0) {
         try {
           const accounts = await getSocialAccounts(companyId)

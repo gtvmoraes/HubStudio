@@ -128,7 +128,10 @@ export default function RedesTab() {
     try {
       const deleteUrl = companyId ? `/social/accounts/${accountId}?companyId=${companyId}` : `/social/accounts/${accountId}`
       const res = await authFetch(deleteUrl, { method: 'DELETE' })
-      if (!res.ok) throw new Error(`Erro ${res.status}`)
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.message || `Erro ${res.status}`)
+      }
       setAccounts(prev => prev.filter(a => a.id !== accountId))
     } catch (e) {
       setError(`Erro ao desconectar: ${e.message}`)
