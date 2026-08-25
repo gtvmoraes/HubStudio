@@ -79,6 +79,23 @@ export const getFollowers = async (period = '30d', companyId = null) => {
   }
 }
 
+const SUBSCRIBERS_MOCK = { value: '3.1K', raw: 3100, change: '+4.6%', trend: 'up' }
+
+// Inscritos reais do YouTube (subscriberCount via Data API — mesmo padrão de
+// getFollowers). 204 é real (sem YouTube conectado, ou snapshot ainda não
+// coletado) — retorna null, não mock, pro KpiGrid esconder o indicador.
+export const getSubscribers = async (period = '30d', companyId = null) => {
+  if (!hasToken()) return SUBSCRIBERS_MOCK
+  try {
+    const res = await authFetch(withCompany(`/analytics/subscribers?period=${period}`, companyId))
+    if (res.status === 204) return null
+    if (!res.ok) return SUBSCRIBERS_MOCK
+    return await res.json()
+  } catch {
+    return SUBSCRIBERS_MOCK
+  }
+}
+
 const ENGAGEMENT_DAILY = [
   { date: '03/05', views: 28000, likes: 1200, comments: 450 },
   { date: '06/05', views: 31000, likes: 1380, comments: 490 },
