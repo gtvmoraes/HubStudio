@@ -114,7 +114,8 @@ substituir apenas o corpo das funções — os contratos de retorno não mudam.
 `DashboardHome.jsx` é apenas composição. Sub-componentes em `src/pages/Dashboard/Home/components/`:
 
 - `DashboardHeader.jsx` — título de boas-vindas + filtros (período, rede) + ações (Novo post, Exportar).
-- `KpiGrid.jsx` — 4 KPI cards com skeleton fallback.
+- `KpiGrid.jsx` — 3 KPI cards (views/likes/comments) com skeleton fallback.
+- `FollowersCard.jsx` — soma seguidores/inscritos de Instagram+TikTok+YouTube; detalha por rede só quando há mais de uma no total (filtro de rede reduz pra 1).
 - `AudienceCard.jsx` — demografia da audiência: faixa etária (barras), gênero (barra dividida) e top localizações.
 - `BestTimeCard.jsx` — destaque do pico de engajamento + lista das 3 alternativas + CTA de agendamento.
 - `EngagementChart.jsx` — area chart com gradiente + seletor de métrica (Visualizações/Curtidas/Comentários) e toggle Diário/Semanal/Mensal.

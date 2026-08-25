@@ -1,24 +1,19 @@
 import { motion } from 'framer-motion'
-import { FaInstagram, FaYoutube } from 'react-icons/fa'
 import { LuEye, LuHeart, LuMessageCircle, LuTrendingUp, LuTrendingDown } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 
 const STAT_ICONS = {
-  views: LuEye, likes: LuHeart, comments: LuMessageCircle, followers: FaInstagram, subscribers: FaYoutube,
+  views: LuEye, likes: LuHeart, comments: LuMessageCircle,
 }
 const STAT_LABELS = {
   views: 'Visualizações',
   likes: 'Curtidas',
   comments: 'Comentários',
-  followers: 'Seguidores',
-  subscribers: 'Inscritos',
 }
 
 // Views/likes/comments vêm das métricas reais coletadas por post (TikTok/
-// YouTube/Instagram/Facebook/LinkedIn). Seguidores (Instagram) e inscritos
-// (YouTube) são à parte (props `followers`/`subscribers`, únicas duas redes
-// com contagem rastreada hoje) — o ícone de cada rede no tile deixa o escopo
-// claro sem precisar de texto extra.
+// YouTube/Instagram/Facebook/LinkedIn). Seguidores/inscritos têm seu próprio
+// card (FollowersCard, soma Instagram+TikTok+YouTube) em vez de entrar aqui.
 const SHOWN_KEYS = ['views', 'likes', 'comments']
 
 function Skeleton() {
@@ -33,7 +28,7 @@ function Skeleton() {
   )
 }
 
-export default function KpiGrid({ stats, followers, subscribers }) {
+export default function KpiGrid({ stats }) {
   if (!stats) {
     return (
       <div className="dash-home__kpis">
@@ -42,13 +37,10 @@ export default function KpiGrid({ stats, followers, subscribers }) {
     )
   }
 
-  const tiles = Object.entries(stats).filter(([key]) => SHOWN_KEYS.includes(key))
-  if (followers) tiles.push(['followers', followers])
-  if (subscribers) tiles.push(['subscribers', subscribers])
-
   return (
     <div className="dash-home__kpis">
-      {tiles
+      {Object.entries(stats)
+        .filter(([key]) => SHOWN_KEYS.includes(key))
         .map(([key, val], i) => {
           const Icon = STAT_ICONS[key]
           const TrendIcon = val.trend === 'down' ? LuTrendingDown : LuTrendingUp

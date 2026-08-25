@@ -60,39 +60,31 @@ export const getStats = async (period = '30d', network = 'all', companyId = null
   }
 }
 
-const FOLLOWERS_MOCK = { value: '12.4K', raw: 12400, change: '+8.2%', trend: 'up' }
-
-// Seguidores reais do Instagram (única rede com contagem rastreada hoje —
-// followers_count via Graph API, ver InstagramFollowerService). Sem sessão ou
-// se a request falhar de verdade, cai pro mock; 204 é real (sem Instagram
-// conectado, ou snapshot ainda não coletado) — retorna null, não mock, pro
-// KpiGrid simplesmente esconder o indicador em vez de inventar um número.
-export const getFollowers = async (period = '30d', companyId = null) => {
-  if (!hasToken()) return FOLLOWERS_MOCK
-  try {
-    const res = await authFetch(withCompany(`/analytics/followers?period=${period}`, companyId))
-    if (res.status === 204) return null
-    if (!res.ok) return FOLLOWERS_MOCK
-    return await res.json()
-  } catch {
-    return FOLLOWERS_MOCK
-  }
+const AUDIENCE_TOTAL_MOCK = {
+  value: '15.5K', raw: 15500, change: '+7.4%', trend: 'up',
+  breakdown: [
+    { network: 'instagram', label: 'Instagram', value: 12400, formattedValue: '12.4K' },
+    { network: 'tiktok',    label: 'TikTok',    value: 0,     formattedValue: '0'     },
+    { network: 'youtube',   label: 'YouTube',   value: 3100,  formattedValue: '3.1K'  },
+  ],
 }
 
-const SUBSCRIBERS_MOCK = { value: '3.1K', raw: 3100, change: '+4.6%', trend: 'up' }
-
-// Inscritos reais do YouTube (subscriberCount via Data API — mesmo padrão de
-// getFollowers). 204 é real (sem YouTube conectado, ou snapshot ainda não
-// coletado) — retorna null, não mock, pro KpiGrid esconder o indicador.
-export const getSubscribers = async (period = '30d', companyId = null) => {
-  if (!hasToken()) return SUBSCRIBERS_MOCK
+// Seguidores/inscritos somados das 3 redes com contagem rastreada hoje
+// (Instagram, TikTok, YouTube via AudienceFollowersService) — network=all soma
+// as conectadas, uma rede específica devolve só aquela (breakdown vira 1 item,
+// o card esconde a lista já que não há o que detalhar). Sem sessão ou se a
+// request falhar de verdade, cai pro mock; 204 é real (nenhuma das 3 conectada,
+// ou rede filtrada sem contagem tipo Facebook/LinkedIn/X) — retorna null, não
+// mock, pro card mostrar o estado vazio em vez de inventar número.
+export const getAudienceTotal = async (period = '30d', network = 'all', companyId = null) => {
+  if (!hasToken()) return AUDIENCE_TOTAL_MOCK
   try {
-    const res = await authFetch(withCompany(`/analytics/subscribers?period=${period}`, companyId))
+    const res = await authFetch(withCompany(`/analytics/followers?period=${period}&network=${network}`, companyId))
     if (res.status === 204) return null
-    if (!res.ok) return SUBSCRIBERS_MOCK
+    if (!res.ok) return AUDIENCE_TOTAL_MOCK
     return await res.json()
   } catch {
-    return SUBSCRIBERS_MOCK
+    return AUDIENCE_TOTAL_MOCK
   }
 }
 

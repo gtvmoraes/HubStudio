@@ -6,7 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
 import {
   getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
-  getContentReach, getBestTimes, getAudience, getAccountScore, getFollowers, getSubscribers, getAiInsights, getActivityFeed,
+  getContentReach, getBestTimes, getAudience, getAccountScore, getAudienceTotal, getAiInsights, getActivityFeed,
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
@@ -28,6 +28,7 @@ import TopPostsCard from './components/TopPostsCard'
 import ScheduleCTA from './components/ScheduleCTA'
 import MiniCalendar from './components/MiniCalendar'
 import AccountScoreCard from './components/AccountScoreCard'
+import FollowersCard from './components/FollowersCard'
 import AISuggestionsCard from './components/AISuggestionsCard'
 import RecentPostsCard from './components/RecentPostsCard'
 import UpcomingPosts from './components/UpcomingPosts'
@@ -37,7 +38,7 @@ import './DashboardHome.css'
 
 // Ordem padrão dos blocos em cada coluna. Cada id é renderizado pelo registry
 // abaixo. Persistido no localStorage para o usuário montar o dashboard à vontade.
-const LEFT_DEFAULT  = ['kpis', 'insights', 'charts', 'audience', 'networks', 'bottom', 'cta']
+const LEFT_DEFAULT  = ['kpis', 'followersTotal', 'insights', 'charts', 'audience', 'networks', 'bottom', 'cta']
 const RIGHT_DEFAULT = ['calendar', 'upcoming', 'activity', 'suggestions', 'recent']
 
 // Reconcilia a ordem salva com a padrão: mantém o que o usuário ordenou,
@@ -69,8 +70,7 @@ export default function DashboardHome() {
   const [bestTimes, setBestTimes] = useState([])
   const [audience, setAudience] = useState(null)
   const [accountScore, setAccountScore] = useState(null)
-  const [followers, setFollowers] = useState(null)
-  const [subscribers, setSubscribers] = useState(null)
+  const [audienceTotal, setAudienceTotal] = useState(null)
   const [topPosts, setTopPosts] = useState([])
   const [recentPosts, setRecentPosts] = useState([])
   const [calendarMarkers, setCalendarMarkers] = useState({})
@@ -134,8 +134,7 @@ export default function DashboardHome() {
     getContentReach(period, network, companyId).then(setContentReach),
     getBestTimes(period, network, companyId).then(setBestTimes),
     getNetworkComparison(period, companyId).then(setNetworkComparison),
-    getFollowers(period, companyId).then(setFollowers),
-    getSubscribers(period, companyId).then(setSubscribers),
+    getAudienceTotal(period, network, companyId).then(setAudienceTotal),
     getAiInsights(period, companyId).then(setAiInsights),
   ])
 
@@ -148,12 +147,8 @@ export default function DashboardHome() {
   }, [period, network, companyId])
 
   useEffect(() => {
-    getFollowers(period, companyId).then(setFollowers)
-  }, [period, companyId])
-
-  useEffect(() => {
-    getSubscribers(period, companyId).then(setSubscribers)
-  }, [period, companyId])
+    getAudienceTotal(period, network, companyId).then(setAudienceTotal)
+  }, [period, network, companyId])
 
   useEffect(() => {
     getAiInsights(period, companyId).then(setAiInsights)
@@ -239,7 +234,8 @@ export default function DashboardHome() {
   // ─── Registry de blocos: cada id → conteúdo. Mantém os pares lado a lado
   //     como uma unidade arrastável (charts, audience, bottom). ───
   const LEFT_BLOCKS = {
-    kpis: <KpiGrid stats={stats} followers={followers} subscribers={subscribers} />,
+    kpis: <KpiGrid stats={stats} />,
+    followersTotal: <FollowersCard data={audienceTotal} />,
     insights: <AIInsightsBar insights={aiInsights} onViewAll={() => {}} />,
     charts: (
       <div className="dash-home__charts">

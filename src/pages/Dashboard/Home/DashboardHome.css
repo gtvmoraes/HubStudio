@@ -1180,6 +1180,57 @@
   color: var(--color-text-muted);
 }
 
+/* Card de seguidores (Instagram + TikTok + YouTube somados) */
+.followers-total__hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.followers-total__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  flex-shrink: 0;
+}
+.followers-total__value {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
+}
+.followers-total__breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+.followers-total__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-sm);
+}
+.followers-total__row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  flex-shrink: 0;
+}
+.followers-total__row-label { color: var(--color-text-secondary); flex: 1; }
+.followers-total__row-value { font-weight: 700; color: var(--color-text); }
+
 /* ─── Notificações ─── */
 .notif {
   display: flex;
