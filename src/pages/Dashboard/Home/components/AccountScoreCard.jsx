@@ -2,26 +2,28 @@ import { motion } from 'framer-motion'
 import { LuCircleCheck, LuTriangleAlert } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 
-const SCORE = 87
-
-const ITEMS = [
-  { label: 'Frequência de posts', status: 'good' },
-  { label: 'Crescimento',         status: 'good' },
-  { label: 'Engajamento',         status: 'good' },
-  { label: 'Stories',             status: 'warn' },
-  { label: 'Taxa de resposta',    status: 'warn' },
-]
-
-const getMessage = (score) => {
-  if (score >= 80) return 'Continue assim! Você está indo muito bem.'
-  if (score >= 60) return 'Bom progresso! Ainda há espaço para crescer.'
-  return 'Atenção: algumas áreas precisam de melhoria.'
-}
-
 const CIRCUMFERENCE = 2 * Math.PI * 42
-const progress = (SCORE / 100) * CIRCUMFERENCE
 
-export default function AccountScoreCard() {
+// `data` vem de getAccountScore() (services/analytics.js) — real quando há
+// pelo menos uma conta social conectada, mock caso contrário.
+export default function AccountScoreCard({ data }) {
+  if (!data) {
+    return (
+      <motion.div
+        className="chart-card account-score"
+        variants={fadeUp} initial="hidden" animate="visible" custom={1}
+      >
+        <h3>Score da conta</h3>
+        <div className="chart-card__empty">
+          Conecte uma rede social pra calcular o score da sua conta.
+        </div>
+      </motion.div>
+    )
+  }
+
+  const { score, items, message } = data
+  const progress = (score / 100) * CIRCUMFERENCE
+
   return (
     <motion.div
       className="chart-card account-score"
@@ -51,13 +53,13 @@ export default function AccountScoreCard() {
           />
         </svg>
         <div className="account-score__center">
-          <strong className="account-score__value">{SCORE}</strong>
+          <strong className="account-score__value">{score}</strong>
           <span className="account-score__max">/100</span>
         </div>
       </div>
 
       <ul className="account-score__list">
-        {ITEMS.map(({ label, status }) => (
+        {items.map(({ label, status }) => (
           <li key={label} className={`account-score__item account-score__item--${status}`}>
             {status === 'good'
               ? <LuCircleCheck size={15} aria-hidden="true" />
@@ -68,7 +70,7 @@ export default function AccountScoreCard() {
         ))}
       </ul>
 
-      <p className="account-score__msg">{getMessage(SCORE)}</p>
+      <p className="account-score__msg">{message}</p>
     </motion.div>
   )
 }

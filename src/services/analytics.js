@@ -253,6 +253,32 @@ const AUDIENCE_MOCK = {
   ],
 }
 
+const ACCOUNT_SCORE_MOCK = {
+  score: 87,
+  items: [
+    { label: 'Frequência de posts',   status: 'good' },
+    { label: 'Crescimento',           status: 'good' },
+    { label: 'Engajamento',           status: 'good' },
+    { label: 'Diversidade de redes',  status: 'warn' },
+  ],
+  message: 'Continue assim! Você está indo muito bem.',
+}
+
+// Nota geral da conta (0-100): frequência de posts, crescimento de alcance,
+// taxa de engajamento e diversidade de redes usadas — tudo derivado de métrica
+// real já coletada. 204 = nenhuma conta social conectada ainda — cai pro mock.
+export const getAccountScore = async (companyId = null) => {
+  if (!hasToken()) return ACCOUNT_SCORE_MOCK
+  try {
+    const res = await authFetch(withCompany('/analytics/account-score', companyId))
+    if (!res.ok || res.status === 204) return ACCOUNT_SCORE_MOCK
+    const data = await res.json()
+    return data && typeof data.score === 'number' ? data : ACCOUNT_SCORE_MOCK
+  } catch {
+    return ACCOUNT_SCORE_MOCK
+  }
+}
+
 // Demografia real de seguidores do Instagram (idade/gênero/localização).
 // 204 = sem conta Instagram conectada ou sem dado suficiente ainda — cai pro mock.
 export const getAudience = async (companyId = null) => {

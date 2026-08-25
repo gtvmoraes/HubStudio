@@ -6,7 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
 import {
   getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
-  getContentReach, getBestTimes, getAudience, getAiInsights, getActivityFeed,
+  getContentReach, getBestTimes, getAudience, getAccountScore, getAiInsights, getActivityFeed,
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
@@ -68,6 +68,7 @@ export default function DashboardHome() {
   const [contentReach, setContentReach] = useState([])
   const [bestTimes, setBestTimes] = useState([])
   const [audience, setAudience] = useState(null)
+  const [accountScore, setAccountScore] = useState(null)
   const [topPosts, setTopPosts] = useState([])
   const [recentPosts, setRecentPosts] = useState([])
   const [calendarMarkers, setCalendarMarkers] = useState({})
@@ -99,6 +100,7 @@ export default function DashboardHome() {
   const loadStaticData = () => Promise.all([
     getSocialBreakdown(),
     getAudience(companyId),
+    getAccountScore(companyId),
     getTopPosts(companyId),
     getRecentPosts(companyId),
     getCalendarMarkers(companyId),
@@ -106,12 +108,13 @@ export default function DashboardHome() {
     getUpcomingPosts(companyId),
     getActivityFeed(),
   ]).then(([
-    socialBreakdownRes, audienceRes,
+    socialBreakdownRes, audienceRes, accountScoreRes,
     topPostsRes, recentPostsRes, markersRes, aiSuggestionsRes,
     upcomingRes, activityRes,
   ]) => {
     setSocialBreakdown(socialBreakdownRes)
     setAudience(audienceRes)
+    setAccountScore(accountScoreRes)
     setTopPosts(topPostsRes)
     setRecentPosts(recentPostsRes)
     setCalendarMarkers(markersRes)
@@ -228,7 +231,7 @@ export default function DashboardHome() {
           granularity={granularity}
           onGranularityChange={setGranularity}
         />
-        <AccountScoreCard />
+        <AccountScoreCard data={accountScore} />
       </div>
     ),
     audience: (
