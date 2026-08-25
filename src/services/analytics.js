@@ -207,6 +207,28 @@ export const getContentReach = async (network = 'all', companyId = null) => {
   }
 }
 
+const BEST_TIMES_MOCK = [
+  { day: 'Sexta-feira',  short: 'Sex', hour: '18h–21h', engagement: 100, top: true  },
+  { day: 'Quinta-feira', short: 'Qui', hour: '18h–21h', engagement: 92,  top: false },
+  { day: 'Quarta-feira', short: 'Qua', hour: '21h–00h', engagement: 88,  top: false },
+  { day: 'Terça-feira',  short: 'Ter', hour: '18h–21h', engagement: 85,  top: false },
+]
+
+// Ranking real de melhores horários pra postar, com base no engajamento médio
+// das postagens já publicadas (mesmo cálculo por trás do insight de IA de
+// "melhor horário"). Sem posts suficientes com métrica coletada, cai pro mock.
+export const getBestTimes = async (network = 'all', companyId = null) => {
+  if (!hasToken()) return BEST_TIMES_MOCK
+  try {
+    const res = await authFetch(withCompany(`/analytics/best-times?network=${network}`, companyId))
+    if (!res.ok) return BEST_TIMES_MOCK
+    const data = await res.json()
+    return Array.isArray(data) && data.length > 0 ? data : BEST_TIMES_MOCK
+  } catch {
+    return BEST_TIMES_MOCK
+  }
+}
+
 const AUDIENCE_MOCK = {
   ageGroups: [
     { range: '13–17', value: 14 },

@@ -1,17 +1,26 @@
 import { LuArrowRight, LuTrendingUp } from 'react-icons/lu'
 
 // Substitui o heatmap. Foco em destacar O MELHOR horário + alternativas
-// próximas + ação direta de agendamento.
-const RECOMMENDATIONS = [
-  { day: 'Sexta-feira', short: 'Sex', hour: '20h', engagement: 95, top: true  },
-  { day: 'Quinta',      short: 'Qui', hour: '19h', engagement: 92, top: false },
-  { day: 'Quarta',      short: 'Qua', hour: '21h', engagement: 88, top: false },
-  { day: 'Terça',       short: 'Ter', hour: '19h', engagement: 85, top: false },
-]
+// próximas + ação direta de agendamento. `data` vem de getBestTimes()
+// (services/analytics.js) — real quando há posts com métrica coletada,
+// mock caso contrário.
+export default function BestTimeCard({ data, onSchedule }) {
+  const recommendations = data && data.length > 0 ? data : []
+  if (recommendations.length === 0) {
+    return (
+      <div className="best-time">
+        <div className="best-time__header">
+          <h3>Melhor horário para postar</h3>
+        </div>
+        <div className="chart-card__empty">
+          Publique alguns posts e colete métricas pra ver seu melhor horário aqui.
+        </div>
+      </div>
+    )
+  }
 
-export default function BestTimeCard({ onSchedule }) {
-  const top = RECOMMENDATIONS.find(r => r.top) || RECOMMENDATIONS[0]
-  const others = RECOMMENDATIONS.filter(r => !r.top).slice(0, 3)
+  const top = recommendations.find(r => r.top) || recommendations[0]
+  const others = recommendations.filter(r => r !== top).slice(0, 3)
 
   return (
     <div className="best-time">
@@ -31,19 +40,21 @@ export default function BestTimeCard({ onSchedule }) {
         </div>
       </div>
 
-      <div className="best-time__list">
-        <span className="best-time__list-label">Alternativas</span>
-        {others.map((r, i) => (
-          <div key={r.day} className="best-time__item">
-            <span className="best-time__rank">#{i + 2}</span>
-            <span className="best-time__when">{r.short} · {r.hour}</span>
-            <div className="best-time__bar">
-              <div className="best-time__bar-fill" style={{ width: `${r.engagement}%` }} />
+      {others.length > 0 && (
+        <div className="best-time__list">
+          <span className="best-time__list-label">Alternativas</span>
+          {others.map((r, i) => (
+            <div key={`${r.day}-${r.hour}`} className="best-time__item">
+              <span className="best-time__rank">#{i + 2}</span>
+              <span className="best-time__when">{r.short} · {r.hour}</span>
+              <div className="best-time__bar">
+                <div className="best-time__bar-fill" style={{ width: `${r.engagement}%` }} />
+              </div>
+              <span className="best-time__pct">+{r.engagement}%</span>
             </div>
-            <span className="best-time__pct">+{r.engagement}%</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <button
         type="button"

@@ -6,7 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
 import {
   getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
-  getContentReach, getAudience, getAiInsights, getActivityFeed,
+  getContentReach, getBestTimes, getAudience, getAiInsights, getActivityFeed,
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
@@ -66,6 +66,7 @@ export default function DashboardHome() {
   const [socialBreakdown, setSocialBreakdown] = useState([])
   const [networkComparison, setNetworkComparison] = useState([])
   const [contentReach, setContentReach] = useState([])
+  const [bestTimes, setBestTimes] = useState([])
   const [audience, setAudience] = useState(null)
   const [topPosts, setTopPosts] = useState([])
   const [recentPosts, setRecentPosts] = useState([])
@@ -125,6 +126,7 @@ export default function DashboardHome() {
     getStats(period, network, companyId).then(setStats),
     getEngagementData(granularity, network, companyId).then(setEngagement),
     getContentReach(network, companyId).then(setContentReach),
+    getBestTimes(network, companyId).then(setBestTimes),
     getNetworkComparison(period, companyId).then(setNetworkComparison),
     getAiInsights(period, companyId).then(setAiInsights),
   ])
@@ -143,6 +145,10 @@ export default function DashboardHome() {
 
   useEffect(() => {
     getContentReach(network, companyId).then(setContentReach)
+  }, [network, companyId])
+
+  useEffect(() => {
+    getBestTimes(network, companyId).then(setBestTimes)
   }, [network, companyId])
 
   useEffect(() => {
@@ -237,7 +243,7 @@ export default function DashboardHome() {
           className="chart-card chart-card--best-time"
           variants={fadeUp} initial="hidden" animate="visible" custom={5}
         >
-          <BestTimeCard onSchedule={openComposer} />
+          <BestTimeCard data={bestTimes} onSchedule={openComposer} />
         </motion.div>
       </div>
     ),
