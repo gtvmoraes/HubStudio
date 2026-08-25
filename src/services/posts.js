@@ -29,11 +29,12 @@ const TOP_POSTS_MOCK = [
 
 // Ranking real por engajamento (views+likes+comments+shares) via métricas coletadas
 // das redes conectadas — cai pro mock só sem sessão ou se a chamada falhar.
-export const getTopPosts = async () => {
+export const getTopPosts = async (companyId = null) => {
   const token = localStorage.getItem('hs-token')
   if (!token) return TOP_POSTS_MOCK
   try {
-    const res = await authFetch('/analytics/top-posts?limit=5')
+    const url = companyId ? `/analytics/top-posts?limit=5&companyId=${companyId}` : '/analytics/top-posts?limit=5'
+    const res = await authFetch(url)
     if (!res.ok) return TOP_POSTS_MOCK
     const data = await res.json()
     if (!Array.isArray(data) || data.length === 0) return TOP_POSTS_MOCK
@@ -51,8 +52,9 @@ export const getTopPosts = async () => {
 
 // Atualiza as métricas de todos os posts publicados da conta de uma vez
 // (o backend busca em lote por rede, em vez de 1 chamada por post).
-export const refreshAllMetrics = async () => {
-  const res = await authFetch('/posts/metrics/refresh', { method: 'POST' })
+export const refreshAllMetrics = async (companyId = null) => {
+  const url = companyId ? `/posts/metrics/refresh?companyId=${companyId}` : '/posts/metrics/refresh'
+  const res = await authFetch(url, { method: 'POST' })
   if (!res.ok) throw new Error('Falha ao atualizar métricas')
 }
 
@@ -64,11 +66,11 @@ const RECENT_POSTS_MOCK = [
 ]
 
 // Deriva de getAllPosts() (já real quando logado) em vez de manter uma lista à parte.
-export const getRecentPosts = async () => {
+export const getRecentPosts = async (companyId = null) => {
   const token = localStorage.getItem('hs-token')
   if (!token) return RECENT_POSTS_MOCK
   try {
-    const posts = await getAllPosts()
+    const posts = await getAllPosts(companyId)
     if (!Array.isArray(posts) || posts.length === 0) return RECENT_POSTS_MOCK
     return posts
       .filter(p => p.publishedAt || p.createdAt)
@@ -101,8 +103,8 @@ const STATUS_TO_MARKER = {
 }
 const MARKER_PRIORITY = { published: 3, scheduled: 2, draft: 1 }
 
-export const getCalendarMarkers = async () => {
-  const posts = await getAllPosts()
+export const getCalendarMarkers = async (companyId = null) => {
+  const posts = await getAllPosts(companyId)
   const map = {}
   posts.forEach(post => {
     const dateStr = post.scheduledFor || post.publishedAt
@@ -127,8 +129,8 @@ export const getAiSuggestions = () => Promise.resolve([
 
 export const schedulePost = (data) => Promise.resolve({ id: Date.now(), ...data, status: 'scheduled' })
 
-export const getUpcomingPosts = async () => {
-  const posts = await getAllPosts()
+export const getUpcomingPosts = async (companyId = null) => {
+  const posts = await getAllPosts(companyId)
   const now = new Date()
   const scheduled = posts
     .filter(p => p.status === 'scheduled' && p.scheduledFor)

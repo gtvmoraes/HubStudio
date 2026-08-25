@@ -2,6 +2,13 @@ import { authFetch } from './api'
 
 const hasToken = () => !!localStorage.getItem('hs-token')
 
+// Anexa companyId na query só quando presente — equipe selecionada no
+// ContextSwitcher (ver TeamContext). Ausente = contexto pessoal (default do backend).
+const withCompany = (url, companyId) => {
+  if (!companyId) return url
+  return `${url}${url.includes('?') ? '&' : '?'}companyId=${companyId}`
+}
+
 // Modificadores só usados no fallback mock (sem sessão ou falha na API real).
 const PERIOD_MULT = {
   '24h': 0.036,
@@ -42,10 +49,10 @@ const mockStats = (period, network) => {
 // KPIs reais (views/likes/comments/shares agregados das métricas coletadas por rede).
 // "Seguidores" não existe em lugar nenhum: nenhuma rede tem coleta de contagem de
 // seguidores implementada, então esse KPI foi removido em vez de ser fabricado.
-export const getStats = async (period = '30d', network = 'all') => {
+export const getStats = async (period = '30d', network = 'all', companyId = null) => {
   if (!hasToken()) return mockStats(period, network)
   try {
-    const res = await authFetch(`/analytics/stats?period=${period}&network=${network}`)
+    const res = await authFetch(withCompany(`/analytics/stats?period=${period}&network=${network}`, companyId))
     if (!res.ok) return mockStats(period, network)
     return await res.json()
   } catch {
@@ -96,10 +103,10 @@ const mockEngagement = (granularity, network) => {
   }))
 }
 
-export const getEngagementData = async (granularity = 'daily', network = 'all') => {
+export const getEngagementData = async (granularity = 'daily', network = 'all', companyId = null) => {
   if (!hasToken()) return mockEngagement(granularity, network)
   try {
-    const res = await authFetch(`/analytics/engagement?granularity=${granularity}&network=${network}`)
+    const res = await authFetch(withCompany(`/analytics/engagement?granularity=${granularity}&network=${network}`, companyId))
     if (!res.ok) return mockEngagement(granularity, network)
     const data = await res.json()
     return Array.isArray(data) && data.length > 0 ? data : mockEngagement(granularity, network)
@@ -119,10 +126,10 @@ const NETWORK_COMPARISON_MOCK = [
 
 // Engajamento real (likes+comentários+compartilhamentos) por rede conectada —
 // substitui a contagem de seguidores fabricada, que nenhuma rede expõe hoje.
-export const getNetworkComparison = async (period = '30d') => {
+export const getNetworkComparison = async (period = '30d', companyId = null) => {
   if (!hasToken()) return NETWORK_COMPARISON_MOCK
   try {
-    const res = await authFetch(`/analytics/network-comparison?period=${period}`)
+    const res = await authFetch(withCompany(`/analytics/network-comparison?period=${period}`, companyId))
     if (!res.ok) return NETWORK_COMPARISON_MOCK
     const data = await res.json()
     return Array.isArray(data) && data.length > 0 ? data : NETWORK_COMPARISON_MOCK
@@ -187,11 +194,11 @@ const CONTENT_REACH = {
 
 // Alcance real por tipo de conteúdo (só Instagram tem contentType rastreado
 // hoje) — backend retorna vazio pra outras redes, e a gente cai pro mock.
-export const getContentReach = async (network = 'all') => {
+export const getContentReach = async (network = 'all', companyId = null) => {
   const mock = CONTENT_REACH[network] ?? CONTENT_REACH.all
   if (!hasToken()) return mock
   try {
-    const res = await authFetch(`/analytics/content-reach?network=${network}`)
+    const res = await authFetch(withCompany(`/analytics/content-reach?network=${network}`, companyId))
     if (!res.ok) return mock
     const data = await res.json()
     return Array.isArray(data) && data.length > 0 ? data : mock
@@ -218,10 +225,10 @@ const AUDIENCE_MOCK = {
 
 // Demografia real de seguidores do Instagram (idade/gênero/localização).
 // 204 = sem conta Instagram conectada ou sem dado suficiente ainda — cai pro mock.
-export const getAudience = async () => {
+export const getAudience = async (companyId = null) => {
   if (!hasToken()) return AUDIENCE_MOCK
   try {
-    const res = await authFetch('/analytics/audience')
+    const res = await authFetch(withCompany('/analytics/audience', companyId))
     if (!res.ok || res.status === 204) return AUDIENCE_MOCK
     const data = await res.json()
     return data?.gender ? data : AUDIENCE_MOCK
@@ -246,10 +253,10 @@ const AI_INSIGHTS_MOCK = [
 ]
 
 // Insights da IA para o período selecionado no dashboard.
-export const getAiInsights = async (period = '30d') => {
+export const getAiInsights = async (period = '30d', companyId = null) => {
   if (!hasToken()) return AI_INSIGHTS_MOCK
   try {
-    const res = await authFetch(`/analytics/ai-insights?period=${period}`)
+    const res = await authFetch(withCompany(`/analytics/ai-insights?period=${period}`, companyId))
     if (!res.ok) return AI_INSIGHTS_MOCK
     const data = await res.json()
     return Array.isArray(data) && data.length > 0 ? data : AI_INSIGHTS_MOCK

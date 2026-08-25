@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, Reorder } from 'framer-motion'
 import { LuLayoutGrid, LuGripVertical, LuRotateCcw, LuCheck, LuRefreshCw } from 'react-icons/lu'
 import { useAuth } from '../../../contexts/AuthContext'
+import { useTeam } from '../../../contexts/TeamContext'
 import {
   getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
   getContentReach, getAudience, getAiInsights, getActivityFeed,
@@ -55,6 +56,8 @@ const loadOrder = (key, def) => {
 
 export default function DashboardHome() {
   const { user } = useAuth()
+  const { activeContext } = useTeam()
+  const companyId = activeContext.personal ? null : activeContext.id
   const navigate = useNavigate()
   const openComposer = (prefill) => navigate('/dashboard/posts/novo')
 
@@ -90,15 +93,16 @@ export default function DashboardHome() {
 
   const resetLayout = () => { setLeftOrder(LEFT_DEFAULT); setRightOrder(RIGHT_DEFAULT) }
 
-  // Dados estáticos (não dependem dos filtros).
+  // Dados estáticos (não dependem dos filtros de período/rede, mas dependem
+  // do contexto ativo — Pessoal ou uma equipe).
   const loadStaticData = () => Promise.all([
     getSocialBreakdown(),
-    getAudience(),
-    getTopPosts(),
-    getRecentPosts(),
-    getCalendarMarkers(),
+    getAudience(companyId),
+    getTopPosts(companyId),
+    getRecentPosts(companyId),
+    getCalendarMarkers(companyId),
     getAiSuggestions(),
-    getUpcomingPosts(),
+    getUpcomingPosts(companyId),
     getActivityFeed(),
   ]).then(([
     socialBreakdownRes, audienceRes,
@@ -115,35 +119,35 @@ export default function DashboardHome() {
     setActivity(activityRes)
   })
 
-  useEffect(() => { loadStaticData() }, [])
+  useEffect(() => { loadStaticData() }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFilteredData = () => Promise.all([
-    getStats(period, network).then(setStats),
-    getEngagementData(granularity, network).then(setEngagement),
-    getContentReach(network).then(setContentReach),
-    getNetworkComparison(period).then(setNetworkComparison),
-    getAiInsights(period).then(setAiInsights),
+    getStats(period, network, companyId).then(setStats),
+    getEngagementData(granularity, network, companyId).then(setEngagement),
+    getContentReach(network, companyId).then(setContentReach),
+    getNetworkComparison(period, companyId).then(setNetworkComparison),
+    getAiInsights(period, companyId).then(setAiInsights),
   ])
 
   useEffect(() => {
-    getStats(period, network).then(setStats)
-  }, [period, network])
+    getStats(period, network, companyId).then(setStats)
+  }, [period, network, companyId])
 
   useEffect(() => {
-    getAiInsights(period).then(setAiInsights)
-  }, [period])
+    getAiInsights(period, companyId).then(setAiInsights)
+  }, [period, companyId])
 
   useEffect(() => {
-    getEngagementData(granularity, network).then(setEngagement)
-  }, [granularity, network])
+    getEngagementData(granularity, network, companyId).then(setEngagement)
+  }, [granularity, network, companyId])
 
   useEffect(() => {
-    getContentReach(network).then(setContentReach)
-  }, [network])
+    getContentReach(network, companyId).then(setContentReach)
+  }, [network, companyId])
 
   useEffect(() => {
-    getNetworkComparison(period).then(setNetworkComparison)
-  }, [period])
+    getNetworkComparison(period, companyId).then(setNetworkComparison)
+  }, [period, companyId])
 
   const firstName = user?.name?.split(' ')[0] || 'usuário'
 
@@ -167,7 +171,7 @@ export default function DashboardHome() {
     setRefreshing(true)
     try {
       if (localStorage.getItem('hs-token')) {
-        await refreshAllMetrics()
+        await refreshAllMetrics(companyId)
       }
       await Promise.all([loadStaticData(), loadFilteredData()])
       flashFeedback('refresh', 'Atualizado!')
