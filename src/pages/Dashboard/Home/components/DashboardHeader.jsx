@@ -2,29 +2,33 @@ import { useEffect, useRef, useState } from 'react'
 import { FaFacebook, FaInstagram, FaLinkedin, FaTiktok, FaYoutube } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
 import { LuCalendar, LuCheck, LuChevronDown, LuDownload, LuGlobe, LuInfinity, LuPlus } from 'react-icons/lu'
+import { useTheme } from '../../../../contexts/ThemeContext'
 
 const PERIOD_OPTIONS = [
   { label: 'Ultimas 24h',    shortLabel: '24h',     value: '24h', icon: LuCalendar, tone: '#4F35E8', desc: 'Hoje em tempo real'  },
-  { label: 'Ultimos 7 dias', shortLabel: '7 dias',  value: '7d',  icon: LuCalendar, tone: '#7C5FE8', desc: 'Pulso recente'       },
+  { label: 'Ultimos 7 dias', shortLabel: '7 dias',  value: '7d',  icon: LuCalendar, tone: '#4F35E8', desc: 'Pulso recente'       },
   { label: 'Ultimos 30 dias',shortLabel: '30 dias', value: '30d', icon: LuCalendar, tone: '#4F35E8', desc: 'Tendencia mensal'    },
-  { label: 'Geral',          shortLabel: 'Geral',   value: 'all', icon: LuInfinity, tone: '#6D28D9', desc: 'Total acumulado'     },
+  { label: 'Geral',          shortLabel: 'Geral',   value: 'all', icon: LuInfinity, tone: '#4F35E8', desc: 'Total acumulado'     },
 ]
 
 const NETWORK_OPTIONS = [
   { label: 'Todas as redes', shortLabel: 'Todas',     value: 'all',       icon: LuGlobe,      tone: '#4F35E8' },
   { label: 'Instagram',      shortLabel: 'Instagram', value: 'instagram', icon: FaInstagram,  tone: '#E1306C' },
-  { label: 'TikTok',         shortLabel: 'TikTok',    value: 'tiktok',    icon: FaTiktok,     tone: '#111827' },
+  { label: 'TikTok',         shortLabel: 'TikTok',    value: 'tiktok',    icon: FaTiktok,     tone: '#111827', darkTone: '#F5F5F7', mono: true },
   { label: 'YouTube',        shortLabel: 'YouTube',   value: 'youtube',   icon: FaYoutube,    tone: '#FF0033' },
   { label: 'Facebook',       shortLabel: 'Facebook',  value: 'facebook',  icon: FaFacebook,   tone: '#1877F2' },
   { label: 'LinkedIn',       shortLabel: 'LinkedIn',  value: 'linkedin',  icon: FaLinkedin,   tone: '#0A66C2' },
-  { label: 'X (Twitter)',    shortLabel: 'X',         value: 'twitter',   icon: FaXTwitter,   tone: '#0F172A' },
+  { label: 'X (Twitter)',    shortLabel: 'X',         value: 'twitter',   icon: FaXTwitter,   tone: '#0F172A', darkTone: '#F5F5F7', mono: true },
 ]
 
 function DashboardSelect({ id, label, value, options, onChange, variant, showIcons = true }) {
+  const { theme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const rootRef = useRef(null)
   const selected = options.find(option => option.value === value) || options[0]
   const SelectedIcon = selected.icon
+  // No escuro, tons quase-pretos (TikTok/X) ficam apagados — usa a versão clara
+  const toneFor = (o) => (theme === 'dark' && o.darkTone) ? o.darkTone : o.tone
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -78,7 +82,7 @@ function DashboardSelect({ id, label, value, options, onChange, variant, showIco
       >
         <span className="dash-select__value">
           {SelectedIcon && (
-            <span className="dash-select__icon" style={{ '--select-tone': selected.tone }}>
+            <span className={`dash-select__icon${selected.mono ? ' dash-select__icon--plain' : ''}`} style={{ '--select-tone': toneFor(selected) }}>
               <SelectedIcon size={16} aria-hidden="true" />
             </span>
           )}
@@ -100,11 +104,11 @@ function DashboardSelect({ id, label, value, options, onChange, variant, showIco
               role="option"
               aria-selected={isSelected}
               tabIndex={isOpen ? 0 : -1}
-              style={{ '--select-tone': option.tone }}
+              style={{ '--select-tone': toneFor(option) }}
               onClick={() => selectOption(option)}
             >
               {showIcons && Icon && (
-                <span className="dash-select__option-icon">
+                <span className={`dash-select__option-icon${option.mono ? ' dash-select__option-icon--plain' : ''}`}>
                   <Icon size={17} aria-hidden="true" />
                 </span>
               )}

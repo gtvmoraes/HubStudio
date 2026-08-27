@@ -44,7 +44,7 @@
 }
 
 .post-modal__step--active .post-modal__step-dot {
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   border-color: var(--color-primary);
   color: #fff;
 }

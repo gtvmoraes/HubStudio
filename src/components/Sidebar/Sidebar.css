@@ -46,7 +46,7 @@
   box-shadow: var(--shadow-card);
 }
 .sidebar__toggle:hover {
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   border-color: var(--color-primary);
 }
@@ -299,6 +299,21 @@
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+
+/* Escuro: roxo puro (#4F35E8) fica escuro demais no fundo escuro — usa a
+   mesma "mistura de cores" dos ícones (roxo clareado com branco). */
+[data-theme='dark'] .sidebar__item--active {
+  background: color-mix(in srgb, var(--color-primary-solid) 22%, transparent) !important;
+  color: color-mix(in srgb, var(--color-primary-solid) 58%, #fff) !important;
+}
+[data-theme='dark'] .sidebar__item:hover {
+  background: color-mix(in srgb, var(--color-primary-solid) 14%, transparent);
+  color: color-mix(in srgb, var(--color-primary-solid) 58%, #fff);
+}
+[data-theme='dark'] .sidebar__theme-btn--active {
+  background: color-mix(in srgb, var(--color-primary-solid) 18%, var(--color-card-bg));
+  color: color-mix(in srgb, var(--color-primary-solid) 58%, #fff);
+}
 .sidebar__theme-icon { flex-shrink: 0; }
 .sidebar__theme-label {
   overflow: hidden;
@@ -351,7 +366,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   display: flex;
   align-items: center;
@@ -444,7 +459,7 @@
   top: 50%;
   transform: translateY(-50%);
   padding: 6px 12px;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   border-radius: var(--radius-md);
   font-size: 0.75rem;
@@ -454,7 +469,7 @@
   pointer-events: none;
   transition: opacity 150ms ease, transform 150ms ease;
   z-index: 200;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary-solid) 35%, transparent);
 }
 .sidebar--collapsed [data-tooltip]::before {
   content: '';

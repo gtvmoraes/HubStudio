@@ -29,33 +29,60 @@ npm run preview    # preview do build
 
 ### Rotas
 
+Providers, de fora pra dentro: `ThemeProvider` → `AuthProvider` → `TeamProvider` → `ToastProvider` → `BrowserRouter`.
+
 | Rota | Componente | Protegida |
 |---|---|---|
 | `/` | Landing | não |
 | `/entrar` | Login | não |
 | `/cadastro` | Cadastro | não |
+| `/esqueci-senha` | EsqueciSenha | não |
+| `/redefinir-senha` | RedefinirSenha | não |
 | `/dashboard` | DashboardHome | sim |
 | `/dashboard/posts` | Posts (lista + filtros + ações) | sim |
 | `/dashboard/posts/novo` | Composer (criar post) | sim |
 | `/dashboard/posts/:id/editar` | Composer (editar post) | sim |
-| `/dashboard/equipes` | Equipes (placeholder em construção) | sim |
+| `/dashboard/equipes` | Equipes (gestão de equipe, 5 abas) | sim |
 | `/dashboard/configuracoes` | Configuracoes | sim |
 | `/dashboard/suporte` | Suporte (central de ajuda) | sim |
+| `/integrations/callback` | IntegrationsCallback (retorno do OAuth) | não |
+| `/privacy` | PrivacyPolicy | não |
+| `/terms` | TermsOfService | não |
+| `/dev/tiktok`, `/dev/tiktok/post`, `/dev/tiktok/metrics` | páginas de teste do TikTok | não |
+| `/dev/youtube`, `/dev/youtube/post` | páginas de teste do YouTube | não |
+
+As rotas `/dev/*` são de desenvolvimento, **sem autenticação**, acessadas direto pela URL.
+Qualquer rota desconhecida redireciona para `/`.
 
 ### Contextos globais
 
-- `AuthContext` — estado de autenticação (mock via localStorage). Exporta `useAuth()`.
+- `AuthContext` — estado de autenticação. Token em `localStorage` (`hs-token`). Exporta `useAuth()`.
 - `ThemeContext` — dark/light mode via `data-theme` no `<html>`. Exporta `useTheme()` (`theme`, `toggleTheme`, `setTheme`).
+- `TeamContext` — equipe/contexto ativo. Exporta `useTeam()` e `PERSONAL_CONTEXT`, um pseudo-contexto
+  sempre disponível ao lado das equipes reais (a "company pessoal", nunca devolvida por `GET /teams`).
+  A escolha persiste em `localStorage` (`hs-current-team`). Normaliza `role` para minúsculo, porque o
+  backend às vezes manda o enum cru em maiúsculo. Expõe `pendingImport`, que dispara o `ImportAccountsModal`
+  quando o usuário cria ou entra numa equipe que ainda não tem contas.
 
-### Services (mock)
+### Services
 
-Todos em `src/services/`. Retornam `Promise.resolve(data)`. Quando o backend estiver pronto,
-substituir apenas o corpo das funções — os contratos de retorno não mudam.
+Todos em `src/services/`. A integração com o backend **já começou** — parte dos services faz HTTP real,
+parte ainda devolve `Promise.resolve(data)`. Ao mexer aqui, confira em qual grupo o arquivo está.
 
-- `analytics.js` — stats KPI, engagement, social breakdown, content reach, AI insights
-- `posts.js` — top posts, recent posts, scheduled dates, AI suggestions, schedulePost()
-- `auth.js` — loginService, registerService
-- `support.js` — categorias da base de conhecimento, artigos populares, status do sistema, chamados (getTickets/createTicket), FAQ
+- `api.js` — base da integração. Exporta `API_BASE` (`VITE_API_URL`, default `https://hubstudio.onrender.com`)
+  e `authFetch()`, que injeta o `Bearer` do `localStorage` e, em caso de 401, limpa a sessão e manda pra `/login`.
+
+Já falam com a API real:
+
+- `auth.js` — login, cadastro, recuperação de senha
+- `team.js` — CRUD de equipes, membros, papéis, convite por código, atividade, aprovação, importação de contas.
+  Também concentra as constantes de autorização: `ROLES`, `ROLE_ORDER`, `PERMISSIONS`, `PERMISSION_MATRIX`,
+  `PLAN_LIMITS`, `TEAM_COLORS`, `TEAM_TYPES`.
+- `analytics.js` e `posts.js` — híbridos: já batem na API, mas mantêm alguns mocks (ex.: sugestões de IA).
+
+Ainda 100% mock:
+
+- `support.js` — base de conhecimento, artigos, status do sistema, chamados, FAQ
 - `settings.js` — sessões ativas, histórico de faturas, uso do plano
 
 ### Componentes reutilizáveis
@@ -70,6 +97,32 @@ substituir apenas o corpo das funções — os contratos de retorno não mudam.
 - `CalendarModal` — modal grande de calendário (botão "expandir" no `MiniCalendar`).
 - `ShortcutsModal` — lista de atalhos de teclado (abre com `?`).
 - `OnboardingTour` — modal de boas-vindas em 5 passos, exibido só na primeira visita (localStorage).
+- `ContextSwitcher` — troca o contexto ativo (Pessoal ou uma equipe). Sempre visível, diferente do antigo
+  `TeamSwitcher` que substituiu. Traz atalhos de criar equipe e entrar por código.
+- `Toast` — notificações. `ToastProvider` monta a fila (`maxToasts`, default 4); `showToast({...})` pode ser
+  chamado de qualquer lugar, sem hook, e `useToast()` dá acesso ao contexto. Tipos: success, error, warning, info.
+- `ProtectedRoute` — guarda das rotas do dashboard; redireciona quem não está autenticado.
+- `Navbar` e `Footer` — usados apenas na Landing.
+
+### Estrutura da página de Equipes
+
+`Equipes.jsx` é composição, com 5 abas. Sub-componentes em `src/pages/Dashboard/Equipes/components/`:
+
+- `EquipesHeader.jsx` — cabeçalho da equipe ativa (membros, posts pendentes) + criar equipe / entrar por código.
+- `EquipesTabs.jsx` — navegação das abas: Membros, Papéis, Aprovação, Atividade e Configurações.
+  A aba de Configurações é gated por permissão (`gate: 'accountSettings'`).
+- `MembrosTab.jsx` — lista de membros, com `MemberRow.jsx` por linha (trocar papel, remover).
+- `PapeisTab.jsx` — referência visual da `PERMISSION_MATRIX` (o que cada papel pode fazer).
+- `AprovacaoTab.jsx` — fluxo de aprovação de posts e quem são os aprovadores.
+- `AtividadeTab.jsx` — log de eventos da equipe.
+- `ConfiguracoesTab.jsx` — editar equipe, excluir e sair.
+- `ConvitesTab.jsx` — convites pendentes (reenviar/cancelar).
+- `RoleBadge.jsx` e `RolePicker.jsx` — exibição e seleção de papel, reutilizados nas abas.
+- `InviteModal.jsx` — convidar por e-mail. `ShareCodeModal.jsx` — convidar por código.
+- `CreateTeamModal.jsx` — criação de equipe.
+- `ImportAccountsModal.jsx` — montado no `DashboardLayout` e aberto via `TeamContext.pendingImport`, quando
+  o usuário cria ou entra numa equipe sem contas. Aceitar **move** as contas pessoais para a equipe (elas
+  deixam de ser pessoais); recusar não altera nada.
 
 ### Estrutura da página de Suporte
 

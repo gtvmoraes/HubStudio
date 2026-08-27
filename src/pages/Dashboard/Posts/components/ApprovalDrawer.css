@@ -107,7 +107,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -182,7 +182,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   display: inline-flex;
   align-items: center;

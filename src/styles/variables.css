@@ -1,6 +1,9 @@
 :root {
   /* ── Cores primárias ── */
   --color-primary: #4F35E8;
+  /* Roxo de PREENCHIMENTO (botões/toggles com texto branco). No claro é igual
+     ao primary; no escuro fica sólido enquanto o --color-primary clareia. */
+  --color-primary-solid: #4F35E8;
   --color-primary-hover: #3D27CF;
   --color-primary-light: #EDE8FF;
   --color-primary-dark: #2D1AA0;
@@ -97,8 +100,14 @@
   --color-sidebar-bg: #0B1020;
   --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
   --shadow-card-hover: 0 4px 12px rgba(79, 53, 232, 0.25), 0 8px 32px rgba(0, 0, 0, 0.3);
+  /* No escuro o roxo #4F35E8 fica escuro demais p/ texto/ícone — clareia o
+     --color-primary (mistura de cores que dá pra enxergar bem). Preenchimentos
+     usam --color-primary-solid (mantém #4F35E8 atrás de texto branco). */
+  --color-primary: #9E8CFF;
+  --color-primary-solid: #4F35E8;
   --color-primary-light: rgba(79, 53, 232, 0.2);
   --color-primary-muted: rgba(79, 53, 232, 0.15);
+  --color-primary-bright: #9E8CFF;
   --color-success-light: rgba(16, 185, 129, 0.16);
   --color-warning-light: rgba(245, 158, 11, 0.16);
   --color-error-light: rgba(239, 68, 68, 0.16);

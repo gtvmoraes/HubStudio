@@ -29,9 +29,9 @@
 
 /* Primary */
 .btn--primary {
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-solid);
 }
 .btn--primary:hover:not(:disabled) {
   background: var(--color-primary-hover);

@@ -52,7 +52,7 @@
   transition: all var(--transition-fast);
 }
 .cal-modal__today:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--color-primary-solid) 10%, transparent);
 }
 
 .cal-modal__legend {
@@ -79,7 +79,7 @@
   border-radius: 50%;
   display: block;
 }
-.cal-modal__legend-item--scheduled::before { background: var(--color-primary); }
+.cal-modal__legend-item--scheduled::before { background: var(--color-primary-solid); }
 .cal-modal__legend-item--published::before { background: var(--color-success); }
 .cal-modal__legend-item--draft::before     { background: var(--color-warning); }
 
@@ -141,7 +141,7 @@
   letter-spacing: 0.02em;
 }
 .cal-modal__chip--scheduled {
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--color-primary-solid) 14%, transparent);
   color: var(--color-primary);
 }
 .cal-modal__chip--published {

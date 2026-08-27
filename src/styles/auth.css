@@ -420,7 +420,7 @@
   transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
 .auth__checkbox input:checked ~ .auth__checkbox-box {
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   border-color: var(--color-primary);
 }
 .auth__checkbox input:checked ~ .auth__checkbox-box svg {
@@ -447,7 +447,7 @@
   height: 3rem;
   border: none;
   border-radius: 9999px;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   font-size: 0.9375rem;
   font-weight: 600;

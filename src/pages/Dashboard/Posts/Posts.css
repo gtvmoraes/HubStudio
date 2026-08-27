@@ -59,7 +59,7 @@
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
@@ -145,7 +145,7 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .post-row:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-primary-solid) 30%, var(--color-border));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
 }
 .post-row--pending  { border-left: 3px solid var(--color-warning); }
@@ -246,7 +246,7 @@
 }
 .post-row--selected {
   border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-card-bg));
+  background: color-mix(in srgb, var(--color-primary-solid) 4%, var(--color-card-bg));
 }
 
 /* Bulk action bar — sticky bottom */
@@ -512,7 +512,7 @@
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   border-radius: 999px;
   font-size: 0.65rem;
@@ -766,7 +766,7 @@
 }
 .cal-view__year-btn:hover { background: var(--color-bg-tertiary); }
 .cal-view__year-btn--active {
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: #fff;
   font-weight: 700;
 }
@@ -800,7 +800,7 @@
   transition: background var(--transition-fast);
 }
 .cal-view__today:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--color-primary-solid) 10%, transparent);
 }
 
 .cal-view__weekdays {
