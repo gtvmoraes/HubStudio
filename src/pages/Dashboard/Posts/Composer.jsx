@@ -34,6 +34,16 @@ const NETWORK_ICONS = {
 
 const NETWORK_IDS = ['instagram', 'tiktok', 'youtube', 'facebook', 'linkedin', 'twitter']
 
+// Rótulos exibidos pra cada privacy_level que o TikTok pode retornar no
+// creator_info. Algumas contas (ex: menores de idade) não recebem todas —
+// só mostramos as que vierem na resposta.
+const TIKTOK_PRIVACY_LABELS = {
+  PUBLIC_TO_EVERYONE: 'Público',
+  MUTUAL_FOLLOW_FRIENDS: 'Amigos',
+  FOLLOWER_OF_CREATOR: 'Seguidores',
+  SELF_ONLY: 'Somente eu',
+}
+
 // Instagram/Facebook rejeitam fotos de feed fora da proporção 4:5–1.91:1
 // (retrato–paisagem). Reels/Stories têm faixas próprias, não entram aqui.
 const FEED_PHOTO_TYPES = { instagram: ['feed', 'carousel'], facebook: ['post'] }
@@ -100,6 +110,13 @@ export default function Composer() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [imageDims, setImageDims] = useState({}) // { [mediaId]: { width, height } }
 
+  // Opções de privacidade do TikTok (público/amigos/seguidores/privado) — vêm
+  // da própria conta conectada (creator_info), nunca são fixas no front: uma
+  // conta pode não ter todas as opções disponíveis (ex: contas de menor de idade).
+  const [tiktokCreatorInfo, setTiktokCreatorInfo] = useState(null)
+  const [tiktokCreatorInfoLoading, setTiktokCreatorInfoLoading] = useState(false)
+  const [tiktokCreatorInfoError, setTiktokCreatorInfoError] = useState('')
+
   // Mede a resolução de cada imagem anexada (o Instagram/Facebook rejeitam
   // posts de feed fora da proporção 4:5–1.91:1 — ver aspectRatioIssues abaixo)
   useEffect(() => {
@@ -113,6 +130,45 @@ export default function Composer() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.media])
+
+  // Ao selecionar TikTok, busca do backend quais privacy_level essa conta
+  // específica pode usar (o TikTok exige consultar isso antes de publicar —
+  // nunca oferecer uma opção que a conta não suporta). Também aplica a
+  // primeira opção como default se o usuário ainda não escolheu nenhuma.
+  useEffect(() => {
+    if (!form.networks.includes('tiktok') || tiktokCreatorInfo || tiktokCreatorInfoLoading) return
+    setTiktokCreatorInfoLoading(true)
+    setTiktokCreatorInfoError('')
+    authFetch(withCompany('/posts/tiktok/creator-info'))
+      .then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.message || err.detail || 'Não foi possível carregar as opções de privacidade do TikTok.')
+        }
+        return res.json()
+      })
+      .then(payload => {
+        const info = payload?.data || null
+        setTiktokCreatorInfo(info)
+        const options = info?.privacy_level_options || []
+        if (options.length > 0) {
+          setForm(f => {
+            const current = f.contentByNetwork['tiktok']
+            if (current?.privacyLevel) return f
+            return {
+              ...f,
+              contentByNetwork: {
+                ...f.contentByNetwork,
+                tiktok: { ...(current || emptyNetworkContent()), privacyLevel: options[0] },
+              },
+            }
+          })
+        }
+      })
+      .catch(err => setTiktokCreatorInfoError(err.message))
+      .finally(() => setTiktokCreatorInfoLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.networks])
 
   // Carrega o post quando estamos em modo edição
   useEffect(() => {
@@ -491,6 +547,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           const fd = new FormData()
           imageItems.forEach(item => fd.append('photos', item.file))
           fd.append('title', photoTitle)
+          if (tiktokContent.privacyLevel) fd.append('tiktokPrivacyLevel', tiktokContent.privacyLevel)
           if (!immediate) fd.append('scheduledAt', isoDate)
           matchingIds.forEach(id => fd.append('socialAccountIds', id))
 
@@ -552,6 +609,10 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           const fd = new FormData()
           fd.append('video', videoFile)
           fd.append('title', videoTitle)
+          if (videoNetworks.includes('tiktok')) {
+            const tiktokPrivacyLevel = form.contentByNetwork['tiktok']?.privacyLevel
+            if (tiktokPrivacyLevel) fd.append('tiktokPrivacyLevel', tiktokPrivacyLevel)
+          }
           if (!immediate) fd.append('scheduledAt', isoDate)
           matchingIds.forEach(id => fd.append('socialAccountIds', id))
           if (youtubeIsShort) fd.append('youtubeIsShort', 'true')
@@ -897,6 +958,38 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                         <p className="composer__type-warning">
                           O YouTube classifica vídeos como Shorts <strong>automaticamente</strong> com base no arquivo enviado: duração máxima de <strong>60 segundos</strong> e proporção <strong>vertical (9:16)</strong>. O hashtag #Shorts é adicionado para ajudar na descoberta, mas não substitui esses requisitos.
                         </p>
+                      )}
+                      {networkId === 'tiktok' && (
+                        <div className="composer__type-privacy">
+                          <span className="composer__type-group-label">Quem pode ver esse post no TikTok</span>
+                          {tiktokCreatorInfoLoading && (
+                            <p className="composer__type-insight">
+                              <LuLoaderCircle size={13} className="composer__ai-spin" />
+                              <span>Carregando as opções de privacidade da sua conta TikTok…</span>
+                            </p>
+                          )}
+                          {!tiktokCreatorInfoLoading && tiktokCreatorInfoError && (
+                            <p className="composer__type-warning">{tiktokCreatorInfoError}</p>
+                          )}
+                          {!tiktokCreatorInfoLoading && !tiktokCreatorInfoError && (
+                            <div className="composer__type-pills">
+                              {(tiktokCreatorInfo?.privacy_level_options || ['SELF_ONLY']).map(level => {
+                                const active = (form.contentByNetwork['tiktok']?.privacyLevel || tiktokCreatorInfo?.privacy_level_options?.[0]) === level
+                                return (
+                                  <button
+                                    key={level}
+                                    type="button"
+                                    className={`composer__type-pill${active ? ' composer__type-pill--active' : ''}`}
+                                    style={active ? { borderColor: networkColor('tiktok', theme), color: networkColor('tiktok', theme), background: `${networkColor('tiktok', theme)}10` } : {}}
+                                    onClick={() => updateNetworkField('tiktok', 'privacyLevel', level)}
+                                  >
+                                    {TIKTOK_PRIVACY_LABELS[level] || level}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   )

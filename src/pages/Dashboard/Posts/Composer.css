@@ -170,6 +170,14 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+.composer__type-privacy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+}
 .composer__type-pill {
   display: inline-flex;
   align-items: center;
