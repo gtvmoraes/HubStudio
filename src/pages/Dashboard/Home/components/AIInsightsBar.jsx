@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { LuSparkles, LuArrowRight, LuTrendingUp, LuTrendingDown, LuLightbulb } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
@@ -8,8 +9,16 @@ const TYPE_META = {
   tip:      { Icon: LuLightbulb,    color: '#4F35E8', bg: 'rgba(79,53,232,0.10)'  },
 }
 
-export default function AIInsightsBar({ insights = [], onViewAll }) {
-  if (!insights.length) return null
+const PREVIEW_COUNT = 3
+
+export default function AIInsightsBar({ insights = [] }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!insights || !insights.length) return null
+
+  // Antes o botão "Ver todos" não fazia nada porque a barra já mostrava tudo.
+  // Agora ela resume em 3 e o botão expande de verdade (só aparece se houver mais).
+  const hasMore = insights.length > PREVIEW_COUNT
+  const visible = expanded || !hasMore ? insights : insights.slice(0, PREVIEW_COUNT)
 
   return (
     <motion.div
@@ -21,17 +30,21 @@ export default function AIInsightsBar({ insights = [], onViewAll }) {
           <LuSparkles size={15} aria-hidden="true" />
           Insights da IA
         </span>
-        <button
-          type="button"
-          className="ai-insights-bar__link"
-          onClick={onViewAll}
-        >
-          Ver todos os insights <LuArrowRight size={13} />
-        </button>
+        {hasMore && (
+          <button
+            type="button"
+            className="ai-insights-bar__link"
+            onClick={() => setExpanded(e => !e)}
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Ver menos' : `Ver todos (${insights.length})`}
+            <LuArrowRight size={13} />
+          </button>
+        )}
       </div>
 
       <div className="ai-insights-bar__items">
-        {insights.map((insight, i) => {
+        {visible.map((insight, i) => {
           const { Icon, color, bg } = TYPE_META[insight.type] ?? TYPE_META.tip
           return (
             <div key={insight.id} className="ai-insight-pill">

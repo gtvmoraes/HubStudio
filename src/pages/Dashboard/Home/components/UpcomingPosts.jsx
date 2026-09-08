@@ -4,6 +4,7 @@ import { FaXTwitter } from 'react-icons/fa6'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { networkColor } from '../../../../services/posts'
 import { useTheme } from '../../../../contexts/ThemeContext'
+import { SkeletonList } from './CardSkeleton'
 
 const NET_ICONS = {
   instagram: FaInstagram,
@@ -14,7 +15,7 @@ const NET_ICONS = {
   twitter:   FaXTwitter,
 }
 
-export default function UpcomingPosts({ posts = [], onSeeAll }) {
+export default function UpcomingPosts({ posts, onSeeAll }) {
   const { theme } = useTheme()
   return (
     <motion.div
@@ -26,7 +27,9 @@ export default function UpcomingPosts({ posts = [], onSeeAll }) {
         <button type="button" className="chart-card__link" onClick={onSeeAll}>Ver todos</button>
       </div>
 
-      {posts.length === 0 ? (
+      {posts === undefined ? (
+        <SkeletonList rows={3} />
+      ) : !posts || posts.length === 0 ? (
         <div className="chart-card__empty">Nada agendado por enquanto.</div>
       ) : (
         <ul className="upcoming__list">

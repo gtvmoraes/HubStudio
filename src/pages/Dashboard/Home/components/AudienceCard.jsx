@@ -1,8 +1,20 @@
 import { motion } from 'framer-motion'
 import { LuMapPin } from 'react-icons/lu'
+import { SkeletonLines } from './CardSkeleton'
 
 export default function AudienceCard({ data }) {
-  if (!data) {
+  if (data === undefined) {
+    return (
+      <div className="audience">
+        <div className="chart-card__header">
+          <h3>Seu público</h3>
+        </div>
+        <SkeletonLines rows={5} height={16} />
+      </div>
+    )
+  }
+
+  if (!data || !Array.isArray(data.ageGroups)) {
     return (
       <div className="audience">
         <div className="chart-card__header">

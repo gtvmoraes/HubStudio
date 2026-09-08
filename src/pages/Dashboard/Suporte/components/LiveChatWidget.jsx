@@ -26,6 +26,8 @@ export default function LiveChatWidget({ open, onOpenChange }) {
     setMessages(m => [...m, { from: 'user', text }])
     setDraft('')
     setTyping(true)
+    // MOCK — aguardando backend. Não há chat real: a "Deb" apenas responde uma
+    // mensagem fixa depois de 1,4s. Nenhuma mensagem é enviada a lugar nenhum.
     setTimeout(() => {
       setTyping(false)
       setMessages(m => [...m, { from: 'agent', text: AUTO_REPLY }])

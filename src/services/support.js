@@ -1,5 +1,10 @@
-// Mock de suporte. Quando o backend chegar, substituir o corpo das funções —
-// os contratos de retorno não mudam (mesmo padrão dos demais services).
+// MOCK 100% — aguardando backend.
+// Arquivo inteiro (base de conhecimento, artigos, status do sistema, chamados
+// e FAQ). Nada aqui persiste: `createTicket` só guarda o chamado em memória e
+// some ao recarregar a página. Na UI da página de Suporte também são mocks:
+// abrir artigo/categoria, anexar arquivo no chamado e o chat ao vivo.
+// Quando os endpoints existirem, substituir só o corpo das funções —
+// os contratos de retorno não mudam.
 
 // ─── Base de conhecimento ───
 export const getKnowledgeCategories = () => Promise.resolve([
@@ -41,6 +46,7 @@ let TICKETS = [
 
 export const getTickets = () => Promise.resolve([...TICKETS])
 
+// MOCK — aguardando backend. Só adiciona à lista em memória (perde no refresh).
 export const createTicket = ({ subject, category, priority, description }) => {
   const ticket = {
     id: Math.max(0, ...TICKETS.map(t => t.id)) + 1,

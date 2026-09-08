@@ -5,6 +5,8 @@ import { LuTrendingDown, LuTrendingUp, LuUsers, LuArrowRight } from 'react-icons
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { networkColor } from '../../../../services/posts'
 import { useTheme } from '../../../../contexts/ThemeContext'
+import { SkeletonLines } from './CardSkeleton'
+import AnimatedNumber from '../../../../components/AnimatedNumber/AnimatedNumber'
 
 const NETWORK_ICONS = { instagram: FaInstagram, tiktok: FaTiktok, youtube: FaYoutube }
 const EMPTY_NETS = ['instagram', 'tiktok', 'youtube']
@@ -13,9 +15,50 @@ const EMPTY_NETS = ['instagram', 'tiktok', 'youtube']
 // TikTok + YouTube quando a rede selecionada é "Todas", e mostra só a rede
 // filtrada quando o filtro é uma dessas 3 (o detalhamento por rede abaixo do
 // total só aparece quando há mais de uma pra detalhar).
-export default function FollowersCard({ data }) {
+// A API devolve, por período, o total atual (`raw`) e a variação (`change`,
+// ex.: "+7.4%"). O ganho absoluto sai daí: total − total/(1 + variação).
+// Sem `change` não dá pra derivar nada — devolve null e a coluna mostra "—".
+function gainFrom(entry) {
+  if (!entry) return null
+  const pct = parseFloat(String(entry.change ?? '').replace('%', '').replace(',', '.'))
+  const total = Number(entry.raw)
+  if (!Number.isFinite(pct) || !Number.isFinite(total)) return null
+  if (pct <= -100) return null
+  const previous = total / (1 + pct / 100)
+  return { gain: Math.round(total - previous), pct }
+}
+
+const fmtGain = (n) => {
+  if (n === null || n === undefined) return '—'
+  const abs = Math.abs(n)
+  const short = abs >= 1_000_000 ? `${(abs / 1_000_000).toFixed(1)}M`
+    : abs >= 1_000 ? `${(abs / 1_000).toFixed(1)}K`
+    : `${abs}`
+  return `${n < 0 ? '−' : '+'}${short}`
+}
+
+export default function FollowersCard({ data, growth }) {
   const navigate = useNavigate()
   const { theme } = useTheme()
+
+  // Carregando — reserva a mesma altura do conteúdo final (sem salto)
+  if (data === undefined) {
+    return (
+      <motion.div
+        className="chart-card followers-total"
+        variants={fadeUp} initial="hidden" animate="visible" custom={2}
+      >
+        <div className="chart-card__header"><h3>Seguidores</h3></div>
+        <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 190, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="skeleton" style={{ height: 12, width: 120, borderRadius: 6 }} />
+            <div className="skeleton" style={{ height: 44, width: 150, borderRadius: 10 }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 240 }}><SkeletonLines rows={3} height={14} /></div>
+        </div>
+      </motion.div>
+    )
+  }
 
   // ── Estado vazio: convite desenhado (não um texto solto) ──
   if (!data) {
@@ -64,6 +107,24 @@ export default function FollowersCard({ data }) {
   const showBreakdown = breakdown && breakdown.length > 1
   const maxVal = showBreakdown ? Math.max(...breakdown.map(b => b.value), 1) : 1
 
+  // Linhas do resumo de crescimento — só as que a API realmente devolveu.
+  const growthRows = [
+    { key: 'week',  label: 'Últimos 7 dias',  entry: growth?.week  },
+    { key: 'month', label: 'Últimos 30 dias', entry: growth?.month },
+    { key: 'all',   label: 'Desde o início',  entry: growth?.all   },
+  ]
+    .filter(r => r.entry)
+    .map(r => {
+      const g = gainFrom(r.entry)
+      return {
+        key: r.key,
+        label: r.label,
+        gain: g ? g.gain : null,
+        pct: g ? g.pct : null,
+        dir: !g || g.pct === 0 ? 'flat' : g.pct > 0 ? 'up' : 'down',
+      }
+    })
+
   return (
     <motion.div
       className="chart-card followers-total"
@@ -83,7 +144,7 @@ export default function FollowersCard({ data }) {
             <span className="followers-total__hero-icon"><LuUsers size={18} /></span>
             Seguidores totais
           </span>
-          <strong className="followers-total__value">{value}</strong>
+          <strong className="followers-total__value"><AnimatedNumber value={value} /></strong>
           {change && (
             <span className={`followers-total__change followers-total__change--${trend}`}>
               <TrendIcon size={13} /> {change}
@@ -91,6 +152,24 @@ export default function FollowersCard({ data }) {
             </span>
           )}
         </div>
+
+        {/* Uma única rede: não há o que detalhar, então o espaço vira o
+            resumo de crescimento (7 dias / 30 dias / total). */}
+        {!showBreakdown && growthRows.length > 0 && (
+          <div className="followers-total__growth">
+            {growthRows.map(row => (
+              <div key={row.key} className="followers-total__growth-item">
+                <span className="followers-total__growth-label">{row.label}</span>
+                <strong className="followers-total__growth-value"><AnimatedNumber value={fmtGain(row.gain)} /></strong>
+                <span
+                  className={`followers-total__growth-pct followers-total__growth-pct--${row.dir}`}
+                >
+                  {row.pct === null ? 'sem dados' : `${row.pct > 0 ? '+' : ''}${row.pct.toFixed(1)}%`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Participação por rede — com barras */}
         {showBreakdown && (
@@ -106,7 +185,7 @@ export default function FollowersCard({ data }) {
                   <div className="followers-total__net-main">
                     <div className="followers-total__net-line">
                       <span className="followers-total__net-label">{item.label}</span>
-                      <span className="followers-total__net-value">{item.formattedValue}</span>
+                      <span className="followers-total__net-value"><AnimatedNumber value={item.formattedValue} /></span>
                     </div>
                     <div className="followers-total__net-track">
                       <span

@@ -4,6 +4,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
+import { SkeletonBlock } from './CardSkeleton'
+import AnimatedNumber from '../../../../components/AnimatedNumber/AnimatedNumber'
 
 const GRANULARITIES = [
   { label: 'Diário',  value: 'daily' },
@@ -39,6 +41,7 @@ function MetricTooltip({ active, payload, label, color, metricLabel }) {
 }
 
 export default function EngagementChart({ data, granularity, onGranularityChange }) {
+  const isLoading = data === undefined
   const [metricKey, setMetricKey] = useState('views')
   const isEmpty = !data || data.length === 0
 
@@ -99,13 +102,15 @@ export default function EngagementChart({ data, granularity, onGranularityChange
               <span className="eng-metric__dot" style={{ background: m.color }} />
               {m.label}
             </span>
-            <span className="eng-metric__value">{fmtCompact(totals[m.key])}</span>
+            <span className="eng-metric__value"><AnimatedNumber value={fmtCompact(totals[m.key])} /></span>
             <span className="eng-metric__caption">total no período</span>
           </button>
         ))}
       </div>
 
-      {isEmpty ? (
+      {isLoading ? (
+        <div style={{ paddingTop: 8 }}><SkeletonBlock height={232} /></div>
+      ) : isEmpty ? (
         <div className="chart-card__empty">Sem dados para o período selecionado.</div>
       ) : (
         <>
@@ -113,9 +118,9 @@ export default function EngagementChart({ data, granularity, onGranularityChange
             <div className="eng-summary">
               <span className="eng-summary__dot" style={{ background: metric.color }} />
               {metric.label} por {PERIOD_WORD[granularity]}:
-              <strong>{fmtCompact(stats.avg)}</strong> em média
+              <strong><AnimatedNumber value={fmtCompact(stats.avg)} /></strong> em média
               <span className="eng-summary__sep">·</span>
-              pico de <strong>{fmtCompact(stats.max)}</strong>
+              pico de <strong><AnimatedNumber value={fmtCompact(stats.max)} /></strong>
             </div>
           )}
           <ResponsiveContainer width="100%" height={210}>

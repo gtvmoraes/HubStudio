@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   LuArrowLeft, LuSave, LuSend, LuCalendarClock, LuImage,
@@ -91,6 +91,8 @@ export default function Composer() {
   const isEditing = Boolean(id)
 
   const initialDate = searchParams.get('date') || ''
+  // Intenção vinda do dashboard (card "Sugestões da IA"): 'caption' | 'hashtags'
+  const aiIntent = searchParams.get('ai') || ''
 
   const [form, setForm] = useState({
     networks: [],
@@ -173,7 +175,7 @@ export default function Composer() {
   // Carrega o post quando estamos em modo edição
   useEffect(() => {
     if (!id) return
-    getPostById(id).then(post => {
+    getPostById(id, companyId).then(post => {
       if (post) {
         const typesByNetwork = {}
         const contentByNetwork = {}
@@ -197,7 +199,7 @@ export default function Composer() {
         if (post.networks?.[0]) setActiveNetwork(post.networks[0])
       }
     })
-  }, [id])
+  }, [id, companyId])
 
   // Retorna a orientação do tipo selecionado de uma rede ('vertical' | 'horizontal' | 'square')
   const getTypeOrientation = (networkId, typeId) => {
@@ -743,7 +745,11 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       }
     }
 
-    // Fallback mock (rascunho, aprovação, ou sem arquivo de vídeo)
+    // MOCK — aguardando backend.
+    // Só o fluxo "scheduled"/"publish" acima é real. Rascunho ('draft') e
+    // envio pra aprovação ('pending') NÃO persistem nada: o backend ainda não
+    // tem endpoint pra isso, então aqui só simulamos o tempo e mostramos a
+    // mensagem de sucesso. Quando existir (ex.: POST /posts/draft), trocar.
     await new Promise(r => setTimeout(r, 600))
     setLoading(false)
     const msg = {
@@ -849,6 +855,43 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       setTimeout(() => setFeedback(''), 2000)
     }
   }
+
+  // ── Intenção de IA vinda do dashboard (?ai=caption | ?ai=hashtags) ──
+  // As ferramentas de IA precisam de uma rede ativa pra saber formato e limite
+  // de caracteres. Se o usuário chegou aqui pelo card de sugestões e ainda não
+  // escolheu rede nenhuma, seleciona a primeira conta conectada (ou Instagram)
+  // pra que a ação aconteça de fato, em vez de abrir um compositor vazio.
+  const aiIntentDone = useRef(false)
+  useEffect(() => {
+    if (!aiIntent || isEditing || aiIntentDone.current) return
+    aiIntentDone.current = true
+
+    let cancelled = false
+    ;(async () => {
+      let target = activeNetwork
+      if (!target) {
+        let candidate = 'instagram'
+        try {
+          const accounts = await getSocialAccounts(companyId)
+          const connected = accounts?.find(a => NETWORK_IDS.includes(a.platform))
+          if (connected) candidate = connected.platform
+        } catch { /* sem contas: segue com o padrão */ }
+        if (cancelled) return
+        toggleNetwork(candidate)
+        target = candidate
+      }
+      if (cancelled || !target) return
+
+      if (aiIntent === 'caption') {
+        setCaptionModalOpen(true)
+      } else if (aiIntent === 'hashtags') {
+        setFeedback('Escreva ou gere sua legenda e toque em "Hashtags" pra IA sugerir as ideais.')
+        setTimeout(() => setFeedback(''), 6000)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [aiIntent, isEditing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="composer">

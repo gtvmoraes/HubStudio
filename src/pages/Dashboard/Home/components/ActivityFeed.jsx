@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { LuSend, LuTrophy, LuMessageCircle, LuPlug, LuCalendarClock } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
+import { SkeletonList } from './CardSkeleton'
 
 const TYPE_META = {
   publish:   { icon: LuSend,          color: '#10B981' },
@@ -10,7 +11,7 @@ const TYPE_META = {
   schedule:  { icon: LuCalendarClock, color: '#6B7280' },
 }
 
-export default function ActivityFeed({ items = [] }) {
+export default function ActivityFeed({ items }) {
   return (
     <motion.div
       className="chart-card activity"
@@ -20,7 +21,9 @@ export default function ActivityFeed({ items = [] }) {
         <h3>Atividade recente</h3>
       </div>
 
-      {items.length === 0 ? (
+      {items === undefined ? (
+        <SkeletonList rows={4} />
+      ) : !items || items.length === 0 ? (
         <div className="chart-card__empty">Nenhuma atividade recente.</div>
       ) : (
         <ul className="activity__list">

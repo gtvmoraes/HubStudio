@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { LuCircleCheck, LuFileText } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import PostMenu from './PostMenu'
+import { SkeletonList } from './CardSkeleton'
 
 export default function RecentPostsCard({ posts, onEdit, onDuplicate, onDelete }) {
   return (
@@ -13,7 +14,8 @@ export default function RecentPostsCard({ posts, onEdit, onDuplicate, onDelete }
         <h3>Publicações recentes</h3>
       </div>
       <div className="recent-posts">
-        {posts.map((post) => {
+        {posts === undefined && <SkeletonList rows={4} />}
+        {(posts || []).map((post) => {
           const { id, title, date, time, status } = post
           return (
             <div key={id} className="recent-post">
@@ -35,7 +37,7 @@ export default function RecentPostsCard({ posts, onEdit, onDuplicate, onDelete }
             </div>
           )
         })}
-        {posts.length === 0 && (
+        {posts && posts.length === 0 && (
           <p className="recent-posts__empty">Nenhuma publicação recente.</p>
         )}
       </div>

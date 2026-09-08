@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
+import { SkeletonLines } from './CardSkeleton'
+import AnimatedNumber from '../../../../components/AnimatedNumber/AnimatedNumber'
 
 export default function ContentReachCard({ data }) {
   return (
@@ -9,7 +11,9 @@ export default function ContentReachCard({ data }) {
     >
       <h3>Alcance por tipo de conteúdo</h3>
 
-      {(!data || data.length === 0) ? (
+      {data === undefined ? (
+        <SkeletonLines rows={4} height={16} />
+      ) : (!data || data.length === 0) ? (
         <div className="chart-card__empty">Sem dados de alcance.</div>
       ) : (
         <div className="reach-bars">
@@ -17,7 +21,7 @@ export default function ContentReachCard({ data }) {
             <div key={type} className="reach-bar">
               <div className="reach-bar__meta">
                 <span style={{ color }}>{type}</span>
-                <span>{value}%</span>
+                <span><AnimatedNumber value={`${value}%`} /></span>
               </div>
               <div className="reach-bar__track">
                 <motion.div

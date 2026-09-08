@@ -5,7 +5,7 @@ import { LuLayoutGrid, LuGripVertical, LuRotateCcw, LuCheck, LuRefreshCw } from 
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
 import {
-  getStats, getEngagementData, getSocialBreakdown, getNetworkComparison,
+  getStats, getEngagementData, getNetworkComparison,
   getContentReach, getBestTimes, getAudience, getAccountScore, getAudienceTotal, getAiInsights, getActivityFeed,
 } from '../../../services/analytics'
 import {
@@ -60,24 +60,40 @@ export default function DashboardHome() {
   const { activeContext } = useTeam()
   const companyId = activeContext.personal ? null : activeContext.id
   const navigate = useNavigate()
-  const openComposer = (prefill) => navigate('/dashboard/posts/novo')
+  // Abre o compositor já com uma intenção. `ai` dispara a ferramenta de IA
+  // correspondente lá dentro ('caption' | 'hashtags'); `date` pré-preenche o
+  // agendamento (usado pelo card de melhor horário).
+  const openComposer = (prefill) => {
+    const params = new URLSearchParams()
+    if (prefill?.ai) params.set('ai', prefill.ai)
+    if (prefill?.date) params.set('date', prefill.date)
+    const qs = params.toString()
+    navigate(`/dashboard/posts/novo${qs ? `?${qs}` : ''}`)
+  }
 
-  const [stats, setStats] = useState(null)
-  const [engagement, setEngagement] = useState([])
-  const [socialBreakdown, setSocialBreakdown] = useState([])
-  const [networkComparison, setNetworkComparison] = useState([])
-  const [contentReach, setContentReach] = useState([])
-  const [bestTimes, setBestTimes] = useState([])
-  const [audience, setAudience] = useState(null)
-  const [accountScore, setAccountScore] = useState(null)
-  const [audienceTotal, setAudienceTotal] = useState(null)
-  const [topPosts, setTopPosts] = useState([])
-  const [recentPosts, setRecentPosts] = useState([])
+  // Convenção de carregamento em todo o dashboard:
+  //   undefined = ainda carregando  → o card mostra skeleton
+  //   null / []  = carregou sem dado → o card mostra o estado vazio
+  // Nada é resetado pra undefined depois do primeiro load: ao trocar de filtro
+  // os dados antigos ficam na tela até os novos chegarem (sem piscar).
+  const [stats, setStats] = useState(undefined)
+  const [engagement, setEngagement] = useState(undefined)
+  const [networkComparison, setNetworkComparison] = useState(undefined)
+  const [contentReach, setContentReach] = useState(undefined)
+  const [bestTimes, setBestTimes] = useState(undefined)
+  const [audience, setAudience] = useState(undefined)
+  const [accountScore, setAccountScore] = useState(undefined)
+  const [audienceTotal, setAudienceTotal] = useState(undefined)
+  // Crescimento de seguidores em 7d / 30d / total — preenche o card quando há
+  // uma única rede (sem detalhamento por rede pra mostrar).
+  const [followerGrowth, setFollowerGrowth] = useState(undefined)
+  const [topPosts, setTopPosts] = useState(undefined)
+  const [recentPosts, setRecentPosts] = useState(undefined)
   const [calendarMarkers, setCalendarMarkers] = useState({})
   const [aiSuggestions, setAiSuggestions] = useState([])
   const [aiInsights, setAiInsights] = useState([])
-  const [upcomingPosts, setUpcomingPosts] = useState([])
-  const [activity, setActivity] = useState([])
+  const [upcomingPosts, setUpcomingPosts] = useState(undefined)
+  const [activity, setActivity] = useState(undefined)
 
   const [period, setPeriod] = useState('30d')
   const [network, setNetwork] = useState('all')
@@ -100,7 +116,6 @@ export default function DashboardHome() {
   // Dados estáticos (não dependem dos filtros de período/rede, mas dependem
   // do contexto ativo — Pessoal ou uma equipe).
   const loadStaticData = () => Promise.all([
-    getSocialBreakdown(),
     getAudience(companyId),
     getAccountScore(companyId),
     getRecentPosts(companyId),
@@ -109,11 +124,10 @@ export default function DashboardHome() {
     getUpcomingPosts(companyId),
     getActivityFeed(),
   ]).then(([
-    socialBreakdownRes, audienceRes, accountScoreRes,
+    audienceRes, accountScoreRes,
     recentPostsRes, markersRes, aiSuggestionsRes,
     upcomingRes, activityRes,
   ]) => {
-    setSocialBreakdown(socialBreakdownRes)
     setAudience(audienceRes)
     setAccountScore(accountScoreRes)
     setRecentPosts(recentPostsRes)
@@ -149,6 +163,20 @@ export default function DashboardHome() {
   useEffect(() => {
     getAudienceTotal(period, network, companyId).then(setAudienceTotal)
   }, [period, network, companyId])
+
+  // Não depende do filtro de período: são sempre os mesmos 3 recortes.
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      getAudienceTotal('7d', network, companyId),
+      getAudienceTotal('30d', network, companyId),
+      getAudienceTotal('all', network, companyId),
+    ]).then(([week, month, all]) => {
+      if (cancelled) return
+      setFollowerGrowth((week || month || all) ? { week, month, all } : null)
+    })
+    return () => { cancelled = true }
+  }, [network, companyId])
 
   useEffect(() => {
     getAiInsights(period, companyId).then(setAiInsights)
@@ -203,17 +231,10 @@ export default function DashboardHome() {
     }
   }
 
-  const handleAiAction = async (suggestion) => {
-    if (suggestion.action === 'Copiar') {
-      try {
-        await navigator.clipboard.writeText(suggestion.text)
-        flashFeedback(`ai-${suggestion.id}`, 'Copiado!')
-      } catch {
-        flashFeedback(`ai-${suggestion.id}`, 'Erro')
-      }
-      return
-    }
-    openComposer()
+  // Cada sugestão declara sua intenção (`ai`): abre o compositor já com a
+  // ferramenta de IA correspondente pronta, em vez de só navegar pra lista.
+  const handleAiAction = (suggestion) => {
+    openComposer({ ai: suggestion.ai || 'caption' })
   }
 
   const duplicatePost = (post) => {
@@ -235,8 +256,8 @@ export default function DashboardHome() {
   //     como uma unidade arrastável (charts, audience, bottom). ───
   const LEFT_BLOCKS = {
     kpis: <KpiGrid stats={stats} />,
-    followersTotal: <FollowersCard data={audienceTotal} />,
-    insights: <AIInsightsBar insights={aiInsights} onViewAll={() => {}} />,
+    followersTotal: <FollowersCard data={audienceTotal} growth={followerGrowth} />,
+    insights: <AIInsightsBar insights={aiInsights} />,
     charts: (
       <div className="dash-home__charts">
         <EngagementChart

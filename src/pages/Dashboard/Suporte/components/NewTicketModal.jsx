@@ -71,6 +71,8 @@ export default function NewTicketModal({ isOpen, onClose, onSubmit }) {
           />
         </div>
 
+        {/* MOCK — aguardando backend. Sem endpoint de upload de anexo em
+            chamados, o botão não faz nada (só visual). */}
         <button type="button" className="sup-attach" onClick={() => {}}>
           <LuPaperclip size={15} /> Anexar arquivo (opcional)
         </button>

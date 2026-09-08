@@ -62,6 +62,8 @@ export default function Suporte() {
 
   return (
     <div className="sup-page">
+      {/* MOCK — aguardando backend. Não existe rota/endpoint de artigo, então
+          abrir um resultado da busca ainda não leva a lugar nenhum. */}
       <SupportHero
         firstName={firstName}
         articles={articles}
@@ -75,6 +77,8 @@ export default function Suporte() {
 
       <div className="sup-grid">
         <div className="sup-grid__main">
+          {/* MOCK — aguardando backend. Sem endpoints de artigo/categoria,
+              clicar num card da base de conhecimento não abre nada. */}
           <KnowledgeBase
             categories={categories}
             articles={articles}

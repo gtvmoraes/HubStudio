@@ -2,14 +2,17 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  LuSearch, LuFileText, LuHash, LuLayoutDashboard, LuSparkles, LuArrowRight,
+  LuSearch, LuFileText, LuLayoutDashboard, LuSparkles, LuArrowRight,
   LuSquarePen, LuUsers, LuCircleHelp, LuUser, LuShare2, LuShieldCheck, LuBell,
   LuPalette, LuCreditCard, LuLock, LuTicket, LuBookOpen, LuActivity,
 } from 'react-icons/lu'
+import { getAllPosts } from '../../services/posts'
+import { useTeam } from '../../contexts/TeamContext'
 import './SearchModal.css'
 
 // Catálogo de coisas pesquisáveis. Cada item tem categoria, label, ícone,
 // uma ação e (opcional) palavras-chave para a busca encontrar por sinônimos.
+// As publicações são carregadas da API ao abrir o modal (ver `postItems`).
 const buildCatalog = ({ navigate, onNewPost }) => ([
   // Comandos
   { id: 'cmd-new', cat: 'Comandos', label: 'Criar novo post', icon: LuSquarePen, keywords: 'agendar publicar composer escrever', action: () => onNewPost() },
@@ -34,18 +37,6 @@ const buildCatalog = ({ navigate, onNewPost }) => ([
   { id: 'sup-kb',     cat: 'Suporte', label: 'Base de conhecimento',  icon: LuBookOpen, keywords: 'artigos guias tutoriais como fazer', action: () => navigate('/dashboard/suporte') },
   { id: 'sup-status', cat: 'Suporte', label: 'Status do sistema',     icon: LuActivity, keywords: 'operacional incidente serviços disponibilidade', action: () => navigate('/dashboard/suporte') },
 
-  // Publicações (mock)
-  { id: 'p-1', cat: 'Publicações', label: '5 dicas para aumentar seu engajamento', icon: LuFileText, action: () => navigate('/dashboard/posts') },
-  { id: 'p-2', cat: 'Publicações', label: 'Seus Reels alcançaram 2 do nada',       icon: LuFileText, action: () => navigate('/dashboard/posts') },
-  { id: 'p-3', cat: 'Publicações', label: 'Como criar conteúdo que conecta',       icon: LuFileText, action: () => navigate('/dashboard/posts') },
-  { id: 'p-4', cat: 'Publicações', label: 'Checklist para posts de sucesso',       icon: LuFileText, action: () => navigate('/dashboard/posts') },
-
-  // Hashtags
-  { id: 'h-1', cat: 'Hashtags', label: '#marketingdigital', icon: LuHash, action: () => {} },
-  { id: 'h-2', cat: 'Hashtags', label: '#conteudo',         icon: LuHash, action: () => {} },
-  { id: 'h-3', cat: 'Hashtags', label: '#redessociais',     icon: LuHash, action: () => {} },
-  { id: 'h-4', cat: 'Hashtags', label: '#empreendedorismo', icon: LuHash, action: () => {} },
-
   // IA
   { id: 'ai-1', cat: 'IA', label: 'Gerar legenda com IA',     icon: LuSparkles, keywords: 'inteligência artificial texto', action: () => onNewPost() },
   { id: 'ai-2', cat: 'IA', label: 'Sugerir hashtags',         icon: LuSparkles, keywords: 'tags ia', action: () => onNewPost() },
@@ -55,13 +46,34 @@ const buildCatalog = ({ navigate, onNewPost }) => ([
 export default function SearchModal({ isOpen, onClose, onNewPost }) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
+  const [posts, setPosts] = useState([])
   const navigate = useNavigate()
   const inputRef = useRef(null)
+  const { activeContext } = useTeam()
+  const companyId = activeContext?.personal ? null : activeContext?.id
 
-  const catalog = useMemo(
-    () => buildCatalog({ navigate, onNewPost: () => { onClose(); onNewPost() } }),
-    [navigate, onNewPost, onClose]
-  )
+  // Publicações reais do contexto ativo — carregadas ao abrir o modal.
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    getAllPosts(companyId).then(list => {
+      if (cancelled) return
+      setPosts(Array.isArray(list) ? list.slice(0, 8) : [])
+    })
+    return () => { cancelled = true }
+  }, [isOpen, companyId])
+
+  const catalog = useMemo(() => {
+    const base = buildCatalog({ navigate, onNewPost: () => { onClose(); onNewPost() } })
+    const postItems = posts.map(p => ({
+      id: `post-${p.id}`,
+      cat: 'Publicações',
+      label: p.title || (p.content ? p.content.slice(0, 60) : 'Sem título'),
+      icon: LuFileText,
+      action: () => navigate(`/dashboard/posts/${p.id}/editar`),
+    }))
+    return [...base, ...postItems]
+  }, [navigate, onNewPost, onClose, posts])
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()

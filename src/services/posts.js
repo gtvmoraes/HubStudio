@@ -19,28 +19,19 @@ const fmtCompact = (n) => {
   return `${num}`
 }
 
-const TOP_POSTS_MOCK = [
-  { id: 1, title: '5 dicas para aumentar seu engajamento', date: '18 de maio de 2026', views: '12.4K', likes: '1.3K', comments: '2.6K' },
-  { id: 2, title: 'Seus Reels alcançaram 2 do nada',       date: '15 de maio de 2026', views: '9.8K',  likes: '872',  comments: '1.9K' },
-  { id: 3, title: 'Como criar conteúdo que conecta',       date: '12 de maio de 2026', views: '8.1K',  likes: '634',  comments: '1.3K' },
-  { id: 4, title: 'Pensamentos que facilitam sua rotina',  date: '09 de maio de 2026', views: '7.2K',  likes: '512',  comments: '1.1K' },
-  { id: 5, title: 'Checklist para posts de sucesso',       date: '05 de maio de 2026', views: '6.5K',  likes: '432',  comments: '980'  },
-]
-
 // Ranking real por engajamento (views+likes+comments+shares) via métricas coletadas
-// das redes conectadas, respeitando os filtros de período/rede do dashboard —
-// cai pro mock só sem sessão ou se a chamada falhar. Vazio autenticado com
-// sucesso é real (sem posts nesse filtro) e não é mascarado com o mock.
+// das redes conectadas, respeitando os filtros de período/rede do dashboard.
+// Sem sessão ou se a chamada falhar, devolve vazio — nunca dado fabricado.
 export const getTopPosts = async (period = '30d', network = 'all', companyId = null) => {
   const token = localStorage.getItem('hs-token')
-  if (!token) return TOP_POSTS_MOCK
+  if (!token) return []
   try {
     let url = `/analytics/top-posts?limit=5&period=${period}&network=${network}`
     if (companyId) url += `&companyId=${companyId}`
     const res = await authFetch(url)
-    if (!res.ok) return TOP_POSTS_MOCK
+    if (!res.ok) return []
     const data = await res.json()
-    if (!Array.isArray(data)) return TOP_POSTS_MOCK
+    if (!Array.isArray(data)) return []
     return data.map(p => ({
       id: p.id,
       title: p.title,
@@ -49,7 +40,7 @@ export const getTopPosts = async (period = '30d', network = 'all', companyId = n
       likes: fmtCompact(p.likes),
     }))
   } catch {
-    return TOP_POSTS_MOCK
+    return []
   }
 }
 
@@ -61,20 +52,14 @@ export const refreshAllMetrics = async (companyId = null) => {
   if (!res.ok) throw new Error('Falha ao atualizar métricas')
 }
 
-const RECENT_POSTS_MOCK = [
-  { id: 1, title: '5 dicas para aumentar...',            date: '22/05/2026', time: '10:30', status: 'published', network: 'instagram' },
-  { id: 2, title: 'Story: Como planejar meus conteúdos', date: '21/05/2026', time: '16:00', status: 'published', network: 'instagram' },
-  { id: 3, title: 'Bests: Como planejar meus conteúdos', date: '20/05/2026', time: '09:00', status: 'published', network: 'instagram' },
-  { id: 4, title: 'Rascunho: ideias para a semana',      date: '—',          time: '—',     status: 'draft',     network: 'instagram' },
-]
-
-// Deriva de getAllPosts() (já real quando logado) em vez de manter uma lista à parte.
+// Deriva de getAllPosts() (real). Lista vazia é resultado REAL (conta sem
+// posts ainda) — não é mascarada com dado fabricado.
 export const getRecentPosts = async (companyId = null) => {
   const token = localStorage.getItem('hs-token')
-  if (!token) return RECENT_POSTS_MOCK
+  if (!token) return []
   try {
     const posts = await getAllPosts(companyId)
-    if (!Array.isArray(posts) || posts.length === 0) return RECENT_POSTS_MOCK
+    if (!Array.isArray(posts) || posts.length === 0) return []
     return posts
       .filter(p => p.publishedAt || p.createdAt)
       .sort((a, b) => new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt))
@@ -92,7 +77,7 @@ export const getRecentPosts = async (companyId = null) => {
         }
       })
   } catch {
-    return RECENT_POSTS_MOCK
+    return []
   }
 }
 
@@ -124,13 +109,17 @@ export const getCalendarMarkers = async (companyId = null) => {
   return map
 }
 
+// MOCK — aguardando backend.
+// O Composer já usa IA real (POST /ai/generate-caption e /ai/suggest-hashtags);
+// falta o equivalente para o card de sugestões do dashboard.
+// Os textos são fixos, mas as AÇÕES são reais: cada item abre o compositor já
+// com a ferramenta de IA correspondente (`ai`), que chama /ai/* no backend.
 export const getAiSuggestions = () => Promise.resolve([
-  { id: 1, icon: LuMessageSquare, label: 'Ideia de post', text: 'Faça um post sobre tendências do seu nicho este mês!', action: 'Gerar' },
-  { id: 2, icon: LuChartBar,      label: 'Engajamento',   text: 'Clique para gerar legendas envolventes.',              action: 'Gerar' },
-  { id: 3, icon: LuHash,          label: 'Hashtags',      text: '#marketingdigital #branding #redessociais',           action: 'Copiar' },
+  { id: 1, ai: 'caption',  icon: LuMessageSquare, label: 'Ideia de post', text: 'Sem ideia do que postar? Descreva o tema e a IA escreve pra você.', action: 'Gerar' },
+  { id: 2, ai: 'caption',  icon: LuChartBar,      label: 'Engajamento',   text: 'Gere uma legenda envolvente, no formato ideal de cada rede.',      action: 'Gerar' },
+  { id: 3, ai: 'hashtags', icon: LuHash,          label: 'Hashtags',      text: 'Descubra as hashtags certas pro seu conteúdo.',                    action: 'Sugerir' },
 ])
 
-export const schedulePost = (data) => Promise.resolve({ id: Date.now(), ...data, status: 'scheduled' })
 
 export const getUpcomingPosts = async (companyId = null) => {
   const posts = await getAllPosts(companyId)
@@ -157,156 +146,26 @@ export const getUpcomingPosts = async (companyId = null) => {
   })
 }
 
-/**
- * Posts mock — estrutura completa preparada pro workflow de equipe.
- * Em modo solo, o `author` é sempre o usuário atual e ele aprova auto.
- * Quando a página de Equipes existir, a aprovação real entra via `status: 'pending'`.
- */
-const ALL_POSTS = [
-  {
-    id: 'p1',
-    title: '5 dicas para aumentar seu engajamento',
-    content: 'Quer turbinar seu engajamento? Aqui vão 5 dicas práticas que aplicamos no nosso perfil este mês.\n\n1) Poste consistentemente\n2) Use carrosséis\n3) Hooks fortes nos primeiros 3 segundos\n4) Responda todos os comentários\n5) Faça lives mensais',
-    networks: ['instagram', 'tiktok'],
-    type: 'carousel',
-    status: 'published',
-    author: { id: 'u1', name: 'Breno Dantas', email: 'breno.dantas.pc@gmail.com' },
-    approver: { id: 'u1', name: 'Breno Dantas' },
-    scheduledFor: '2026-05-18T14:00:00',
-    publishedAt: '2026-05-18T14:00:00',
-    submittedAt: null,
-    approvedAt: '2026-05-18T13:55:00',
-    rejectedAt: null,
-    comments: [],
-    metrics: { views: 12400, likes: 1300, comments: 2600, shares: 184 },
-    media: [{ type: 'image', url: null }],
-  },
-  {
-    id: 'p2',
-    title: 'Seus Reels alcançaram 2x do nada',
-    content: 'A gente nem tinha planejado, mas esses Reels viralizaram. Vou abrir a estratégia que funcionou.',
-    networks: ['instagram'],
-    type: 'reel',
-    status: 'published',
-    author: { id: 'u1', name: 'Breno Dantas', email: 'breno.dantas.pc@gmail.com' },
-    approver: { id: 'u1', name: 'Breno Dantas' },
-    scheduledFor: '2026-05-15T20:00:00',
-    publishedAt: '2026-05-15T20:00:00',
-    submittedAt: null,
-    approvedAt: '2026-05-15T19:58:00',
-    rejectedAt: null,
-    comments: [],
-    metrics: { views: 9800, likes: 872, comments: 1900, shares: 92 },
-    media: [{ type: 'video', url: null }],
-  },
-  {
-    id: 'p3',
-    title: 'Como criar conteúdo que conecta',
-    content: 'Conteúdo bom não é só bonito — é o que faz a pessoa se sentir vista. Hoje vou te mostrar como.',
-    networks: ['instagram', 'youtube'],
-    type: 'post',
-    status: 'scheduled',
-    author: { id: 'u1', name: 'Breno Dantas', email: 'breno.dantas.pc@gmail.com' },
-    approver: { id: 'u1', name: 'Breno Dantas' },
-    scheduledFor: '2026-05-30T19:00:00',
-    publishedAt: null,
-    submittedAt: null,
-    approvedAt: '2026-05-26T10:00:00',
-    rejectedAt: null,
-    comments: [],
-    metrics: null,
-    media: [{ type: 'image', url: null }],
-  },
-  {
-    id: 'p4',
-    title: 'Pensamentos que facilitam sua rotina',
-    content: 'Lista das 3 frases que mais uso pra desbloquear quando travo.',
-    networks: ['instagram', 'tiktok'],
-    type: 'reel',
-    status: 'scheduled',
-    author: { id: 'u1', name: 'Breno Dantas', email: 'breno.dantas.pc@gmail.com' },
-    approver: { id: 'u1', name: 'Breno Dantas' },
-    scheduledFor: '2026-06-02T09:00:00',
-    publishedAt: null,
-    submittedAt: null,
-    approvedAt: '2026-05-25T16:30:00',
-    rejectedAt: null,
-    comments: [],
-    metrics: null,
-    media: [{ type: 'video', url: null }],
-  },
-  {
-    id: 'p5',
-    title: 'Rascunho: ideias para a semana',
-    content: 'Ideias que tô brainstormando — preciso filtrar antes de virar post.\n\n- Tutorial de edição\n- Bastidores do meu setup\n- Tier list de apps',
-    networks: ['instagram'],
-    type: 'post',
-    status: 'draft',
-    author: { id: 'u1', name: 'Breno Dantas', email: 'breno.dantas.pc@gmail.com' },
-    approver: null,
-    scheduledFor: null,
-    publishedAt: null,
-    submittedAt: null,
-    approvedAt: null,
-    rejectedAt: null,
-    comments: [],
-    metrics: null,
-    media: [],
-  },
-  {
-    id: 'p6',
-    title: 'Checklist para posts de sucesso',
-    content: 'O checklist mental que rodo antes de publicar qualquer coisa.',
-    networks: ['instagram', 'linkedin'],
-    type: 'carousel',
-    status: 'pending',
-    author: { id: 'u2', name: 'Maria Silva', email: 'maria@empresa.com' },
-    approver: null,
-    scheduledFor: '2026-06-05T11:00:00',
-    publishedAt: null,
-    submittedAt: '2026-05-27T18:20:00',
-    approvedAt: null,
-    rejectedAt: null,
-    comments: [],
-    metrics: null,
-    media: [{ type: 'image', url: null }],
-  },
-  {
-    id: 'p7',
-    title: 'Promo: Curso de marketing',
-    content: 'Lançamento do curso na Black Friday — desconto de 60%.',
-    networks: ['instagram', 'facebook'],
-    type: 'post',
-    status: 'failed',
-    author: { id: 'u1', name: 'Breno Dantas', email: 'breno.dantas.pc@gmail.com' },
-    approver: { id: 'u1', name: 'Breno Dantas' },
-    scheduledFor: '2026-05-24T08:00:00',
-    publishedAt: null,
-    submittedAt: null,
-    approvedAt: '2026-05-23T22:00:00',
-    rejectedAt: null,
-    failureReason: 'Token do Instagram expirou. Reconecte a conta.',
-    comments: [],
-    metrics: null,
-    media: [{ type: 'image', url: null }],
-  },
-]
-
 export const getAllPosts = async (companyId) => {
   const token = localStorage.getItem('hs-token')
-  if (!token) return ALL_POSTS
+  if (!token) return []
   try {
     const url = companyId ? `/posts/schedule/all-posts?companyId=${companyId}` : '/posts/schedule/all-posts'
     const res = await authFetch(url)
-    if (!res.ok) return ALL_POSTS
-    return await res.json()
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data) ? data : []
   } catch {
-    return ALL_POSTS
+    return []
   }
 }
 
-export const getPostById = (id) =>
-  Promise.resolve(ALL_POSTS.find(p => p.id === id) || null)
+// Busca o post real na lista da API. Antes procurava numa lista mockada, então
+// abrir /posts/:id/editar de um post de verdade não carregava nada.
+export const getPostById = async (id, companyId = null) => {
+  const posts = await getAllPosts(companyId)
+  return posts.find(p => String(p.id) === String(id)) || null
+}
 
 export const STATUS_META = {
   draft:     { label: 'Rascunho',              color: '#6B7280' },
@@ -433,8 +292,11 @@ export const networkColor = (id, theme) => {
 }
 
 // ════════════════════════════════════════════════════════════════
-// IA do Composer — mocks determinísticos. Quando o backend existir,
-// trocar só o corpo destas funções (contratos de retorno não mudam).
+// MOCK — aguardando backend.
+// - getContentTypeInsight: números de uplift por formato são fixos/fabricados.
+// - getBestTimeSlots: heurística local (dia útil vs fim de semana), não usa
+//   histórico real; o dashboard já tem /analytics/best-times de verdade.
+// Geração de legenda e hashtags já são reais (POST /ai/* direto no Composer).
 // ════════════════════════════════════════════════════════════════
 const pad2 = (n) => String(n).padStart(2, '0')
 
@@ -451,73 +313,6 @@ const CONTENT_TYPE_INSIGHTS = {
   twitter:   { type: 'thread', label: 'Threads', vs: 'tweets soltos', uplift: 58  },
 }
 export const getContentTypeInsight = (networkId) => CONTENT_TYPE_INSIGHTS[networkId] || null
-
-/**
- * Card 3 — gera uma legenda "ideal" com base no título/rede do usuário.
- * Depende de mídia OU título (validado na UI). Emoji-free de propósito.
- */
-export const generateCaption = ({ networkId, title = '' }) =>
-  new Promise(resolve => {
-    const meta = NETWORK_META[networkId]
-    const topic = title.trim()
-    const subject = topic || 'esse conteúdo que preparei pra você'
-    const subjectLow = subject.toLowerCase()
-
-    const hooks = [
-      `Para tudo o que você está fazendo: ${subject} pode mudar o seu dia.`,
-      `Ninguém te conta isso sobre ${subjectLow} — mas eu vou.`,
-      `Salva esse post: ${subject} explicado de um jeito simples.`,
-      `Eu queria ter visto isso antes de começar com ${subjectLow}.`,
-    ]
-    const bodies = [
-      'Levei um tempo pra entender, então resumi tudo o que importa em poucos pontos pra você aplicar hoje mesmo.',
-      'A ideia é simples, mas quase ninguém faz: consistência e atenção aos detalhes mudam o resultado.',
-      'Testei na prática e o retorno apareceu rápido. Aqui vai o passo a passo direto ao ponto.',
-    ]
-    const ctas = {
-      instagram: 'Comenta aqui embaixo o que você achou e marca alguém que precisa ver isso.',
-      tiktok:    'Segue pra mais dicas como essa todos os dias.',
-      youtube:   'Se curtir, deixa o like e se inscreve pra não perder os próximos.',
-      facebook:  'Compartilha com quem vai gostar e deixa seu comentário.',
-      linkedin:  'Qual a sua experiência com isso? Compartilha nos comentários.',
-      twitter:   'Concorda? Responde aí o que você faria diferente.',
-    }
-
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
-    let caption = `${pick(hooks)}\n\n${pick(bodies)}\n\n${ctas[networkId] || pick(bodies)}`
-    if (meta?.maxChars) caption = caption.slice(0, meta.maxChars)
-    setTimeout(() => resolve(caption), 850)
-  })
-
-/**
- * Card 3 — sugere hashtags a partir do conteúdo/título + rede.
- * Depende de mídia (validado na UI).
- */
-export const suggestHashtags = ({ networkId, content = '', title = '' }) =>
-  new Promise(resolve => {
-    const base = [
-      '#conteudo', '#dicas', '#marketingdigital', '#criadordeconteudo',
-      '#estrategia', '#engajamento', '#redessociais', '#crescimento',
-    ]
-    const byNetwork = {
-      instagram: ['#instadica', '#reels', '#explorar', '#viral'],
-      tiktok:    ['#tiktokbrasil', '#fyp', '#paravoce', '#viralizou'],
-      youtube:   ['#youtubeshorts', '#youtubebrasil', '#inscrevase'],
-      facebook:  ['#facebook', '#comunidade', '#compartilhe'],
-      linkedin:  ['#carreira', '#negocios', '#produtividade', '#lideranca'],
-      twitter:   ['#threads', '#assuntodomomento'],
-    }
-    // "Analisa" o texto do usuário: vira hashtag as palavras mais relevantes
-    const words = `${title} ${content}`
-      .toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .match(/[a-z]{5,}/g) || []
-    const fromText = [...new Set(words)].slice(0, 3).map(w => `#${w}`)
-
-    const pool = [...fromText, ...(byNetwork[networkId] || []), ...base]
-    const tags = [...new Set(pool)].slice(0, 12)
-    setTimeout(() => resolve(tags), 850)
-  })
 
 /**
  * Card 4 — melhores horários para postar NA DATA escolhida.
