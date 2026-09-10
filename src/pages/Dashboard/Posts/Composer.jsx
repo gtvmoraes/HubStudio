@@ -919,7 +919,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
               <span className="composer__step-num">1</span>
               <h3>Em quais redes você quer publicar?</h3>
             </div>
-            <div className="composer__networks">
+            <div className="composer__networks" data-tour="composer-networks">
               {NETWORK_IDS.map(id => {
                 const meta = NETWORK_META[id]
                 const Icon = NETWORK_ICONS[id]
@@ -1106,7 +1106,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                   </label>
 
                   {/* Ferramentas de IA — geram legenda e hashtags */}
-                  <div className="composer__ai-tools">
+                  <div className="composer__ai-tools" data-tour="composer-ai">
                     <button
                       type="button"
                       className="composer__ai-btn"
@@ -1188,7 +1188,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
 
           {/* PASSO 5 — Agendamento (global) */}
           {hasNetworks && (
-            <div className="composer__step">
+            <div className="composer__step" data-tour="composer-schedule">
               <div className="composer__step-head">
                 <span className="composer__step-num">5</span>
                 <h3>Quando publicar?</h3>
@@ -1213,7 +1213,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
         </div>
 
         {/* Coluna direita — preview */}
-        <aside className="composer__preview-wrap">
+        <aside className="composer__preview-wrap" data-tour="composer-preview">
           <PhonePreview
             networks={form.networks}
             typesByNetwork={form.typesByNetwork}

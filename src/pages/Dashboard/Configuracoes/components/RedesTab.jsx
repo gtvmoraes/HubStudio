@@ -214,7 +214,7 @@ export default function RedesTab() {
         <div className="set-net-error">Faça login para gerenciar suas redes sociais.</div>
       )}
 
-      <div className="set-net-grid">
+      <div className="set-net-grid" data-tour="redes-grid">
         {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, accountId, companyName, personal }, i) => {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon

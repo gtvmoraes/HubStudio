@@ -135,7 +135,7 @@ export default function DashboardHeader({
         <h1 className="dash-home__greeting">{greeting}</h1>
         <p className="dash-home__sub">Aqui esta o desempenho das suas redes sociais.</p>
       </div>
-      <div className="dash-home__filters">
+      <div className="dash-home__filters" data-tour="dash-filters">
         <DashboardSelect
           id="dashboard-period-options"
           label="Periodo"

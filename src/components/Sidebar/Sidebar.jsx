@@ -67,6 +67,7 @@ export default function Sidebar({ isCollapsed, onToggle, onNewPost, onOpenSearch
       <button
         type="button"
         className="sidebar__search"
+        data-tour="sidebar-search"
         onClick={onOpenSearch}
         aria-label="Abrir busca"
         data-tooltip="Pesquisar (Ctrl+K)"
@@ -79,12 +80,12 @@ export default function Sidebar({ isCollapsed, onToggle, onNewPost, onOpenSearch
       </button>
 
       {/* Contexto ativo — Pessoal ou uma das equipes */}
-      <div className="sidebar__context">
+      <div className="sidebar__context" data-tour="sidebar-context">
         <ContextSwitcher onCreateClick={() => setShowCreateTeam(true)} />
       </div>
 
       {/* Main nav */}
-      <nav className="sidebar__nav">
+      <nav className="sidebar__nav" data-tour="sidebar-nav">
         {NAV_ITEMS.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
@@ -156,7 +157,7 @@ export default function Sidebar({ isCollapsed, onToggle, onNewPost, onOpenSearch
         </NavLink>
 
         {/* Theme toggle */}
-        <div className={`sidebar__theme ${isCollapsed ? 'sidebar__theme--collapsed' : ''}`}>
+        <div className={`sidebar__theme ${isCollapsed ? 'sidebar__theme--collapsed' : ''}`} data-tour="sidebar-theme">
           <div className={`sidebar__theme-toggle ${isCollapsed ? 'sidebar__theme-toggle--vertical' : ''}`}>
             <button
               className={`sidebar__theme-btn ${theme === 'light' ? 'sidebar__theme-btn--active' : ''}`}

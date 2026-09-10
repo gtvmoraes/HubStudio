@@ -18,6 +18,7 @@ import SupportPlanCard from './components/SupportPlanCard'
 import LiveChatWidget from './components/LiveChatWidget'
 
 import './Suporte.css'
+import RestartTourButton from '../../../components/Tour/RestartTourButton'
 
 export default function Suporte() {
   const { user } = useAuth()
@@ -74,6 +75,14 @@ export default function Suporte() {
         onOpenChat={() => setChatOpen(true)}
         onOpenTicket={() => setTicketModalOpen(true)}
       />
+
+      <div className="sup-tour-cta">
+        <div>
+          <strong>Novo por aqui?</strong>
+          <p>Refaça o tour guiado e veja onde fica cada funcionalidade.</p>
+        </div>
+        <RestartTourButton />
+      </div>
 
       <div className="sup-grid">
         <div className="sup-grid__main">

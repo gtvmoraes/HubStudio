@@ -96,7 +96,15 @@ Ainda 100% mock:
 - `SearchModal` — modal de busca global (Ctrl+K) com resultados categorizados e navegação por teclado. Acessada pelo botão "Pesquisar" da sidebar.
 - `CalendarModal` — modal grande de calendário (botão "expandir" no `MiniCalendar`).
 - `ShortcutsModal` — lista de atalhos de teclado (abre com `?`).
-- `OnboardingTour` — modal de boas-vindas em 5 passos, exibido só na primeira visita (localStorage).
+- `Tour` — tour guiado que percorre o app com um holofote deslizante sobre os elementos reais.
+  `TourProvider` (montado no `DashboardLayout`) controla o estado e dirige a navegação entre rotas;
+  `TourOverlay` desenha a máscara SVG recortada + o cartão ancorado; `useAnchorRect` mede o alvo
+  (scroll/resize/troca de rota); `steps.js` guarda o roteiro declarativo em 6 atos (~18 passos) e
+  `RestartTourButton` reabre o tour. Os alvos são marcados com `data-tour="<id>"` nos componentes
+  (Sidebar, DashboardHeader, blocos do dashboard, RedesTab, Composer, EquipesHeader) — os blocos do
+  dashboard usam `block-<id>`, sobrevivendo à reordenação. Passos `optional` se auto-pulam quando o
+  alvo não existe; `waitFor: 'click'` espera o usuário agir. Dispara no cadastro (flag
+  `hs-show-onboarding`), retoma após reload e pode ser refeito em Suporte e Configurações → Aparência.
 - `ContextSwitcher` — troca o contexto ativo (Pessoal ou uma equipe). Sempre visível, diferente do antigo
   `TeamSwitcher` que substituiu. Traz atalhos de criar equipe e entrar por código.
 - `Toast` — notificações. `ToastProvider` monta a fila (`maxToasts`, default 4); `showToast({...})` pode ser

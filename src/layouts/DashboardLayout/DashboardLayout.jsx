@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/Sidebar/Sidebar'
 import SearchModal from '../../components/SearchModal/SearchModal'
 import ShortcutsModal from '../../components/ShortcutsModal/ShortcutsModal'
-import OnboardingTour from '../../components/OnboardingTour/OnboardingTour'
+import { TourProvider } from '../../components/Tour/TourProvider'
 import ImportAccountsModal from '../../pages/Dashboard/Equipes/components/ImportAccountsModal'
 import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts'
 import { useTeam } from '../../contexts/TeamContext'
@@ -27,6 +27,7 @@ export default function DashboardLayout() {
   })
 
   return (
+    <TourProvider onExpandSidebar={() => setIsCollapsed(false)}>
     <div className={`dashboard-layout ${isCollapsed ? 'dashboard-layout--collapsed' : ''}`}>
       <Sidebar
         isCollapsed={isCollapsed}
@@ -49,13 +50,12 @@ export default function DashboardLayout() {
         onClose={() => setShowShortcuts(false)}
       />
 
-      <OnboardingTour />
-
       <ImportAccountsModal
         team={pendingImport}
         isOpen={Boolean(pendingImport)}
         onClose={dismissPendingImport}
       />
     </div>
+    </TourProvider>
   )
 }

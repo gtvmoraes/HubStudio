@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LuSun, LuMoon, LuMonitor, LuCheck } from 'react-icons/lu'
 import { useTheme } from '../../../../contexts/ThemeContext'
+import RestartTourButton from '../../../../components/Tour/RestartTourButton'
 
 const THEMES = [
   { id: 'light', label: 'Claro',   icon: LuSun },
@@ -72,6 +73,14 @@ export default function AparenciaTab() {
             </select>
           </div>
         </div>
+      </div>
+
+      <div className="set-card">
+        <div className="set-card__title">Tour guiado</div>
+        <p className="tour-restart__desc">
+          Rever a apresentação das telas e funcionalidades do HubStudio.
+        </p>
+        <RestartTourButton />
       </div>
     </div>
   )

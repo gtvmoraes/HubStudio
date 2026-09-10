@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * Número que "sobe" de 0 até o valor quando os dados reais chegam.
@@ -62,7 +62,10 @@ export default function AnimatedNumber({ value, duration = 900, className }) {
   const [display, setDisplay] = useState(value)
   const frameRef = useRef(null)
 
-  useEffect(() => {
+  // useLayoutEffect (e não useEffect) pra pintar o primeiro frame ANTES do
+  // paint: com useEffect o valor final aparecia por um instante e só depois a
+  // contagem começava do zero — dava um "pisca" que escondia a animação.
+  useLayoutEffect(() => {
     const parsed = parse(value)
 
     // Sem número, zero, ou usuário pediu menos movimento → sem animação
@@ -71,6 +74,7 @@ export default function AnimatedNumber({ value, duration = 900, className }) {
       return
     }
 
+    setDisplay(format(0, parsed))   // arranca do zero, sem piscar o valor final
     const start = performance.now()
     const tick = (now) => {
       const t = Math.min((now - start) / duration, 1)

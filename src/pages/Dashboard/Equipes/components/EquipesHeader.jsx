@@ -21,6 +21,7 @@ export default function EquipesHeader({ team, members, pendingPosts, onCreateTea
   return (
     <motion.div
       className="eq-header"
+      data-tour="equipes-header"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}

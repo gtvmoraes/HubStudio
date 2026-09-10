@@ -340,6 +340,7 @@ export default function DashboardHome() {
           value={id}
           as="div"
           className="dash-block"
+          data-tour={`block-${id}`}
           dragListener={editMode}
           whileDrag={{ scale: 1.015, zIndex: 20 }}
         >
@@ -367,7 +368,7 @@ export default function DashboardHome() {
         onExport={handleExport}
       />
 
-      <div className="dash-home__toolbar">
+      <div className="dash-home__toolbar" data-tour="dash-toolbar">
         {editMode ? (
           <>
             <span className="dash-home__toolbar-hint">
