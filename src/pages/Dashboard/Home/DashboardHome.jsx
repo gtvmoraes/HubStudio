@@ -143,7 +143,7 @@ export default function DashboardHome() {
   // de período quanto de rede — antes ignoravam os dois filtros por completo.
   const loadFilteredData = () => Promise.all([
     getStats(period, network, companyId).then(setStats),
-    getEngagementData(granularity, network, companyId).then(setEngagement),
+    getEngagementData(granularity, network, companyId, period).then(setEngagement),
     getTopPosts(period, network, companyId).then(setTopPosts),
     getContentReach(period, network, companyId).then(setContentReach),
     getBestTimes(period, network, companyId).then(setBestTimes),
@@ -183,8 +183,8 @@ export default function DashboardHome() {
   }, [period, companyId])
 
   useEffect(() => {
-    getEngagementData(granularity, network, companyId).then(setEngagement)
-  }, [granularity, network, companyId])
+    getEngagementData(granularity, network, companyId, period).then(setEngagement)
+  }, [granularity, network, companyId, period])
 
   useEffect(() => {
     getContentReach(period, network, companyId).then(setContentReach)

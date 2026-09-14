@@ -45,9 +45,10 @@ export const getAudienceTotal = (period = '30d', network = 'all', companyId = nu
   getJson(`/analytics/followers?period=${period}&network=${network}`, companyId)
 
 // Série de engajamento ao longo do tempo (o backend devolve os buckets do
-// período, zerados quando não há dado).
-export const getEngagementData = (granularity = 'daily', network = 'all', companyId = null) =>
-  getArray(`/analytics/engagement?granularity=${granularity}&network=${network}`, companyId)
+// período, zerados quando não há dado). Os buckets cobrem exatamente a janela
+// do período selecionado, agrupados pela granularidade escolhida.
+export const getEngagementData = (granularity = 'daily', network = 'all', companyId = null, period = '30d') =>
+  getArray(`/analytics/engagement?granularity=${granularity}&network=${network}&period=${period}`, companyId)
 
 // Engajamento real (likes+comentários+compartilhamentos) por rede conectada —
 // substitui a contagem de seguidores fabricada, que nenhuma rede expõe hoje.
