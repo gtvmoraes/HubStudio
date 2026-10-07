@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LuInbox, LuTrash2, LuCopy, LuSend, LuX, LuSquareCheck } from 'react-icons/lu'
-import { getAllPosts } from '../../../services/posts'
+import { getAllPosts, submitPost, cancelPost } from '../../../services/posts'
 import { dashFadeUp as fadeUp } from '../../../styles/animations'
 import { useTeam } from '../../../contexts/TeamContext'
+import { useAuth } from '../../../contexts/AuthContext'
+import { showToast } from '../../../components/Toast'
 import PostsHeader from './components/PostsHeader'
 import StatusTabs from './components/StatusTabs'
 import PostsFilters from './components/PostsFilters'
@@ -39,7 +42,9 @@ function matchesPeriod(post, period) {
 }
 
 export default function Posts() {
-  const { activeContext } = useTeam()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { activeContext, can } = useTeam()
   const companyId = activeContext.personal ? null : activeContext.id
   const [posts, setPosts] = useState([])
   const [activeTab, setActiveTab] = useState('all')
@@ -50,9 +55,24 @@ export default function Posts() {
   const [reviewingPost, setReviewingPost] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])  // bulk select
 
+  const reload = () => getAllPosts(companyId).then(setPosts)
+
   useEffect(() => {
-    getAllPosts(companyId).then(setPosts)
-  }, [companyId])
+    reload()
+  }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Quem pode o quê em cada post — espelha as regras do backend (PostApprovalService).
+  const isAuthor = (post) => activeContext.personal || post.author?.id === user?.id
+  const permsFor = (post) => ({
+    canEdit:     ['draft', 'rejected'].includes(post.status) && isAuthor(post),
+    canSubmit:   ['draft', 'rejected'].includes(post.status) && isAuthor(post) && can('createPost'),
+    canCancel:   post.status === 'scheduled' && (isAuthor(post) || can('scheduleDirectly')),
+    canWithdraw: post.status === 'pending' && isAuthor(post),
+    canReview:   post.status === 'pending' && can('approve') && !isAuthor(post),
+  })
+  const submitLabel = can('scheduleDirectly') ? 'Agendar' : 'Enviar pra aprovação'
+
+  const notifyError = (err) => showToast({ type: 'error', title: 'Não foi possível concluir', message: err.message })
 
   // Conta posts por status (pros tabs)
   const counts = useMemo(() => {
@@ -88,8 +108,39 @@ export default function Posts() {
     return list
   }, [posts, activeTab, selectedNetworks, period, query])
 
+  const handleSubmit = async (post) => {
+    // Sem data o backend recusa o envio — manda pro editor escolher uma.
+    if (!post.scheduledFor) {
+      showToast({ type: 'info', title: 'Escolha uma data', message: 'Defina quando publicar antes de enviar.' })
+      navigate(`/dashboard/posts/${post.id}/editar`)
+      return
+    }
+    try {
+      const saved = await submitPost(post.id)
+      showToast(saved.status === 'pending'
+        ? { type: 'success', title: 'Enviado pra aprovação', message: 'A equipe já pode revisar.' }
+        : { type: 'success', title: 'Post agendado', message: 'Será publicado automaticamente.' })
+      reload()
+    } catch (err) { notifyError(err) }
+  }
+
+  const handleCancel = async (post, message) => {
+    if (!window.confirm(message)) return
+    try {
+      await cancelPost(post.id)
+      showToast({ type: 'success', title: 'Pronto', message: 'O post voltou para rascunhos.' })
+      reload()
+    } catch (err) { notifyError(err) }
+  }
+
   const handleAction = (action, post) => {
-    if (action === 'delete') {
+    if (action === 'edit') {
+      navigate(`/dashboard/posts/${post.id}/editar`)
+    } else if (action === 'cancel') {
+      handleCancel(post, `Cancelar o agendamento de "${post.title}"? Ele volta para rascunhos.`)
+    } else if (action === 'withdraw') {
+      handleCancel(post, `Retirar "${post.title}" da aprovação? Ele volta para rascunhos.`)
+    } else if (action === 'delete') {
       if (!window.confirm(`Excluir "${post.title}"?`)) return
       setPosts(prev => prev.filter(p => p.id !== post.id))
     } else if (action === 'duplicate') {
@@ -98,10 +149,7 @@ export default function Posts() {
         ...prev,
       ])
     } else if (action === 'submit') {
-      setPosts(prev => prev.map(p => p.id === post.id
-        ? { ...p, status: 'pending', submittedAt: new Date().toISOString() }
-        : p
-      ))
+      handleSubmit(post)
     } else if (action === 'approve' || action === 'reject') {
       setReviewingPost(post)
     }
@@ -135,13 +183,19 @@ export default function Posts() {
     })
     setSelectedIds([])
   }
-  const bulkSubmit = () => {
-    setPosts(prev => prev.map(p =>
-      selectedIds.includes(p.id) && p.status === 'draft'
-        ? { ...p, status: 'pending', submittedAt: new Date().toISOString() }
-        : p
-    ))
+  const bulkSubmit = async () => {
+    const eligible = posts.filter(p => selectedIds.includes(p.id) && permsFor(p).canSubmit && p.scheduledFor)
+    if (eligible.length === 0) {
+      showToast({ type: 'info', title: 'Nada pra enviar', message: 'Selecione rascunhos seus que já tenham data de publicação.' })
+      return
+    }
+    const results = await Promise.allSettled(eligible.map(p => submitPost(p.id)))
+    const failed = results.filter(r => r.status === 'rejected').length
+    showToast(failed
+      ? { type: 'warning', title: 'Envio parcial', message: `${eligible.length - failed} enviado(s), ${failed} com erro.` }
+      : { type: 'success', title: 'Posts enviados', message: `${eligible.length} post(s) enviado(s).` })
     setSelectedIds([])
+    reload()
   }
 
   // Posts selecionados que ainda estão na lista filtrada (depois de filter)
@@ -150,18 +204,12 @@ export default function Posts() {
     [filtered, selectedIds]
   )
 
-  const handleApprovalDecision = (decision, updatedPost) => {
-    if (decision === 'approve') {
-      setPosts(prev => prev.map(p => p.id === updatedPost.id
-        ? { ...p, status: 'scheduled', approvedAt: new Date().toISOString(), comments: updatedPost.comments }
-        : p
-      ))
-    } else if (decision === 'reject') {
-      setPosts(prev => prev.map(p => p.id === updatedPost.id
-        ? { ...p, status: 'rejected', rejectedAt: new Date().toISOString(), comments: updatedPost.comments }
-        : p
-      ))
-    }
+  // O drawer já chamou a API; aqui só avisa e recarrega a lista.
+  const handleApprovalDecision = (decision) => {
+    showToast(decision === 'approve'
+      ? { type: 'success', title: 'Post aprovado', message: 'Ele já está na fila de publicação.' }
+      : { type: 'success', title: 'Post rejeitado', message: 'O autor vai ver o motivo e pode corrigir.' })
+    reload()
   }
 
   return (
@@ -186,7 +234,7 @@ export default function Posts() {
       {view === 'calendar' ? (
         <PostsCalendar
           posts={filtered}
-          onReview={setReviewingPost}
+          onReview={(post) => permsFor(post).canReview && setReviewingPost(post)}
         />
       ) : (
         <div className="posts-page__list">
@@ -218,8 +266,10 @@ export default function Posts() {
               >
                 <PostListItem
                   post={post}
+                  perms={permsFor(post)}
+                  submitLabel={submitLabel}
                   onAction={handleAction}
-                  onReview={post.status === 'pending' ? () => setReviewingPost(post) : null}
+                  onReview={permsFor(post).canReview ? () => setReviewingPost(post) : null}
                   selected={selectedIds.includes(post.id)}
                   onToggleSelect={() => toggleSelect(post.id)}
                 />
@@ -267,9 +317,11 @@ export default function Posts() {
             <button type="button" className="bulk-bar__btn" onClick={bulkDuplicate}>
               <LuCopy size={14} /> Duplicar
             </button>
-            <button type="button" className="bulk-bar__btn" onClick={bulkSubmit}>
-              <LuSend size={14} /> Submeter
-            </button>
+            {can('createPost') && (
+              <button type="button" className="bulk-bar__btn" onClick={bulkSubmit}>
+                <LuSend size={14} /> {submitLabel}
+              </button>
+            )}
             <button type="button" className="bulk-bar__btn bulk-bar__btn--danger" onClick={bulkDelete}>
               <LuTrash2 size={14} /> Excluir
             </button>

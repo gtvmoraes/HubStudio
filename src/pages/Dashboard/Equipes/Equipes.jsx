@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   getTeamMembers, getApprovalConfig, getTeamActivity,
-  changeRoleApi, removeMemberApi, updateApprovalConfigApi,
+  changeRoleApi, removeMemberApi, updateApprovalConfigApi, updatePermissionMatrixApi,
 } from '../../../services/team'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
@@ -19,7 +19,10 @@ import './Equipes.css'
 
 export default function Equipes() {
   const { user } = useAuth()
-  const { currentTeam, loading, createTeam, joinTeam, updateTeam, deleteTeam } = useTeam()
+  const {
+    currentTeam, loading, createTeam, joinTeam, updateTeam, deleteTeam, leaveTeam,
+    can, permissionMatrix, setPermissionMatrix,
+  } = useTeam()
 
   const [members, setMembers] = useState([])
   const [config, setConfig] = useState(null)
@@ -145,10 +148,23 @@ export default function Equipes() {
     }
   }
 
+  // ── Papéis ──
+  const handleTogglePermission = async (role, key, value) => {
+    const previous = permissionMatrix
+    setPermissionMatrix({ ...previous, [role]: { ...previous[role], [key]: value } })
+    try {
+      setPermissionMatrix(await updatePermissionMatrixApi(currentTeam.id, { [role]: { [key]: value } }))
+      flashMsg('Permissão atualizada.')
+    } catch (e) {
+      setPermissionMatrix(previous)
+      flashMsg(e.message || 'Erro ao salvar permissão.')
+    }
+  }
+
   const handleLeaveTeam = async () => {
     const name = currentTeam.name
     try {
-      await deleteTeam(currentTeam.id)
+      await leaveTeam(currentTeam.id)
       setActiveTab('membros')
       flashMsg(`Você saiu de "${name}".`)
     } catch (e) {
@@ -275,7 +291,6 @@ export default function Equipes() {
         active={activeTab}
         onChange={setActiveTab}
         counts={{}}
-        currentRole={currentTeam.role?.toLowerCase?.() || currentTeam.role}
       />
 
       <div className="eq-content">
@@ -292,13 +307,20 @@ export default function Equipes() {
                 members={members}
                 currentUserId={user?.id}
                 currentRole={currentTeam.role?.toLowerCase?.() || currentTeam.role}
+                canManage={can('manageMembers')}
                 onRoleChange={handleRoleChange}
                 onRemove={handleRemove}
                 onInviteClick={() => setShowShareCode(true)}
               />
             )}
 
-            {activeTab === 'papeis' && <PapeisTab />}
+            {activeTab === 'papeis' && (
+              <PapeisTab
+                matrix={permissionMatrix}
+                canEdit={currentTeam.role === 'admin'}
+                onToggle={handleTogglePermission}
+              />
+            )}
 
             {activeTab === 'aprovacao' && (
               <AprovacaoTab

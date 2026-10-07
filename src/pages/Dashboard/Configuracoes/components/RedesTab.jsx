@@ -12,7 +12,6 @@ import { networkColor } from '../../../../services/posts'
 import { authFetch } from '../../../../services/api'
 import { useTheme } from '../../../../contexts/ThemeContext'
 import { useTeam } from '../../../../contexts/TeamContext'
-import { PERMISSION_MATRIX } from '../../../../services/team'
 
 const ALL_PLATFORMS = [
   { id: 'instagram', name: 'Instagram',   icon: FaInstagram, connectPath: '/social/instagram/connect' },
@@ -36,9 +35,9 @@ const PERMISSIONS = [
 
 export default function RedesTab() {
   const { theme } = useTheme()
-  const { activeContext } = useTeam()
+  const { activeContext, can } = useTeam()
   const companyId = activeContext.personal ? null : activeContext.id
-  const canManage = activeContext.personal || Boolean(PERMISSION_MATRIX[activeContext.role]?.accountSettings)
+  const canManage = can('accountSettings')
   const [accounts, setAccounts] = useState([])   // dados da API
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(null)     // platform id em progresso

@@ -35,7 +35,7 @@ function relativeDate(iso, status) {
   return `${date} · ${time}`
 }
 
-export default function PostListItem({ post, onAction, onReview, selected, onToggleSelect }) {
+export default function PostListItem({ post, perms = {}, submitLabel, onAction, onReview, selected, onToggleSelect }) {
   const navigate = useNavigate()
   const TypeIcon = TYPE_ICONS[post.type] || LuFileText
 
@@ -45,10 +45,11 @@ export default function PostListItem({ post, onAction, onReview, selected, onTog
     post.status === 'failed'    ? post.scheduledFor :
                                   post.scheduledFor
 
-  // Clicar no título: pendente → abre drawer de revisão; outros → editar
+  // Clicar no título: quem revisa abre o drawer; o autor de um rascunho/rejeitado
+  // abre o editor. Agendados/publicados não são editáveis (cancele antes).
   const handleTitleClick = () => {
     if (onReview) onReview()
-    else navigate(`/dashboard/posts/${post.id}/editar`)
+    else if (perms.canEdit) navigate(`/dashboard/posts/${post.id}/editar`)
   }
 
   return (
@@ -99,6 +100,14 @@ export default function PostListItem({ post, onAction, onReview, selected, onTog
           </div>
         )}
 
+        {/* Motivo da rejeição — o autor corrige e reenvia */}
+        {post.status === 'rejected' && post.rejectionReason && (
+          <div className="post-row__alert">
+            <strong>{post.reviewedByName ? `${post.reviewedByName} pediu alterações: ` : 'Motivo: '}</strong>
+            {post.rejectionReason}
+          </div>
+        )}
+
         {/* Razão da falha */}
         {post.status === 'failed' && post.failureReason && (
           <div className="post-row__alert">{post.failureReason}</div>
@@ -118,12 +127,9 @@ export default function PostListItem({ post, onAction, onReview, selected, onTog
         )}
         <PostMenu
           post={post}
-          onEdit={() => onAction('edit', post)}
-          onDuplicate={() => onAction('duplicate', post)}
-          onDelete={() => onAction('delete', post)}
-          onSubmit={() => onAction('submit', post)}
-          onApprove={() => onAction('approve', post)}
-          onReject={() => onAction('reject', post)}
+          perms={perms}
+          submitLabel={submitLabel}
+          onAction={(action) => onAction(action, post)}
         />
       </div>
     </div>

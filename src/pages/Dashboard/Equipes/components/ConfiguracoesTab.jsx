@@ -4,14 +4,16 @@ import {
   LuCamera, LuTrash2, LuLogOut, LuCheck, LuTriangleAlert, LuLock,
   LuUser, LuBuilding2, LuStore, LuCopy,
 } from 'react-icons/lu'
-import { TEAM_COLORS, TEAM_TYPES, PERMISSION_MATRIX } from '../../../../services/team'
+import { TEAM_COLORS, TEAM_TYPES } from '../../../../services/team'
+import { useTeam } from '../../../../contexts/TeamContext'
 
 const TYPE_ICONS = { personal: LuUser, agency: LuBuilding2, brand: LuStore }
 
 const initial = (name) => name?.charAt(0).toUpperCase() || '?'
 
 export default function ConfiguracoesTab({ team, currentRole, onUpdate, onDelete, onLeave }) {
-  const canEdit = PERMISSION_MATRIX[currentRole]?.accountSettings === true
+  const { can } = useTeam()
+  const canEdit = can('accountSettings')
   const fileInputRef = useRef(null)
 
   const [form, setForm] = useState({
@@ -263,25 +265,27 @@ export default function ConfiguracoesTab({ team, currentRole, onUpdate, onDelete
         </header>
 
         <div className="config-danger__actions">
-          {currentRole !== 'admin' && (
-            <button
-              type="button"
-              className="config-danger__btn"
-              onClick={() => {
-                if (window.confirm(`Sair de "${team.name}"? Você vai perder acesso aos posts e analytics dessa equipe.`)) {
-                  onLeave()
-                }
-              }}
-            >
-              <LuLogOut size={14} />
-              <div>
-                <strong>Sair da equipe</strong>
-                <span>Você não fará mais parte desse time.</span>
-              </div>
-            </button>
-          )}
+          <button
+            type="button"
+            className="config-danger__btn"
+            onClick={() => {
+              if (window.confirm(`Sair de "${team.name}"? Você vai perder acesso aos posts e analytics dessa equipe.`)) {
+                onLeave()
+              }
+            }}
+          >
+            <LuLogOut size={14} />
+            <div>
+              <strong>Sair da equipe</strong>
+              <span>
+                {currentRole === 'admin'
+                  ? 'Se você for o único administrador, promova outro membro antes.'
+                  : 'Você não fará mais parte desse time.'}
+              </span>
+            </div>
+          </button>
 
-          {canEdit && (
+          {currentRole === 'admin' && (
             !showDanger ? (
               <button
                 type="button"

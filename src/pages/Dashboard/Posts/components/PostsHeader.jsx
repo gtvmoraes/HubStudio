@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { LuSearch, LuPlus } from 'react-icons/lu'
+import { useTeam } from '../../../../contexts/TeamContext'
 
 export default function PostsHeader({ query, onQueryChange, contextLabel }) {
   const navigate = useNavigate()
+  const { can } = useTeam()
 
   return (
     <div className="posts-page__header">
@@ -25,13 +27,15 @@ export default function PostsHeader({ query, onQueryChange, contextLabel }) {
           />
         </label>
 
-        <button
-          type="button"
-          className="posts-page__new"
-          onClick={() => navigate('/dashboard/posts/novo')}
-        >
-          <LuPlus size={16} /> Novo post
-        </button>
+        {can('createPost') && (
+          <button
+            type="button"
+            className="posts-page__new"
+            onClick={() => navigate('/dashboard/posts/novo')}
+          >
+            <LuPlus size={16} /> Novo post
+          </button>
+        )}
       </div>
     </div>
   )

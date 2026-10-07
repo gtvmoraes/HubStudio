@@ -1030,9 +1030,49 @@
   color: var(--color-text-muted);
 }
 
+.papeis-tab__matrix-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.papeis-tab__matrix-toggle:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
 /* ════════════════════════════════════════════════════════════
    AprovacaoTab
    ════════════════════════════════════════════════════════════ */
+.aprovacao-tab__how {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-primary-light);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.aprovacao-tab__how strong {
+  color: var(--color-text);
+}
+
+.aprovacao-tab__how span {
+  color: var(--color-text-muted);
+}
+
 .aprovacao-tab__intro {
   margin-bottom: 22px;
 }

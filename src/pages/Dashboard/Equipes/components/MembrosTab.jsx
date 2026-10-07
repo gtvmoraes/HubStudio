@@ -4,7 +4,7 @@ import { LuSearch, LuUserPlus } from 'react-icons/lu'
 import { ROLES, ROLE_ORDER } from '../../../../services/team'
 import MemberRow from './MemberRow'
 
-export default function MembrosTab({ members, currentUserId, currentRole, onRoleChange, onRemove, onInviteClick }) {
+export default function MembrosTab({ members, currentUserId, currentRole, canManage, onRoleChange, onRemove, onInviteClick }) {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
 
@@ -45,9 +45,11 @@ export default function MembrosTab({ members, currentUserId, currentRole, onRole
           ))}
         </select>
 
-        <button type="button" className="membros-tab__invite" onClick={onInviteClick}>
-          <LuUserPlus size={14} /> Convidar membro
-        </button>
+        {canManage && (
+          <button type="button" className="membros-tab__invite" onClick={onInviteClick}>
+            <LuUserPlus size={14} /> Convidar membro
+          </button>
+        )}
       </div>
 
       <div className="membros-tab__list">
@@ -65,7 +67,7 @@ export default function MembrosTab({ members, currentUserId, currentRole, onRole
                   ? 'Ainda não tem ninguém aqui. Bora convidar a galera?'
                   : `Nenhum membro encontrado${query ? ` para "${query}"` : ''}.`}
               </p>
-              {members.length === 0 && (
+              {members.length === 0 && canManage && (
                 <button type="button" className="membros-tab__empty-cta" onClick={onInviteClick}>
                   <LuUserPlus size={14} /> Convidar primeiro membro
                 </button>
@@ -82,8 +84,9 @@ export default function MembrosTab({ members, currentUserId, currentRole, onRole
               >
                 <MemberRow
                   member={m}
-                  isMe={m.id === currentUserId}
+                  isMe={m.userId === currentUserId}
                   currentRole={currentRole}
+                  canManage={canManage}
                   onRoleChange={onRoleChange}
                   onRemove={onRemove}
                 />

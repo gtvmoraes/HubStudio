@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LuChevronLeft, LuChevronRight, LuChevronsLeft, LuChevronsRight } from 'react-icons/lu'
 import { STATUS_META } from '../../../../services/posts'
+import { useTeam } from '../../../../contexts/TeamContext'
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const WEEKDAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
@@ -13,6 +14,7 @@ const WEEKDAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábad
  * pré-selecionando aquele dia.
  */
 export default function PostsCalendar({ posts, onReview }) {
+  const { can } = useTeam()
   const navigate = useNavigate()
   const today = new Date()
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() })
@@ -82,7 +84,7 @@ export default function PostsCalendar({ posts, onReview }) {
   }
 
   const handleDayClick = (day) => {
-    if (!day) return
+    if (!day || !can('createPost')) return
     // Abre composer pré-agendado nesse dia às 12h (formato YYYY-MM-DDTHH:MM)
     const dStr = `${view.year}-${String(view.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00`
     navigate(`/dashboard/posts/novo?date=${dStr}`)

@@ -10,13 +10,13 @@ import {
   getPostById, NETWORK_META, networkColor,
   getContentTypeInsight, getBestTimeSlots,
   getSocialAccounts, PLATFORM_IMAGE_TYPES,
+  createDraft, updateDraft, submitPost, uploadMedia,
 } from '../../../services/posts'
 import { API_BASE, authFetch } from '../../../services/api'
 import { showToast } from '../../../components/Toast'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTheme } from '../../../contexts/ThemeContext'
 import { useTeam } from '../../../contexts/TeamContext'
-import { PERMISSION_MATRIX } from '../../../services/team'
 import PhonePreview from './components/PhonePreview'
 import MediaUploader from './components/MediaUploader'
 import DateTimePicker from './components/DateTimePicker'
@@ -82,10 +82,11 @@ export default function Composer() {
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { theme } = useTheme()
-  const { activeContext } = useTeam()
+  const { activeContext, can } = useTeam()
   const companyId = activeContext.personal ? null : activeContext.id
-  const canCreatePost = activeContext.personal || Boolean(PERMISSION_MATRIX[activeContext.role]?.createPost)
-  const canScheduleDirectly = activeContext.personal || Boolean(PERMISSION_MATRIX[activeContext.role]?.scheduleDirectly)
+  const canCreatePost = can('createPost')
+  // Sem essa permissão (ex: Editor), tudo que a pessoa agenda vai pra aprovação.
+  const canScheduleDirectly = can('scheduleDirectly')
   // Endpoints de post recebem companyId como query param (nunca no corpo JSON).
   const withCompany = (path) => companyId ? `${path}${path.includes('?') ? '&' : '?'}companyId=${companyId}` : path
   const isEditing = Boolean(id)
@@ -101,6 +102,9 @@ export default function Composer() {
     media: [],             // mídia única compartilhada entre todas as redes
     scheduledFor: initialDate,
   })
+
+  // Post carregado no modo edição (status, autor, motivo da rejeição...)
+  const [editingPost, setEditingPost] = useState(null)
 
   // Rede atualmente sendo editada (sincronizada com o preview)
   const [activeNetwork, setActiveNetwork] = useState(null)
@@ -177,23 +181,33 @@ export default function Composer() {
     if (!id) return
     getPostById(id, companyId).then(post => {
       if (post) {
+        setEditingPost(post)
         const typesByNetwork = {}
         const contentByNetwork = {}
         ;(post.networks || []).forEach(n => {
           const meta = NETWORK_META[n]
           if (!meta) return
-          const matched = meta.types.find(t => t.id === post.type)
+          // contentTypes guarda "photo" (TikTok foto) / "shorts" (YouTube Shorts)
+          const matched = meta.types.find(t => t.id === (post.contentTypes?.[n] || post.type))
           typesByNetwork[n] = matched ? matched.id : meta.types[0].id
           contentByNetwork[n] = {
-            title: post.title || '',
+            title: '',
             content: post.content || '',
+            ...(n === 'tiktok' && post.tiktokPrivacyLevel ? { privacyLevel: post.tiktokPrivacyLevel } : {}),
           }
         })
+        // Mídia já enviada ao S3: entra como item só com URL (sem arquivo pra reenviar)
+        const media = (post.mediaUrl || '').split(',').map(u => u.trim()).filter(Boolean).map((url, i) => ({
+          id: `saved-${i}`,
+          url,
+          name: url.split('/').pop(),
+          type: /\.(mp4|mov|webm|avi|mkv)(\?|$)/i.test(url) ? 'video' : 'image',
+        }))
         setForm({
           networks: post.networks || [],
           typesByNetwork,
           contentByNetwork,
-          media: [],
+          media,
           scheduledFor: post.scheduledFor ? post.scheduledFor.slice(0, 16) : '',
         })
         if (post.networks?.[0]) setActiveNetwork(post.networks[0])
@@ -481,12 +495,118 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       xhr.send(formData)
     })
 
+  // Só rascunhos e posts rejeitados do próprio autor são editáveis — agendados
+  // precisam ser cancelados antes (volta pra rascunho), pendentes retirados.
+  const isMyPost = activeContext.personal || editingPost?.author?.id === user?.id
+  const editable = !isEditing || (editingPost && ['draft', 'rejected'].includes(editingPost.status) && isMyPost)
+
+  const toIso = (v) => (v && v.length === 16 ? `${v}:00` : v) || null
+
+  // Monta o corpo de /posts/drafts a partir do formulário. O backend guarda um
+  // conteúdo só por post (igual aos fluxos de agendamento): usa o da 1ª rede preenchida.
+  const buildDraft = async () => {
+    const accounts = await getSocialAccounts(companyId)
+    const socialAccountIds = accounts
+      .filter(a => form.networks.includes((a.platform || '').toLowerCase()))
+      .map(a => a.id)
+    if (socialAccountIds.length === 0) {
+      throw new Error('Nenhuma conta conectada para as redes selecionadas. Vá em Configurações > Redes.')
+    }
+
+    const urls = []
+    for (const item of form.media) {
+      if (item.file) {
+        setFeedback(item.type === 'video' ? 'Enviando vídeo…' : 'Enviando mídia…')
+        urls.push(await uploadMedia(item.file))
+      } else if (item.url && !item.url.startsWith('blob:')) {
+        urls.push(item.url)
+      }
+    }
+
+    let content = ''
+    for (const n of form.networks) {
+      const c = form.contentByNetwork[n]
+      if (c?.content || c?.title) { content = c.content || c.title; break }
+    }
+
+    const contentTypes = {}
+    if (form.networks.includes('tiktok') && form.typesByNetwork.tiktok === 'photo') contentTypes.TIKTOK = 'photo'
+    if (form.networks.includes('youtube') && form.typesByNetwork.youtube === 'shorts') contentTypes.YOUTUBE = 'shorts'
+
+    return {
+      content,
+      mediaUrl: urls.length > 0 ? urls.join(',') : null,
+      scheduledAt: toIso(form.scheduledFor),
+      socialAccountIds,
+      tiktokPrivacyLevel: form.contentByNetwork.tiktok?.privacyLevel || null,
+      contentTypes,
+    }
+  }
+
+  const saveDraft = async () => {
+    const draft = await buildDraft()
+    return editingPost ? updateDraft(editingPost.id, draft) : createDraft(draft, companyId)
+  }
+
+  // Toast de sucesso dos fluxos de agendamento: quem não agenda direto teve o
+  // post enviado pra aprovação pelo backend, não agendado.
+  const notifyScheduled = (immediate) => {
+    showToast(canScheduleDirectly
+      ? {
+          type: 'success',
+          title: 'Post enviado com sucesso',
+          message: immediate ? 'Publicando agora…' : `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`,
+        }
+      : {
+          type: 'success',
+          title: 'Enviado para aprovação',
+          message: 'Um revisor da equipe precisa aprovar antes da publicação.',
+        })
+  }
+
   const handleSave = async (status) => {
     setLoading(true)
     setFeedback('')
     setUploadProgress(0)
 
     const token = localStorage.getItem('hs-token')
+
+    if (status === 'draft') {
+      try {
+        await saveDraft()
+        showToast({ type: 'success', title: 'Rascunho salvo', message: 'Ele fica em Posts → Rascunhos.' })
+        setTimeout(() => navigate('/dashboard/posts'), 700)
+      } catch (err) {
+        setFeedback(`Erro ao salvar rascunho: ${err.message}`)
+      }
+      setLoading(false)
+      return
+    }
+
+    // Quem precisa de aprovação sempre escolhe a data (o revisor agenda nela).
+    // Rascunho existente também: o envio é pelo /submit, que exige data.
+    if ((!canScheduleDirectly || isEditing) && !form.scheduledFor) {
+      setFeedback('Escolha a data e hora de publicação antes de enviar.')
+      setLoading(false)
+      return
+    }
+
+    // Rascunho/rejeitado já existe: salva as alterações e envia ele mesmo,
+    // em vez de criar um post novo.
+    if (isEditing) {
+      try {
+        const saved = await saveDraft()
+        const sent = await submitPost(saved.id, toIso(form.scheduledFor))
+        showToast(sent.status === 'pending'
+          ? { type: 'success', title: 'Enviado para aprovação', message: 'Um revisor da equipe precisa aprovar antes da publicação.' }
+          : { type: 'success', title: 'Post agendado', message: `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}` })
+        setTimeout(() => navigate('/dashboard/posts'), 700)
+      } catch (err) {
+        setFeedback(`Erro ao enviar: ${err.message}`)
+      }
+      setLoading(false)
+      return
+    }
 
     if (status === 'scheduled' && token) {
       // Quando não há data definida, publica imediatamente usando o horário atual
@@ -559,10 +679,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             setFeedback(pct < 100 ? `Enviando fotos… ${pct}%` : (immediate ? 'Publicando no TikTok…' : 'Registrando agendamento…'))
           })
 
-          const label = form.scheduledFor
-            ? `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
-            : 'Publicando agora…'
-          showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
+          notifyScheduled(!form.scheduledFor)
 
           // Se também há vídeo para YouTube, continua; senão, sai
           if (videoNetworks.length === 0) {
@@ -625,10 +742,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             setFeedback(pct < 100 ? `Enviando vídeo… ${pct}%` : (immediate ? 'Publicando…' : 'Registrando agendamento…'))
           })
 
-          const label = form.scheduledFor
-            ? `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
-            : 'Publicando agora…'
-          showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
+          notifyScheduled(!form.scheduledFor)
 
           // Se também há redes por URL (ex: Instagram Feed junto de TikTok Vídeo), continua; senão, sai
           if (urlNetworks.length === 0) {
@@ -730,10 +844,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             return
           }
 
-          const label = immediate
-            ? 'Publicado agora'
-            : `Agendado para ${new Date(form.scheduledFor).toLocaleString('pt-BR')}`
-          showToast({ type: 'success', title: 'Post enviado com sucesso', message: label })
+          notifyScheduled(immediate)
           setTimeout(() => navigate('/dashboard/posts'), 700)
           setLoading(false)
           return
@@ -745,27 +856,9 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       }
     }
 
-    // MOCK — aguardando backend.
-    // Só o fluxo "scheduled"/"publish" acima é real. Rascunho ('draft') e
-    // envio pra aprovação ('pending') NÃO persistem nada: o backend ainda não
-    // tem endpoint pra isso, então aqui só simulamos o tempo e mostramos a
-    // mensagem de sucesso. Quando existir (ex.: POST /posts/draft), trocar.
-    await new Promise(r => setTimeout(r, 600))
+    // Nenhum dos fluxos acima se aplicou (ex: só X/Twitter, ainda sem integração).
     setLoading(false)
-    const msg = {
-      draft:     'Rascunho salvo!',
-      scheduled: 'Post agendado!',
-      pending:   'Submetido pra aprovação!',
-    }[status] || 'Salvo!'
-    setFeedback(msg)
-    if (status === 'scheduled') {
-      showToast({
-        type: 'success',
-        title: 'Post agendado com sucesso',
-        message: 'Seu conteudo foi agendado e sera publicado automaticamente.',
-      })
-    }
-    setTimeout(() => navigate('/dashboard/posts'), 700)
+    setFeedback('Nada foi enviado: nenhuma das redes selecionadas tem publicação disponível ainda.')
   }
 
   // Dados do conteúdo ativo (pra renderizar o form)
@@ -908,6 +1001,34 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           Publicando como: <strong>{activeContext.personal ? 'Pessoal' : activeContext.name}</strong>
         </span>
       </div>
+
+      {!canCreatePost && (
+        <div className="composer__notice composer__notice--error">
+          Seu cargo em <strong>{activeContext.name}</strong> não permite criar posts. Peça a um administrador
+          pra liberar a permissão "Criar posts" na aba Papéis da equipe.
+        </div>
+      )}
+      {canCreatePost && isEditing && editingPost && !editable && (
+        <div className="composer__notice">
+          {editingPost.status === 'scheduled' && 'Este post está agendado. Para editar, cancele o agendamento na lista de posts — ele volta para rascunhos.'}
+          {editingPost.status === 'pending' && (isMyPost
+            ? 'Este post está aguardando aprovação. Para editar, retire-o da aprovação na lista de posts.'
+            : 'Este post está aguardando aprovação. Revise-o pela lista de posts.')}
+          {['draft', 'rejected'].includes(editingPost.status) && 'Só o autor pode editar este post.'}
+          {['published', 'failed'].includes(editingPost.status) && 'Posts já publicados não podem ser editados.'}
+        </div>
+      )}
+      {editable && editingPost?.status === 'rejected' && editingPost.rejectionReason && (
+        <div className="composer__notice composer__notice--error">
+          <strong>{editingPost.reviewedByName || 'O revisor'} pediu alterações:</strong> {editingPost.rejectionReason}
+        </div>
+      )}
+      {canCreatePost && !canScheduleDirectly && editable && (
+        <div className="composer__notice">
+          Em <strong>{activeContext.name}</strong>, seus posts passam por aprovação: quando um revisor aprovar,
+          ele é publicado na data escolhida.
+        </div>
+      )}
 
       <div className="composer__layout">
         {/* Coluna esquerda — formulário */}
@@ -1205,7 +1326,9 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                   getBestTimes={getBestTimeSlots}
                 />
                 <span className="composer__hint">
-                  Deixe vazio pra salvar como rascunho sem agendar. Vale pra todas as redes.
+                  {canScheduleDirectly && !isEditing
+                    ? 'Deixe vazio pra publicar agora. Vale pra todas as redes.'
+                    : 'Obrigatória pra enviar. Vale pra todas as redes.'}
                 </span>
               </div>
             </div>
@@ -1248,28 +1371,20 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           type="button"
           className="composer__btn composer__btn--ghost"
           onClick={() => handleSave('draft')}
-          disabled={loading || !hasAnyContent}
+          disabled={loading || !hasAnyContent || !canCreatePost || !editable}
         >
           <LuSave size={15} /> Salvar rascunho
         </button>
 
         <button
           type="button"
-          className="composer__btn composer__btn--outline"
-          onClick={() => handleSave('pending')}
-          disabled={loading || !canSubmit}
-          title="Em modo equipe, envia para aprovação do gerente"
-        >
-          <LuSend size={15} /> Submeter pra aprovação
-        </button>
-
-        <button
-          type="button"
           className="composer__btn composer__btn--primary"
           onClick={() => handleSave('scheduled')}
-          disabled={loading || !canSubmit}
+          disabled={loading || !canSubmit || !canCreatePost || !editable}
         >
-          <LuCalendarClock size={15} /> {form.scheduledFor ? 'Agendar' : 'Publicar agora'}
+          {canScheduleDirectly
+            ? <><LuCalendarClock size={15} /> {form.scheduledFor || isEditing ? 'Agendar' : 'Publicar agora'}</>
+            : <><LuSend size={15} /> Enviar para aprovação</>}
         </button>
       </div>
     </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   LuEllipsisVertical, LuPencil, LuCopy, LuTrash2,
-  LuSend, LuCheck, LuX,
+  LuSend, LuCheck, LuX, LuUndo2, LuCalendarX,
 } from 'react-icons/lu'
 
-// Menu de ações por post. As ações disponíveis variam por status.
-export default function PostMenu({ post, onEdit, onDuplicate, onDelete, onSubmit, onApprove, onReject }) {
+// Menu de ações por post. O que aparece depende do status E do que o usuário
+// pode fazer com aquele post (perms, calculado em Posts.jsx a partir do cargo).
+export default function PostMenu({ post, perms = {}, submitLabel = 'Enviar', onAction }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -16,7 +17,7 @@ export default function PostMenu({ post, onEdit, onDuplicate, onDelete, onSubmit
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const close = (fn) => () => { setOpen(false); fn?.(post) }
+  const run = (action) => () => { setOpen(false); onAction(action) }
 
   return (
     <div className="post-menu" ref={ref}>
@@ -31,36 +32,48 @@ export default function PostMenu({ post, onEdit, onDuplicate, onDelete, onSubmit
       </button>
       {open && (
         <div className="post-menu__dropdown" role="menu">
-          {(post.status === 'draft' || post.status === 'scheduled' || post.status === 'rejected') && (
-            <button type="button" onClick={close(onEdit)}>
+          {perms.canEdit && (
+            <button type="button" onClick={run('edit')}>
               <LuPencil size={14} /> Editar
             </button>
           )}
 
-          <button type="button" onClick={close(onDuplicate)}>
-            <LuCopy size={14} /> Duplicar
-          </button>
-
-          {post.status === 'draft' && onSubmit && (
-            <button type="button" onClick={close(onSubmit)}>
-              <LuSend size={14} /> Submeter pra aprovação
+          {perms.canSubmit && (
+            <button type="button" onClick={run('submit')}>
+              <LuSend size={14} /> {submitLabel}
             </button>
           )}
 
-          {post.status === 'pending' && onApprove && (
-            <button type="button" className="post-menu__success" onClick={close(onApprove)}>
+          {perms.canReview && (
+            <button type="button" className="post-menu__success" onClick={run('approve')}>
               <LuCheck size={14} /> Aprovar
             </button>
           )}
 
-          {post.status === 'pending' && onReject && (
-            <button type="button" className="post-menu__danger" onClick={close(onReject)}>
+          {perms.canReview && (
+            <button type="button" className="post-menu__danger" onClick={run('reject')}>
               <LuX size={14} /> Rejeitar
             </button>
           )}
 
-          {post.status !== 'published' && (
-            <button type="button" className="post-menu__danger" onClick={close(onDelete)}>
+          {perms.canWithdraw && (
+            <button type="button" onClick={run('withdraw')}>
+              <LuUndo2 size={14} /> Retirar da aprovação
+            </button>
+          )}
+
+          {perms.canCancel && (
+            <button type="button" className="post-menu__danger" onClick={run('cancel')}>
+              <LuCalendarX size={14} /> Cancelar agendamento
+            </button>
+          )}
+
+          <button type="button" onClick={run('duplicate')}>
+            <LuCopy size={14} /> Duplicar
+          </button>
+
+          {perms.canEdit && (
+            <button type="button" className="post-menu__danger" onClick={run('delete')}>
               <LuTrash2 size={14} /> Excluir
             </button>
           )}

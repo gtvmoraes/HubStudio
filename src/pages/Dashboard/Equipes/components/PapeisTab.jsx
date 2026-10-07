@@ -1,14 +1,21 @@
 import { LuCheck, LuMinus } from 'react-icons/lu'
-import { ROLES, ROLE_ORDER, PERMISSIONS, PERMISSION_MATRIX } from '../../../../services/team'
+import { ROLES, ROLE_ORDER, PERMISSIONS } from '../../../../services/team'
 
-export default function PapeisTab() {
+/**
+ * Matriz real da equipe (com as personalizações). O Admin pode ligar/desligar
+ * cada permissão dos demais cargos clicando na célula; a coluna do Admin fica
+ * travada pra ninguém se trancar fora da própria equipe.
+ */
+export default function PapeisTab({ matrix, canEdit = false, onToggle }) {
   return (
     <div className="papeis-tab">
       <div className="papeis-tab__intro">
         <h3>Papéis e permissões</h3>
         <p>
           Cada membro tem um papel que define o que ele pode fazer no time.
-          Os papéis são pré-definidos e cobrem os casos mais comuns.
+          {canEdit
+            ? ' Clique numa célula pra liberar ou bloquear uma permissão daquele cargo.'
+            : ' Só o administrador pode ajustar as permissões.'}
         </p>
       </div>
 
@@ -49,13 +56,24 @@ export default function PapeisTab() {
                 <tr key={perm.key}>
                   <td className="papeis-tab__matrix-label">{perm.label}</td>
                   {ROLE_ORDER.map(id => {
-                    const has = PERMISSION_MATRIX[id][perm.key]
+                    const has = Boolean(matrix?.[id]?.[perm.key])
+                    const editable = canEdit && id !== 'admin'
+                    const icon = has
+                      ? <LuCheck size={16} style={{ color: ROLES[id].color }} />
+                      : <LuMinus size={14} />
                     return (
                       <td key={id} className={`papeis-tab__matrix-cell${has ? ' papeis-tab__matrix-cell--yes' : ''}`}>
-                        {has
-                          ? <LuCheck size={16} style={{ color: ROLES[id].color }} />
-                          : <LuMinus size={14} />
-                        }
+                        {editable ? (
+                          <button
+                            type="button"
+                            className="papeis-tab__matrix-toggle"
+                            onClick={() => onToggle(id, perm.key, !has)}
+                            aria-pressed={has}
+                            aria-label={`${perm.label} — ${ROLES[id].label}`}
+                          >
+                            {icon}
+                          </button>
+                        ) : icon}
                       </td>
                     )
                   })}

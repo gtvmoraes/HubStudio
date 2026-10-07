@@ -2,28 +2,35 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LuX, LuCheck, LuMessageSquare, LuCalendarClock,
-  LuArrowLeft, LuSend,
+  LuArrowLeft, LuZap,
 } from 'react-icons/lu'
-import { useAuth } from '../../../../contexts/AuthContext'
+import { approvePost, rejectPost, getBestTimeSlots } from '../../../../services/posts'
 import StatusBadge from './StatusBadge'
 import NetworkPills from './NetworkPills'
 import PhonePreview from './PhonePreview'
+import DateTimePicker from './DateTimePicker'
 import './ApprovalDrawer.css'
 
+// A data só serve se ainda estiver no futuro (o backend exige > agora + 1 min).
+const isFuture = (iso) => Boolean(iso) && new Date(iso).getTime() > Date.now() + 60_000
+
 /**
- * Drawer lateral pra revisar um post pendente.
- * Mostra preview completo (com Phone Preview), thread de comentários e
- * ações de Aprovar / Pedir alterações / Rejeitar.
+ * Drawer lateral pra revisar um post pendente: preview completo e as decisões.
+ * Aprovar já agenda o post na data pedida pelo autor — se ela passou enquanto
+ * o post esperava, o revisor escolhe outra data ou publica na hora.
+ * Rejeitar exige um motivo, que fica salvo no post pro autor corrigir.
  */
 export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
-  const { user } = useAuth()
-  const [comment, setComment] = useState('')
-  const [comments, setComments] = useState([])
+  const [reason, setReason] = useState('')
+  const [newDate, setNewDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (post) setComments(post.comments || [])
-  }, [post])
+    setReason('')
+    setNewDate('')
+    setError('')
+  }, [post?.id])
 
   // Trava o scroll do body quando o drawer está aberto (igual ao Modal)
   useEffect(() => {
@@ -41,34 +48,35 @@ export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
   const typesByNetwork = {}
   ;(post.networks || []).forEach(n => { typesByNetwork[n] = post.type })
 
-  const addComment = () => {
-    if (!comment.trim()) return
-    const newComment = {
-      id: Date.now(),
-      author: user?.name || 'Você',
-      text: comment.trim(),
-      createdAt: new Date().toISOString(),
-    }
-    setComments(prev => [...prev, newComment])
-    setComment('')
-  }
+  const datePassed = !isFuture(post.scheduledFor)
 
-  const handleDecision = async (decision) => {
-    if (decision === 'reject' && !comment.trim()) {
-      alert('Adicione um comentário explicando o motivo da rejeição.')
+  const decide = async (decision, options = {}) => {
+    setError('')
+    if (decision === 'reject' && !reason.trim()) {
+      setError('Escreva o motivo da rejeição — o autor vai ver pra poder corrigir.')
+      return
+    }
+    if (decision === 'approve' && !options.publishNow && datePassed && !isFuture(newDate)) {
+      setError('A data pedida já passou. Escolha uma nova data no futuro ou publique agora.')
       return
     }
     setSubmitting(true)
-    if (comment.trim()) addComment()
-    await new Promise(r => setTimeout(r, 400))
-    setSubmitting(false)
-    onAction(decision, { ...post, comments: [...comments, ...(comment.trim() ? [{
-      id: Date.now(),
-      author: user?.name || 'Você',
-      text: comment.trim(),
-      createdAt: new Date().toISOString(),
-    }] : [])] })
-    onClose()
+    try {
+      if (decision === 'reject') {
+        await rejectPost(post.id, reason.trim())
+      } else {
+        await approvePost(post.id, {
+          publishNow: options.publishNow,
+          scheduledAt: !options.publishNow && newDate ? `${newDate.slice(0, 16)}:00` : null,
+        })
+      }
+      onAction(decision)
+      onClose()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -125,8 +133,14 @@ export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
                     {(post.author?.name?.[0] || 'A').toUpperCase()}
                   </div>
                   <div>
-                    <strong>{post.author?.name}</strong>
-                    <span>{post.author?.email}</span>
+                    <strong>{post.author?.name || 'Autor desconhecido'}</strong>
+                    {post.submittedAt && (
+                      <span>
+                        Enviado em {new Date(post.submittedAt).toLocaleString('pt-BR', {
+                          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="approval__info">
@@ -158,53 +172,42 @@ export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
                 />
               </div>
 
-              {/* Comentários */}
+              {/* Data — se passou, o revisor escolhe outra (ou publica agora no rodapé) */}
+              <div className="approval__reschedule">
+                <span className="approval__label">
+                  <LuCalendarClock size={14} /> {datePassed ? 'Nova data de publicação' : 'Mudar a data (opcional)'}
+                </span>
+                {datePassed && (
+                  <p className="approval__no-comments">
+                    A data pedida pelo autor já passou enquanto o post aguardava revisão.
+                  </p>
+                )}
+                <DateTimePicker
+                  value={newDate}
+                  onChange={setNewDate}
+                  placeholder={datePassed ? 'Escolha quando publicar' : 'Manter a data do autor'}
+                  openUpward
+                  getBestTimes={getBestTimeSlots}
+                />
+              </div>
+
+              {/* Motivo da rejeição */}
               <div className="approval__comments">
                 <span className="approval__label">
-                  <LuMessageSquare size={14} /> Comentários ({comments.length})
+                  <LuMessageSquare size={14} /> Motivo (obrigatório pra rejeitar)
                 </span>
-                <div className="approval__comments-list">
-                  {comments.length === 0 ? (
-                    <p className="approval__no-comments">
-                      Nenhum comentário ainda. Adicione um abaixo se for pedir alterações.
-                    </p>
-                  ) : (
-                    comments.map(c => (
-                      <div key={c.id} className="approval__comment">
-                        <div className="approval__comment-avatar">
-                          {c.author?.[0]?.toUpperCase() || 'U'}
-                        </div>
-                        <div className="approval__comment-body">
-                          <strong>{c.author}</strong>
-                          <span className="approval__comment-time">
-                            {new Date(c.createdAt).toLocaleString('pt-BR', {
-                              day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                            })}
-                          </span>
-                          <p>{c.text}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
                 <div className="approval__comment-input">
                   <textarea
-                    placeholder="Escreva um comentário (obrigatório pra rejeitar)..."
-                    value={comment}
-                    onChange={e => setComment(e.target.value)}
+                    placeholder="Ex: troque a imagem de capa e revise a legenda..."
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    maxLength={1000}
                     rows={3}
                   />
-                  <button
-                    type="button"
-                    className="approval__comment-send"
-                    onClick={addComment}
-                    disabled={!comment.trim()}
-                  >
-                    <LuSend size={14} /> Adicionar
-                  </button>
                 </div>
               </div>
+
+              {error && <p className="approval__error" role="alert">{error}</p>}
             </div>
 
             {/* Footer com ações */}
@@ -212,16 +215,26 @@ export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
               <button
                 type="button"
                 className="approval__btn approval__btn--danger"
-                onClick={() => handleDecision('reject')}
+                onClick={() => decide('reject')}
                 disabled={submitting}
               >
                 <LuX size={15} /> Rejeitar
               </button>
+              {datePassed && (
+                <button
+                  type="button"
+                  className="approval__btn approval__btn--success"
+                  onClick={() => decide('approve', { publishNow: true })}
+                  disabled={submitting}
+                >
+                  <LuZap size={15} /> Publicar agora
+                </button>
+              )}
               <button
                 type="button"
                 className="approval__btn approval__btn--success"
-                onClick={() => handleDecision('approve')}
-                disabled={submitting}
+                onClick={() => decide('approve')}
+                disabled={submitting || (datePassed && !newDate)}
               >
                 <LuCheck size={15} /> Aprovar e agendar
               </button>

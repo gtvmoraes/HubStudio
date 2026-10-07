@@ -63,6 +63,10 @@ Qualquer rota desconhecida redireciona para `/`.
   A escolha persiste em `localStorage` (`hs-current-team`). Normaliza `role` para minúsculo, porque o
   backend às vezes manda o enum cru em maiúsculo. Expõe `pendingImport`, que dispara o `ImportAccountsModal`
   quando o usuário cria ou entra numa equipe que ainda não tem contas.
+  **Permissões:** carrega a matriz real da equipe ativa (`GET /teams/{id}/permissions`, com as personalizações
+  do Admin) e expõe `can(key)` — use sempre `can('createPost')` etc. pra mostrar/esconder ações por cargo, nunca
+  o `PERMISSION_MATRIX` estático (ele é só o fallback enquanto a matriz carrega). No contexto Pessoal, `can()`
+  é sempre `true`. Também expõe `permissionMatrix`/`setPermissionMatrix` (aba Papéis) e `leaveTeam(id)`.
 
 ### Services
 
@@ -75,10 +79,14 @@ parte ainda devolve `Promise.resolve(data)`. Ao mexer aqui, confira em qual grup
 Já falam com a API real:
 
 - `auth.js` — login, cadastro, recuperação de senha
-- `team.js` — CRUD de equipes, membros, papéis, convite por código, atividade, aprovação, importação de contas.
-  Também concentra as constantes de autorização: `ROLES`, `ROLE_ORDER`, `PERMISSIONS`, `PERMISSION_MATRIX`,
-  `PLAN_LIMITS`, `TEAM_COLORS`, `TEAM_TYPES`.
+- `team.js` — CRUD de equipes, membros, papéis, convite por código, atividade, aprovação, importação de contas,
+  sair da equipe e leitura/edição da matriz de permissões. Também concentra as constantes de autorização:
+  `ROLES`, `ROLE_ORDER`, `ROLE_RANK`, `canGrantRole`, `PERMISSIONS`, `PERMISSION_MATRIX`, `PLAN_LIMITS`,
+  `TEAM_COLORS`, `TEAM_TYPES`.
 - `analytics.js` e `posts.js` — híbridos: já batem na API, mas mantêm alguns mocks (ex.: sugestões de IA).
+  `posts.js` tem o fluxo de aprovação real: `createDraft`, `updateDraft`, `submitPost`, `approvePost`,
+  `rejectPost`, `cancelPost`, `uploadMedia`. `getAllPosts` normaliza o bloco `approval` do backend em
+  `author`, `submittedAt`, `rejectionReason`, `reviewedByName` (ver `normalizePost`).
 
 Ainda 100% mock:
 
@@ -120,10 +128,13 @@ Ainda 100% mock:
 - `EquipesTabs.jsx` — navegação das abas: Membros, Papéis, Aprovação, Atividade e Configurações.
   A aba de Configurações é gated por permissão (`gate: 'accountSettings'`).
 - `MembrosTab.jsx` — lista de membros, com `MemberRow.jsx` por linha (trocar papel, remover).
-- `PapeisTab.jsx` — referência visual da `PERMISSION_MATRIX` (o que cada papel pode fazer).
-- `AprovacaoTab.jsx` — fluxo de aprovação de posts e quem são os aprovadores.
+- `PapeisTab.jsx` — matriz de permissões real da equipe. O Admin clica nas células pra liberar/bloquear
+  permissões dos demais cargos (a coluna Admin fica travada).
+- `AprovacaoTab.jsx` — regras do fluxo de aprovação e aprovadores padrão. Quem passa por aprovação é todo
+  cargo sem `scheduleDirectly` (não é mais um toggle).
 - `AtividadeTab.jsx` — log de eventos da equipe.
-- `ConfiguracoesTab.jsx` — editar equipe, excluir e sair.
+- `ConfiguracoesTab.jsx` — editar equipe (só com `accountSettings`), excluir (só Admin) e sair (todos; o
+  backend bloqueia o último Admin). A aba fica visível pra todos por causa do "Sair da equipe".
 - `ConvitesTab.jsx` — convites pendentes (reenviar/cancelar).
 - `RoleBadge.jsx` e `RolePicker.jsx` — exibição e seleção de papel, reutilizados nas abas.
 - `InviteModal.jsx` — convidar por e-mail. `ShareCodeModal.jsx` — convidar por código.
@@ -131,6 +142,15 @@ Ainda 100% mock:
 - `ImportAccountsModal.jsx` — montado no `DashboardLayout` e aberto via `TeamContext.pendingImport`, quando
   o usuário cria ou entra numa equipe sem contas. Aceitar **move** as contas pessoais para a equipe (elas
   deixam de ser pessoais); recusar não altera nada.
+
+### Fluxo de aprovação de posts
+
+`DRAFT → (enviar) → PENDING_APPROVAL → (aprovar) → SCHEDULED`, ou `(rejeitar, com motivo) → REJECTED`, que o
+autor edita e reenvia. Quem não tem `scheduleDirectly` sempre passa por aprovação — inclusive pelo Composer,
+cujo botão principal vira "Enviar para aprovação" (o backend devolve o post como pendente). Ninguém aprova o
+próprio post. Em `Posts.jsx`, `permsFor(post)` decide o que cada usuário pode fazer com cada post (editar,
+enviar, cancelar, retirar, revisar) e o `PostMenu` só mostra isso. O `ApprovalDrawer` aprova (na data do
+autor, numa nova data, ou publicando agora se a data passou) e rejeita com motivo obrigatório.
 
 ### Estrutura da página de Suporte
 

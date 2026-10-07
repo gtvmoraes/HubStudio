@@ -52,6 +52,23 @@
 }
 .composer__context-badge strong { color: var(--color-text); }
 
+/* Avisos (permissão, rejeição, aprovação) */
+.composer__notice {
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-primary-light);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.composer__notice strong { color: var(--color-text); }
+.composer__notice--error {
+  border-color: color-mix(in srgb, var(--color-error) 30%, transparent);
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+}
+
 /* Layout */
 .composer__layout {
   display: grid;

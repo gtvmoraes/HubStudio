@@ -3,8 +3,9 @@ import { LuEllipsisVertical, LuUserMinus, LuShield, LuMail } from 'react-icons/l
 import { getInitials } from '../../../../utils/string'
 import { timeAgo } from '../../../../utils/date'
 import RolePicker from './RolePicker'
+import { ROLE_RANK } from '../../../../services/team'
 
-export default function MemberRow({ member, isMe, currentRole, onRoleChange, onRemove }) {
+export default function MemberRow({ member, isMe, currentRole, canManage, onRoleChange, onRemove }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const ref = useRef(null)
 
@@ -14,6 +15,13 @@ export default function MemberRow({ member, isMe, currentRole, onRoleChange, onR
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [menuOpen])
+
+  // Mesmas regras do backend: só Admin troca cargo (nunca o próprio); remover
+  // exige "Gerenciar membros" e não vale pra quem tem cargo acima do seu.
+  const canChangeRole = !isMe && currentRole === 'admin'
+  const canRemove = !isMe && canManage
+    && ROLE_RANK[member.role] <= ROLE_RANK[currentRole]
+    && (member.role !== 'admin' || currentRole === 'admin')
 
   return (
     <div className={`member-row${isMe ? ' member-row--me' : ''}`}>
@@ -33,7 +41,7 @@ export default function MemberRow({ member, isMe, currentRole, onRoleChange, onR
         <RolePicker
           value={member.role}
           onChange={(newRole) => onRoleChange(member.id, newRole)}
-          disabled={isMe || member.role === 'admin' || currentRole !== 'admin'}
+          disabled={!canChangeRole}
         />
       </div>
 
@@ -62,7 +70,7 @@ export default function MemberRow({ member, isMe, currentRole, onRoleChange, onR
             <button type="button" onClick={() => setMenuOpen(false)}>
               <LuMail size={14} /> Enviar mensagem
             </button>
-            {!isMe && (
+            {canRemove && (
               <button
                 type="button"
                 className="member-row__danger"

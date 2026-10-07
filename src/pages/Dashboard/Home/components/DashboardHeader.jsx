@@ -3,6 +3,7 @@ import { FaFacebook, FaInstagram, FaLinkedin, FaTiktok, FaYoutube } from 'react-
 import { FaXTwitter } from 'react-icons/fa6'
 import { LuCalendar, LuCheck, LuChevronDown, LuDownload, LuGlobe, LuInfinity, LuPlus } from 'react-icons/lu'
 import { useTheme } from '../../../../contexts/ThemeContext'
+import { useTeam } from '../../../../contexts/TeamContext'
 
 const PERIOD_OPTIONS = [
   { label: 'Ultimas 24h',    shortLabel: '24h',     value: '24h', icon: LuCalendar, tone: '#4F35E8', desc: 'Hoje em tempo real'  },
@@ -129,6 +130,7 @@ export default function DashboardHeader({
   greeting, period, network, exportFeedback,
   onPeriodChange, onNetworkChange, onNewPost, onExport,
 }) {
+  const { can } = useTeam()
   return (
     <div className="dash-home__header">
       <div className="dash-home__heading">
@@ -153,9 +155,11 @@ export default function DashboardHeader({
           onChange={onNetworkChange}
           variant="network"
         />
-        <button type="button" className="dash-home__action" onClick={onNewPost}>
-          <LuPlus size={15} /> Novo post
-        </button>
+        {can('createPost') && (
+          <button type="button" className="dash-home__action" onClick={onNewPost}>
+            <LuPlus size={15} /> Novo post
+          </button>
+        )}
         <button type="button" className="dash-home__export" onClick={onExport}>
           <LuDownload size={15} /> {exportFeedback || 'Exportar relatorio'}
         </button>

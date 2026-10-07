@@ -22,6 +22,9 @@ export const PERMISSIONS = [
   { key: 'billing',           label: 'Pagamentos e plano' },
 ]
 
+// Padrões de cada cargo — o que vale de fato é a matriz da equipe (GET
+// /teams/{id}/permissions, exposta pelo TeamContext via can()). Isto aqui é só
+// o fallback enquanto ela carrega.
 export const PERMISSION_MATRIX = {
   admin:    { createPost: true,  scheduleDirectly: true,  approve: true,  manageMembers: true,  viewAnalytics: true, accountSettings: true,  billing: true  },
   manager:  { createPost: true,  scheduleDirectly: true,  approve: true,  manageMembers: true,  viewAnalytics: true, accountSettings: false, billing: false },
@@ -29,6 +32,13 @@ export const PERMISSION_MATRIX = {
   reviewer: { createPost: false, scheduleDirectly: false, approve: true,  manageMembers: false, viewAnalytics: true, accountSettings: false, billing: false },
   viewer:   { createPost: false, scheduleDirectly: false, approve: false, manageMembers: false, viewAnalytics: true, accountSettings: false, billing: false },
 }
+
+// Mesma hierarquia do backend (TeamService.rank): Editor e Revisor no mesmo nível.
+export const ROLE_RANK = { admin: 4, manager: 3, editor: 2, reviewer: 2, viewer: 1 }
+
+// Ninguém atribui cargo acima do próprio; Admin só por outro Admin.
+export const canGrantRole = (actorRole, role) =>
+  ROLE_RANK[role] <= ROLE_RANK[actorRole] && (role !== 'admin' || actorRole === 'admin')
 
 export const PLAN_LIMITS = {
   lite:  { label: 'Lite',  maxUsers: 1,        allowsApproval: false },
@@ -52,6 +62,13 @@ export const TEAM_TYPES = [
 ]
 
 // ── API ────────────────────────────────────────────────────────────────────────
+
+// O backend devolve { message } nas regras de negócio (ex: "Você não pode
+// remover um membro com cargo acima do seu") — repassa isso em vez de um genérico.
+const failWith = async (res, fallback) => {
+  const body = await res.json().catch(() => ({}))
+  throw new Error(body.message || fallback)
+}
 
 export const getUserTeams = async () => {
   const res = await authFetch('/teams')
@@ -80,7 +97,8 @@ export const updateTeamApi = async (teamId, data) => {
 }
 
 export const deleteTeamApi = async (teamId) => {
-  await authFetch(`/teams/${teamId}`, { method: 'DELETE' })
+  const res = await authFetch(`/teams/${teamId}`, { method: 'DELETE' })
+  if (!res.ok) await failWith(res, 'Erro ao excluir equipe')
 }
 
 export const joinByCodeApi = async (code) => {
@@ -116,12 +134,34 @@ export const changeRoleApi = async (teamId, memberId, role) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role }),
   })
-  if (!res.ok) throw new Error('Erro ao alterar cargo')
+  if (!res.ok) await failWith(res, 'Erro ao alterar cargo')
   return res.json()
 }
 
 export const removeMemberApi = async (teamId, memberId) => {
-  await authFetch(`/teams/${teamId}/members/${memberId}`, { method: 'DELETE' })
+  const res = await authFetch(`/teams/${teamId}/members/${memberId}`, { method: 'DELETE' })
+  if (!res.ok) await failWith(res, 'Erro ao remover membro')
+}
+
+export const leaveTeamApi = async (teamId) => {
+  const res = await authFetch(`/teams/${teamId}/leave`, { method: 'POST' })
+  if (!res.ok) await failWith(res, 'Erro ao sair da equipe')
+}
+
+export const getPermissionMatrix = async (teamId) => {
+  const res = await authFetch(`/teams/${teamId}/permissions`)
+  if (!res.ok) return null
+  return res.json()
+}
+
+export const updatePermissionMatrixApi = async (teamId, matrix) => {
+  const res = await authFetch(`/teams/${teamId}/permissions`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ matrix }),
+  })
+  if (!res.ok) await failWith(res, 'Erro ao salvar permissões')
+  return res.json()
 }
 
 export const importAccountsApi = async (teamId, socialAccountIds) => {

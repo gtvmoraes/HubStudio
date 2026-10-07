@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { getUserTeams, createTeamApi, updateTeamApi, deleteTeamApi, joinByCodeApi } from '../services/team'
+import {
+  getUserTeams, createTeamApi, updateTeamApi, deleteTeamApi, joinByCodeApi,
+  leaveTeamApi, getPermissionMatrix, PERMISSION_MATRIX,
+} from '../services/team'
 import { getSocialAccounts } from '../services/posts'
 import { useAuth } from './AuthContext'
 
@@ -29,6 +32,9 @@ export function TeamProvider({ children }) {
   // Equipe recém criada/entrada sem nenhuma conta ainda — dispara a oferta de
   // importar contas pessoais (ver ImportAccountsModal, montado no DashboardLayout).
   const [pendingImport, setPendingImport] = useState(null)
+  // Matriz de permissões da equipe ativa ({ admin: { createPost: true, ... }, ... }),
+  // com as personalizações que o Admin fez na aba Papéis.
+  const [permissionMatrix, setPermissionMatrix] = useState(null)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -102,14 +108,40 @@ export function TeamProvider({ children }) {
     })
   }
 
+  const leaveTeam = async (teamId) => {
+    await leaveTeamApi(teamId)
+    setTeams(prev => prev.filter(t => t.id !== teamId))
+    if (currentTeamId === teamId) {
+      setCurrentTeamId(null)
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  }
+
   const currentTeam = teams.find(t => t.id === currentTeamId) || null
   const activeContext = currentTeam || PERSONAL_CONTEXT
   const contexts = [PERSONAL_CONTEXT, ...teams]
 
+  useEffect(() => {
+    setPermissionMatrix(null)
+    if (!currentTeam) return
+    let cancelled = false
+    getPermissionMatrix(currentTeam.id).then(m => { if (!cancelled && m) setPermissionMatrix(m) })
+    return () => { cancelled = true }
+  }, [currentTeam?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pode <permissão> no contexto ativo? Pessoal = dono, pode tudo. Enquanto a
+  // matriz da equipe não chega, usa os padrões do cargo.
+  const can = (key) => {
+    if (activeContext.personal) return true
+    const matrix = permissionMatrix || PERMISSION_MATRIX
+    return Boolean(matrix[activeContext.role]?.[key])
+  }
+
   return (
     <TeamContext.Provider value={{
       teams, currentTeam, activeContext, contexts, loading,
-      switchTeam, createTeam, joinTeam, updateTeam, deleteTeam,
+      switchTeam, createTeam, joinTeam, updateTeam, deleteTeam, leaveTeam,
+      can, permissionMatrix: permissionMatrix || PERMISSION_MATRIX, setPermissionMatrix,
       pendingImport, dismissPendingImport: () => setPendingImport(null),
     }}>
       {children}

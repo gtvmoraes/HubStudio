@@ -2,12 +2,9 @@ import { useNavigate } from 'react-router-dom'
 import { LuShieldCheck, LuArrowRight, LuUsers, LuX } from 'react-icons/lu'
 import { getInitials } from '../../../../utils/string'
 
+// Quem passa por aprovação não é mais um toggle: é quem não tem "Agendar sem
+// aprovação" na aba Papéis (ver o aviso no topo da aba).
 const CONFIG_OPTIONS = [
-  {
-    key: 'requireApprovalFromEditors',
-    label: 'Posts de Editores precisam de aprovação antes de publicar',
-    desc: 'Quando um Editor agendar um post, ele vira pending pra um Gerente revisar.',
-  },
   {
     key: 'requireDoubleApprovalAbove100k',
     label: 'Exigir 2 aprovações pra contas com mais de 100k seguidores',
@@ -50,6 +47,15 @@ export default function AprovacaoTab({ config, members, onToggle, onRemoveApprov
             </button>
           )}
         </p>
+      </div>
+
+      <div className="aprovacao-tab__how">
+        <strong>Quem precisa de aprovação?</strong>
+        <span>
+          Todo cargo sem a permissão <em>Agendar sem aprovação</em> (por padrão, Editor).
+          Os posts dele ficam aguardando até alguém com <em>Aprovar/rejeitar</em> revisar —
+          e ninguém aprova o próprio post. Ajuste quem tem cada permissão na aba Papéis.
+        </span>
       </div>
 
       {/* Toggles de regras */}

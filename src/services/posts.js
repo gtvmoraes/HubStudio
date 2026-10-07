@@ -154,9 +154,73 @@ export const getAllPosts = async (companyId) => {
     const res = await authFetch(url)
     if (!res.ok) return []
     const data = await res.json()
-    return Array.isArray(data) ? data : []
+    return Array.isArray(data) ? data.map(normalizePost) : []
   } catch {
     return []
+  }
+}
+
+// Achata o bloco `approval` do backend nos campos que a lista/drawer já usam
+// (author, submittedAt...) e guarda o formato de cada rede pro Composer.
+export const normalizePost = (p) => ({
+  ...p,
+  author: p.approval?.authorName ? { id: p.approval.authorId, name: p.approval.authorName } : null,
+  submittedAt: p.approval?.submittedAt || null,
+  reviewedByName: p.approval?.reviewedByName || null,
+  reviewedAt: p.approval?.reviewedAt || null,
+  rejectionReason: p.approval?.rejectionReason || null,
+  contentTypes: Object.fromEntries((p.platforms || []).map(pl => [pl.platform, pl.contentType])),
+})
+
+// ── Rascunhos e aprovação (ver docs/api-frontend.md §9.1 no backend) ──────────
+
+const postJson = async (path, method, body, fallback) => {
+  const res = await authFetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  })
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(d.message || d.detail || fallback)
+  }
+  return res.status === 204 ? null : res.json().then(normalizePost)
+}
+
+const withCompanyId = (path, companyId) => companyId ? `${path}?companyId=${companyId}` : path
+
+export const uploadMedia = async (file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await authFetch('/posts/media', { method: 'POST', body: fd })
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(d.message || 'Falha ao enviar mídia')
+  }
+  return (await res.json()).mediaUrl
+}
+
+export const createDraft = (draft, companyId) =>
+  postJson(withCompanyId('/posts/drafts', companyId), 'POST', draft, 'Erro ao salvar rascunho')
+
+export const updateDraft = (postId, draft) =>
+  postJson(`/posts/drafts/${postId}`, 'PUT', draft, 'Erro ao salvar rascunho')
+
+export const submitPost = (postId, scheduledAt) =>
+  postJson(`/posts/${postId}/submit`, 'POST', scheduledAt ? { scheduledAt } : {}, 'Erro ao enviar post')
+
+export const approvePost = (postId, { scheduledAt, publishNow } = {}) =>
+  postJson(`/posts/${postId}/approve`, 'POST', { scheduledAt: scheduledAt || null, publishNow: Boolean(publishNow) }, 'Erro ao aprovar post')
+
+export const rejectPost = (postId, reason) =>
+  postJson(`/posts/${postId}/reject`, 'POST', { reason }, 'Erro ao rejeitar post')
+
+// Cancela um agendado ou retira um pendente — os dois voltam a rascunho.
+export const cancelPost = async (postId) => {
+  const res = await authFetch(`/posts/schedule/${postId}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(d.message || 'Erro ao cancelar post')
   }
 }
 

@@ -11,7 +11,7 @@ import './DashboardLayout.css'
 
 export default function DashboardLayout() {
   const navigate = useNavigate()
-  const { pendingImport, dismissPendingImport } = useTeam()
+  const { pendingImport, dismissPendingImport, can } = useTeam()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -22,7 +22,7 @@ export default function DashboardLayout() {
   useKeyboardShortcuts({
     'mod+k': () => setShowSearch(true),
     '/':     () => setShowSearch(true),
-    'n':     openComposer,
+    'n':     () => { if (can('createPost')) openComposer() },
     '?':     () => setShowShortcuts(true),
   })
 
