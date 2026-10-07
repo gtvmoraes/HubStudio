@@ -99,8 +99,8 @@ export default function Equipes() {
     }
   }
 
-  const handleRemoveApprover = async (userId) => {
-    const next = { ...config, defaultApproverIds: config.defaultApproverIds.filter(id => id !== userId) }
+  const saveApprovers = async (defaultApproverIds, successMsg) => {
+    const next = { ...config, defaultApproverIds }
     setConfig(next)
     try {
       const saved = await updateApprovalConfigApi(currentTeam.id, {
@@ -108,15 +108,21 @@ export default function Equipes() {
         requireDoubleApprovalAbove100k: next.requireDoubleApprovalAbove100k,
         autoApproveScheduled48h: next.autoApproveScheduled48h,
         notifyManagersAfter24h: next.notifyManagersAfter24h,
-        defaultApproverIds: next.defaultApproverIds,
+        defaultApproverIds,
       })
       setConfig(saved)
-      flashMsg('Aprovador removido.')
+      flashMsg(successMsg)
     } catch (e) {
       setConfig(config)
-      flashMsg(e.message || 'Erro ao remover aprovador.')
+      flashMsg(e.message || 'Erro ao salvar aprovadores.')
     }
   }
+
+  const handleAddApprover = (userId) =>
+    saveApprovers([...(config.defaultApproverIds || []), userId], 'Aprovador adicionado.')
+
+  const handleRemoveApprover = (userId) =>
+    saveApprovers(config.defaultApproverIds.filter(id => id !== userId), 'Aprovador removido.')
 
   // ── Time ──
   const handleCreateTeam = async (data) => {
@@ -326,7 +332,10 @@ export default function Equipes() {
               <AprovacaoTab
                 config={config}
                 members={members}
+                permissionMatrix={permissionMatrix}
+                canEdit={can('accountSettings')}
                 onToggle={handleToggleConfig}
+                onAddApprover={handleAddApprover}
                 onRemoveApprover={handleRemoveApprover}
                 pendingCount={currentTeam.pendingPosts}
               />

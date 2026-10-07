@@ -1196,6 +1196,23 @@
   background: var(--color-bg);
   border-radius: var(--radius-md);
 }
+.aprovacao-tab__add-approver {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.aprovacao-tab__add-approver:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
 .aprovador-chip {
   display: inline-flex;
   align-items: center;

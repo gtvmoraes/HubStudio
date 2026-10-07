@@ -130,8 +130,8 @@ Ainda 100% mock:
 - `MembrosTab.jsx` — lista de membros, com `MemberRow.jsx` por linha (trocar papel, remover).
 - `PapeisTab.jsx` — matriz de permissões real da equipe. O Admin clica nas células pra liberar/bloquear
   permissões dos demais cargos (a coluna Admin fica travada).
-- `AprovacaoTab.jsx` — regras do fluxo de aprovação e aprovadores padrão. Quem passa por aprovação é todo
-  cargo sem `scheduleDirectly` (não é mais um toggle).
+- `AprovacaoTab.jsx` — lembrete de 24h e aprovadores padrão (quem recebe os e-mails de post pendente; vazio =
+  todos que podem aprovar). Quem passa por aprovação é todo cargo sem `scheduleDirectly` (não é um toggle).
 - `AtividadeTab.jsx` — log de eventos da equipe.
 - `ConfiguracoesTab.jsx` — editar equipe (só com `accountSettings`), excluir (só Admin) e sair (todos; o
   backend bloqueia o último Admin). A aba fica visível pra todos por causa do "Sair da equipe".

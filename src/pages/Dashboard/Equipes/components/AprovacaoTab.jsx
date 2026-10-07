@@ -2,32 +2,30 @@ import { useNavigate } from 'react-router-dom'
 import { LuShieldCheck, LuArrowRight, LuUsers, LuX } from 'react-icons/lu'
 import { getInitials } from '../../../../utils/string'
 
-// Quem passa por aprovação não é mais um toggle: é quem não tem "Agendar sem
-// aprovação" na aba Papéis (ver o aviso no topo da aba).
+// Quem passa por aprovação não é um toggle: é quem não tem "Agendar sem
+// aprovação" na aba Papéis (ver o aviso no topo da aba). As antigas regras de
+// "2 aprovações pra 100k+" e "auto-aprovar com 48h" saíram — nunca funcionaram.
 const CONFIG_OPTIONS = [
   {
-    key: 'requireDoubleApprovalAbove100k',
-    label: 'Exigir 2 aprovações pra contas com mais de 100k seguidores',
-    desc: 'Camada extra de revisão pra contas grandes — útil pra marcas/agências.',
-  },
-  {
-    key: 'autoApproveScheduled48h',
-    label: 'Auto-aprovar posts agendados com 48h+ de antecedência',
-    desc: 'Quando o autor for confiável e o post estiver no calendário com folga.',
-  },
-  {
     key: 'notifyManagersAfter24h',
-    label: 'Notificar gerentes por e-mail quando posts pendentes ficam >24h',
-    desc: 'Evita que algo trave esperando alguém olhar.',
+    label: 'Lembrar os aprovadores por e-mail quando um post fica pendente por mais de 24h',
+    desc: 'Um lembrete por envio, pra nada travar esperando alguém olhar.',
   },
 ]
 
-export default function AprovacaoTab({ config, members, onToggle, onRemoveApprover, pendingCount }) {
+export default function AprovacaoTab({
+  config, members, permissionMatrix, canEdit, onToggle, onAddApprover, onRemoveApprover, pendingCount,
+}) {
   const navigate = useNavigate()
 
-  const approvers = (config?.defaultApproverIds || [])
-    .map(id => members.find(m => m.id === id))
+  // defaultApproverIds são ids de usuário (não do vínculo de membro)
+  const approverIds = config?.defaultApproverIds || []
+  const approvers = approverIds
+    .map(id => members.find(m => m.userId === id))
     .filter(Boolean)
+  // Só quem pode aprovar pelo cargo pode ser aprovador padrão (o backend valida o mesmo)
+  const candidates = members.filter(m =>
+    permissionMatrix?.[m.role]?.approve && !approverIds.includes(m.userId))
 
   return (
     <div className="aprovacao-tab">
@@ -68,7 +66,7 @@ export default function AprovacaoTab({ config, members, onToggle, onRemoveApprov
             </div>
             <div
               className={`aprovacao-rule__toggle${config?.[opt.key] ? ' aprovacao-rule__toggle--on' : ''}`}
-              onClick={() => onToggle(opt.key)}
+              onClick={() => canEdit && onToggle(opt.key)}
               role="switch"
               aria-checked={Boolean(config?.[opt.key])}
             >
@@ -82,30 +80,46 @@ export default function AprovacaoTab({ config, members, onToggle, onRemoveApprov
       <div className="aprovacao-tab__approvers">
         <div className="aprovacao-tab__approvers-head">
           <h4><LuUsers size={16} /> Aprovadores padrão</h4>
-          <span>Quem recebe notificação quando um post é submetido.</span>
+          <span>
+            Quem recebe o e-mail quando um post é enviado pra aprovação. Sem nenhum definido, todos
+            que podem aprovar recebem.
+          </span>
         </div>
         <div className="aprovacao-tab__approvers-list">
           {approvers.length === 0 ? (
             <p className="aprovacao-tab__approvers-empty">
-              Nenhum aprovador definido. Editores ainda podem submeter, mas você precisa
-              decidir quem revisa.
+              Nenhum aprovador definido — todos que podem aprovar recebem os avisos.
             </p>
           ) : (
             approvers.map(m => (
               <div key={m.id} className="aprovador-chip">
                 <div className="aprovador-chip__avatar">{getInitials(m.name)}</div>
                 <span>{m.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveApprover(m.id)}
-                  aria-label="Remover aprovador"
-                >
-                  <LuX size={12} />
-                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveApprover(m.userId)}
+                    aria-label="Remover aprovador"
+                  >
+                    <LuX size={12} />
+                  </button>
+                )}
               </div>
             ))
           )}
         </div>
+        {canEdit && candidates.length > 0 && (
+          <select
+            className="aprovacao-tab__add-approver"
+            value=""
+            onChange={e => e.target.value && onAddApprover(e.target.value)}
+          >
+            <option value="">+ Adicionar aprovador</option>
+            {candidates.map(m => (
+              <option key={m.userId} value={m.userId}>{m.name}</option>
+            ))}
+          </select>
+        )}
       </div>
     </div>
   )
