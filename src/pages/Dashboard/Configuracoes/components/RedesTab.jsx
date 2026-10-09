@@ -29,7 +29,7 @@ const STATUS_CONFIG = {
 
 const PERMISSIONS = [
   { label: 'Publicação de conteúdo', desc: 'Criar, agendar e excluir publicações nos perfis vinculados.', done: true  },
-  { label: 'Leitura de métricas',    desc: 'Acessar alcance, engajamento e crescimento de seguidores.',   done: true  },
+  { label: 'Leitura de métricas',    desc: 'Depende da rede e das permissões liberadas. No LinkedIn, a conexão básica não libera histórico nem métricas.', done: false },
   { label: 'Gestão de comentários',  desc: 'Responder e moderar comentários direto pela plataforma.',     done: false },
 ]
 
@@ -45,6 +45,9 @@ export default function RedesTab() {
   const [refreshing, setRefreshing] = useState(null)     // account id sendo renovado
   const [refreshAll, setRefreshAll] = useState(false)
   const [error, setError] = useState('')
+  const [profileFeedback, setProfileFeedback] = useState('')
+  const [refreshingProfile, setRefreshingProfile] = useState(null)
+  const [failedAvatars, setFailedAvatars] = useState({})
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true)
@@ -117,6 +120,28 @@ export default function RedesTab() {
     } catch (e) {
       setError(`Erro ao iniciar conexão com ${platform}: ${e.message}`)
       setConnecting(null)
+    }
+  }
+
+  const handleRefreshProfile = async (accountId) => {
+    setRefreshingProfile(accountId)
+    setError('')
+    setProfileFeedback('')
+    try {
+      const path = `/social/accounts/${accountId}/profile/refresh`
+      const url = companyId ? `${path}?companyId=${companyId}` : path
+      const res = await authFetch(url, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || `Erro ${res.status}`)
+      setAccounts(prev => prev.map(a => a.id === accountId ? data : a))
+      setFailedAvatars(prev => ({ ...prev, [accountId]: null }))
+      setProfileFeedback(data.avatarUrl
+        ? 'Perfil LinkedIn atualizado. Se a imagem não carregar, tente autorizar a conta novamente.'
+        : 'O LinkedIn não retornou a foto deste perfil. Confira sua foto no LinkedIn e tente autorizar novamente.')
+    } catch (e) {
+      setError(`Erro ao atualizar perfil LinkedIn: ${e.message}`)
+    } finally {
+      setRefreshingProfile(null)
     }
   }
 
@@ -218,7 +243,7 @@ export default function RedesTab() {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon
           const color = networkColor(id, theme)
-          const isBusy = connecting === id || (accountId !== null && disconnecting === accountId)
+          const isBusy = connecting === id || (accountId !== null && (disconnecting === accountId || refreshingProfile === accountId))
           return (
             <motion.div
               key={id}
@@ -228,8 +253,9 @@ export default function RedesTab() {
             >
               <div className="set-net-card__top">
                 <div className="set-net-card__icon" style={{ background: `${color}18`, color }}>
-                  {avatarUrl
-                    ? <img src={avatarUrl} alt={name} className="set-net-card__avatar" />
+                  {avatarUrl && failedAvatars[accountId] !== avatarUrl
+                    ? <img src={avatarUrl} alt={name} className="set-net-card__avatar" referrerPolicy="no-referrer"
+                        onError={() => setFailedAvatars(prev => ({ ...prev, [accountId]: avatarUrl }))} />
                     : <Icon size={22} />
                   }
                 </div>
@@ -250,9 +276,27 @@ export default function RedesTab() {
                     {personal ? 'Pessoal' : companyName}
                   </span>
                 )}
+                {id === 'linkedin' && (
+                  <p className="set-net-card__description">Conecta nome e foto do perfil e permite publicar. Histórico e métricas exigem permissões adicionais do LinkedIn.</p>
+                )}
+                {id === 'linkedin' && avatarUrl && failedAvatars[accountId] === avatarUrl && (
+                  <p className="set-net-card__description">A foto não carregou. Use Atualizar perfil para buscar a imagem novamente.</p>
+                )}
               </div>
 
               <div className="set-net-card__actions">
+                {id === 'linkedin' && status === 'connected' && (
+                  <>
+                    <Button variant="outline" size="sm" fullWidth
+                      onClick={() => handleRefreshProfile(accountId)} disabled={isBusy || !canManage}>
+                      <LuRefreshCw size={13} /> Atualizar perfil
+                    </Button>
+                    <Button variant="outline" size="sm" fullWidth
+                      onClick={() => handleConnect(id)} disabled={isBusy || !canManage}>
+                      Autorizar novamente
+                    </Button>
+                  </>
+                )}
                 {status === 'connected' ? (
                   <Button
                     variant="outline"
@@ -290,6 +334,8 @@ export default function RedesTab() {
           </motion.div>
         )}
       </div>
+
+      {profileFeedback && <p role="status">{profileFeedback}</p>}
 
       {/* ── Painel de tokens ── */}
       {accounts.length > 0 && (
@@ -414,8 +460,8 @@ export default function RedesTab() {
           <div className="set-perms__head">
             <div className="set-perms__icon"><LuShieldCheck size={20} /></div>
             <div>
-              <strong>Permissões concedidas</strong>
-              <p>Solicitamos apenas os acessos essenciais para a plataforma funcionar.</p>
+              <strong>Acessos das integrações</strong>
+              <p>Os acessos disponíveis variam conforme a rede, o aplicativo e sua autorização.</p>
             </div>
           </div>
           <ul className="set-perms__list">

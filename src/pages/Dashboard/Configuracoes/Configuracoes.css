@@ -271,7 +271,8 @@
 }
 
 /* Ações do card de rede */
-.set-net-card__actions { margin-top: auto; }
+.set-net-card__actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.set-net-card__description { margin-top: 8px; font-size: var(--font-size-sm); color: var(--color-text-muted); line-height: 1.5; }
 .set-net-card__avatar {
   width: 100%;
   height: 100%;
