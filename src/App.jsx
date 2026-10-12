@@ -17,6 +17,7 @@ import Login from './pages/Login/Login'
 import Cadastro from './pages/Cadastro/Cadastro'
 import EsqueciSenha from './pages/EsqueciSenha/EsqueciSenha'
 import RedefinirSenha from './pages/RedefinirSenha/RedefinirSenha'
+import Invite from './pages/Invite/Invite'
 import DashboardHome from './pages/Dashboard/Home/DashboardHome'
 import Posts from './pages/Dashboard/Posts/Posts'
 import Composer from './pages/Dashboard/Posts/Composer'
@@ -39,6 +40,8 @@ export default function App() {
                 <Route path="/cadastro" element={<Cadastro />} />
                 <Route path="/esqueci-senha" element={<EsqueciSenha />} />
                 <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+                <Route path="/reset-password" element={<RedefinirSenha />} />
+                <Route path="/invite/:token" element={<Invite />} />
 
                 <Route
                   path="/dashboard"

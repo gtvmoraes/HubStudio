@@ -8,6 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import logoHub from '../../assets/images/logo-hub.png'
 import logoHubDark from '../../assets/images/logo-hub-dark.png'
 import '../EsqueciSenha/EsqueciSenha.css'
+import { resetPassword } from '../../services/auth'
 
 const viewVariants = {
   initial: { opacity: 0, scale: 0.97, y: 8 },
@@ -22,9 +23,10 @@ export default function RedefinirSenha() {
   const [form, setForm] = useState({ password: '', confirm: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [requestError, setRequestError] = useState('')
 
   const [searchParams] = useSearchParams()
-  // Token lido da URL — incluído na "chamada de API". Não validado no front.
+  // O backend valida a expiração e o uso do token.
   const token = searchParams.get('token') || ''
 
   const navigate = useNavigate()
@@ -60,12 +62,20 @@ export default function RedefinirSenha() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
+    if (!token) {
+      setRequestError('Link de recuperação inválido. Solicite um novo link.')
+      return
+    }
     setLoading(true)
-    // Simula chamada de API com o token + nova senha
-    // (futuramente: await api.resetPassword({ token, password: form.password }))
-    await new Promise(r => setTimeout(r, 1500))
-    setLoading(false)
-    setView('success')
+    setRequestError('')
+    try {
+      await resetPassword(token, form.password)
+      setView('success')
+    } catch (err) {
+      setRequestError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -122,6 +132,12 @@ export default function RedefinirSenha() {
                 </header>
 
                 <form onSubmit={handleSubmit} className="recovery__form" noValidate>
+                  {(requestError || !token) && (
+                    <p className="recovery__field-error" role="alert">
+                      {requestError || 'Link de recuperação inválido.'}{' '}
+                      <Link to="/esqueci-senha">Solicitar novo link</Link>
+                    </p>
+                  )}
                   {/* Token oculto — incluído quando o backend for plugado */}
                   <input type="hidden" name="token" value={token} />
 

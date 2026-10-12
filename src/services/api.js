@@ -13,7 +13,9 @@ export const authFetch = async (path, options = {}) => {
   if (response.status === 401) {
     localStorage.removeItem('hs-user')
     localStorage.removeItem('hs-token')
-    window.location.href = '/login'
+    const returnTo = /^\/invite\/[a-zA-Z0-9-]+$/.test(window.location.pathname)
+      ? `?returnTo=${encodeURIComponent(window.location.pathname)}` : ''
+    window.location.href = `/entrar${returnTo}`
     return response
   }
 

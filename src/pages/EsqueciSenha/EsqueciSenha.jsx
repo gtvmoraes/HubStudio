@@ -8,6 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import logoHub from '../../assets/images/logo-hub.png'
 import logoHubDark from '../../assets/images/logo-hub-dark.png'
 import './EsqueciSenha.css'
+import { forgotPassword } from '../../services/auth'
 
 const viewVariants = {
   initial: { opacity: 0, scale: 0.97, y: 8 },
@@ -47,16 +48,30 @@ export default function EsqueciSenha() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    // Simula chamada de API
-    await new Promise(r => setTimeout(r, 1200))
-    setLoading(false)
-    setView('sent')
+    try {
+      await forgotPassword(email)
+      setView('sent')
+    } catch (err) {
+      setEmailError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleResend = () => {
-    setResendState('sent')
-    if (resendTimer.current) clearTimeout(resendTimer.current)
-    resendTimer.current = setTimeout(() => setResendState('idle'), 3000)
+  const handleResend = async () => {
+    if (loading) return
+    setLoading(true)
+    setEmailError('')
+    try {
+      await forgotPassword(email)
+      setResendState('sent')
+      if (resendTimer.current) clearTimeout(resendTimer.current)
+      resendTimer.current = setTimeout(() => setResendState('idle'), 3000)
+    } catch (err) {
+      setEmailError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -171,7 +186,7 @@ export default function EsqueciSenha() {
                 <header className="recovery__heading">
                   <h1>Verifique seu e-mail</h1>
                   <p>
-                    Enviamos um link de recuperação para{' '}
+                    Se houver uma conta cadastrada, enviaremos um link de recuperação para{' '}
                     <strong className="recovery__heading-email">{email}</strong>.
                     Verifique sua caixa de entrada e o spam.
                   </p>
@@ -185,9 +200,10 @@ export default function EsqueciSenha() {
                         type="button"
                         className="recovery__resend-link"
                         onClick={handleResend}
+                        disabled={loading}
                         aria-label="Reenviar link de recuperação"
                       >
-                        Reenviar link
+                        {loading ? 'Enviando…' : 'Reenviar link'}
                       </button>
                     </>
                   ) : (
@@ -196,6 +212,8 @@ export default function EsqueciSenha() {
                     </span>
                   )}
                 </p>
+
+                {emailError && <p className="recovery__field-error" role="alert">{emailError}</p>}
 
                 <p className="recovery__switch">
                   <Link to="/entrar">← Voltar para o login</Link>

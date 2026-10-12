@@ -1,4 +1,16 @@
-import { authFetch } from './api'
+import { authFetch, API_BASE } from './api'
+
+export const previewInviteApi = async (token) => {
+  const res = await fetch(`${API_BASE}/teams/invites/${encodeURIComponent(token)}`)
+  if (!res.ok) await failWith(res, 'Convite inválido ou expirado.')
+  return res.json()
+}
+
+export const acceptInviteApi = async (token) => {
+  const res = await authFetch(`/teams/invites/${encodeURIComponent(token)}/accept`, { method: 'POST' })
+  if (!res.ok) await failWith(res, 'Não foi possível aceitar o convite.')
+  return res.json()
+}
 
 // ── Constantes de UI (não vêm da API) ─────────────────────────────────────────
 

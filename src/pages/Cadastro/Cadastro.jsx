@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { authReturnPath, authSwitchPath } from '../../utils/authRedirect'
 import { motion } from 'framer-motion'
 import { LuArrowLeft, LuCheck, LuCircleAlert } from 'react-icons/lu'
 import { useAuth } from '../../contexts/AuthContext'
@@ -27,6 +28,7 @@ export default function Cadastro() {
   const { register } = useAuth()
   const { theme } = useTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const logo = theme === 'dark' ? logoHubDark : logoHub
   const deco = theme === 'dark' ? logoMinimalistaDark : logoMinimalista
 
@@ -72,7 +74,7 @@ export default function Cadastro() {
       if (form.teamCode.trim()) {
         try { await joinByCodeApi(form.teamCode.trim().toUpperCase()) } catch { /* ignora se código inválido */ }
       }
-      navigate('/dashboard')
+      navigate(authReturnPath(location.search))
     } catch {
       setGlobalError('Não foi possível criar sua conta. Tente novamente.')
     } finally {
@@ -83,7 +85,7 @@ export default function Cadastro() {
   const handleSwitch = (e, path) => {
     e.preventDefault()
     setIsExiting(true)
-    setTimeout(() => navigate(path), 250)
+    setTimeout(() => navigate(authSwitchPath(path, location.search)), 250)
   }
 
   return (
@@ -298,7 +300,7 @@ export default function Cadastro() {
 
           <p className="auth__switch">
             Já tem uma conta?{' '}
-            <Link to="/entrar" onClick={(e) => handleSwitch(e, '/entrar')}>
+            <Link to={authSwitchPath('/entrar', location.search)} onClick={(e) => handleSwitch(e, '/entrar')}>
               Entrar
             </Link>
           </p>

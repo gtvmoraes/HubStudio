@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { authReturnPath, authSwitchPath } from '../../utils/authRedirect'
 import { motion } from 'framer-motion'
 import { LuArrowLeft, LuCircleAlert } from 'react-icons/lu'
 import { useAuth } from '../../contexts/AuthContext'
@@ -23,6 +24,7 @@ export default function Login() {
   const { login } = useAuth()
   const { theme } = useTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const logo = theme === 'dark' ? logoHubDark : logoHub
   const deco = theme === 'dark' ? logoMinimalistaDark : logoMinimalista
 
@@ -48,7 +50,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(form.email, form.password)
-      navigate('/dashboard')
+      navigate(authReturnPath(location.search))
     } catch {
       setGlobalError('E-mail ou senha inválidos. Tente novamente.')
     } finally {
@@ -59,7 +61,7 @@ export default function Login() {
   const handleSwitch = (e, path) => {
     e.preventDefault()
     setIsExiting(true)
-    setTimeout(() => navigate(path), 250)
+    setTimeout(() => navigate(authSwitchPath(path, location.search)), 250)
   }
 
   return (
@@ -192,7 +194,7 @@ export default function Login() {
 
           <p className="auth__switch">
             Não tem uma conta?{' '}
-            <Link to="/cadastro" onClick={(e) => handleSwitch(e, '/cadastro')}>
+            <Link to={authSwitchPath('/cadastro', location.search)} onClick={(e) => handleSwitch(e, '/cadastro')}>
               Criar conta grátis
             </Link>
           </p>

@@ -1,5 +1,20 @@
 import { API_BASE } from './api'
 
+const recoveryRequest = async (path, body) => {
+  const res = await fetch(`${API_BASE}/auth/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error(error.message || error.error || 'Não foi possível concluir a solicitação. Tente novamente.')
+  }
+}
+
+export const forgotPassword = (email) => recoveryRequest('forgot-password', { email: email.trim() })
+export const resetPassword = (token, newPassword) => recoveryRequest('reset-password', { token, newPassword })
+
 export const loginService = async (email, password) => {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',

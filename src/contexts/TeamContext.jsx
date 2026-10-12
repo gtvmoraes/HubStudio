@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import {
   getUserTeams, createTeamApi, updateTeamApi, deleteTeamApi, joinByCodeApi,
   leaveTeamApi, getPermissionMatrix, PERMISSION_MATRIX,
+  acceptInviteApi,
 } from '../services/team'
 import { getSocialAccounts } from '../services/posts'
 import { useAuth } from './AuthContext'
@@ -37,8 +38,11 @@ export function TeamProvider({ children }) {
   const [permissionMatrix, setPermissionMatrix] = useState(null)
 
   useEffect(() => {
-    if (!user) { setLoading(false); return }
+    if (!user) { setTeams([]); setLoading(false); return }
+    let cancelled = false
+    setLoading(true)
     getUserTeams().then(list => {
+      if (cancelled) return
       setTeams(list.map(normalizeTeam))
       const saved = list.find(t => t.id === currentTeamId)
       if (saved) {
@@ -50,7 +54,8 @@ export function TeamProvider({ children }) {
         localStorage.removeItem(STORAGE_KEY)
       }
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchTeam = (teamId) => {
@@ -85,6 +90,14 @@ export function TeamProvider({ children }) {
     setCurrentTeamId(team.id)
     localStorage.setItem(STORAGE_KEY, team.id)
     maybeOfferImport(team)
+    return team
+  }
+
+  const acceptInvite = async (token) => {
+    const team = normalizeTeam(await acceptInviteApi(token))
+    setTeams(prev => [...prev.filter(t => t.id !== team.id), team])
+    setCurrentTeamId(team.id)
+    localStorage.setItem(STORAGE_KEY, team.id)
     return team
   }
 
@@ -140,7 +153,7 @@ export function TeamProvider({ children }) {
   return (
     <TeamContext.Provider value={{
       teams, currentTeam, activeContext, contexts, loading,
-      switchTeam, createTeam, joinTeam, updateTeam, deleteTeam, leaveTeam,
+      switchTeam, createTeam, joinTeam, acceptInvite, updateTeam, deleteTeam, leaveTeam,
       can, permissionMatrix: permissionMatrix || PERMISSION_MATRIX, setPermissionMatrix,
       pendingImport, dismissPendingImport: () => setPendingImport(null),
     }}>
