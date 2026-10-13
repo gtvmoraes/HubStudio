@@ -6,14 +6,27 @@ import TourOverlay from './TourOverlay'
 const TourContext = createContext(null)
 export const useTour = () => useContext(TourContext)
 
-export function TourProvider({ children, onExpandSidebar }) {
+export function TourProvider({ children, onExpandSidebar, onSupportChatChange }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [index, setIndex] = useState(-1)     // -1 = tour fechado
-  const lastRoute = useRef(null)
 
   const open = index >= 0
   const step = open ? STEPS[index] : null
+  const targetRoute = open ? STEPS.slice(0, index + 1).reverse().find(s => s.route)?.route : null
+
+  const chatCallback = useRef(onSupportChatChange)
+  chatCallback.current = onSupportChatChange
+  const ownsChat = useRef(false)
+  useEffect(() => {
+    if (open && step?.showSupportChat) {
+      ownsChat.current = true
+      chatCallback.current?.(true)
+    } else if (ownsChat.current) {
+      ownsChat.current = false
+      chatCallback.current?.(false)
+    }
+  }, [open, step])
 
   // A sidebar recolhida esconde o seletor de contexto (display:none), o que
   // deixaria passos sem alvo. Expande UMA vez, na abertura do tour — depois o
@@ -46,18 +59,15 @@ export function TourProvider({ children, onExpandSidebar }) {
   // Quando o passo declara uma rota diferente da atual, o tour leva o
   // usuário até lá antes de tentar achar a âncora.
   useEffect(() => {
-    if (!open || !step?.route) return
+    if (!targetRoute) return
     const current = location.pathname + location.search
-    if (current === step.route || lastRoute.current === step.route) return
-    lastRoute.current = step.route
-    navigate(step.route)
-  }, [open, step, location.pathname, location.search, navigate])
+    if (current !== targetRoute) navigate(targetRoute)
+  }, [targetRoute, location.pathname, location.search, navigate])
 
   const finish = useCallback(() => {
     localStorage.removeItem(TOUR_KEYS.legacyFlag)
     localStorage.removeItem(TOUR_KEYS.progress)
     localStorage.setItem(TOUR_KEYS.completed, '1')
-    lastRoute.current = null
     setIndex(-1)
   }, [])
 
@@ -81,7 +91,6 @@ export function TourProvider({ children, onExpandSidebar }) {
   // Reinicia o tour do zero (botão "Refazer tour")
   const restart = useCallback(() => {
     localStorage.removeItem(TOUR_KEYS.progress)
-    lastRoute.current = null
     setIndex(0)
   }, [])
 

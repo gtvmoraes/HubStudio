@@ -1057,6 +1057,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                     key={id}
                     type="button"
                     disabled={blocked}
+                    aria-pressed={selected}
                     title={blocked ? incompatReason : undefined}
                     className={`composer__network-pill${selected ? ' composer__network-pill--active' : ''}${blocked ? ' composer__network-pill--blocked' : ''}`}
                     style={selected ? { borderColor: networkColor(id, theme), color: networkColor(id, theme) } : {}}

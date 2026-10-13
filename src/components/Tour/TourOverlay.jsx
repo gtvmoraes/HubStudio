@@ -1,10 +1,11 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { LuArrowRight, LuArrowLeft, LuX, LuSparkles, LuCircleCheck, LuHand } from 'react-icons/lu'
 import { useTour } from './TourProvider'
 import useAnchorRect from './useAnchorRect'
+import { watchTourClick } from './watchTourClick'
 import './Tour.css'
 
 const CARD_W = 380
@@ -52,7 +53,20 @@ export default function TourOverlay() {
   const { step, index, total, chapters, steps, next, prev, finish, skipChapter } = useTour()
   const navigate = useNavigate()
   const vp = useViewport()
-  const { rect, status } = useAnchorRect(step?.anchor, { active: true })
+  const cardRef = useRef(null)
+  const [cardHeight, setCardHeight] = useState(210)
+  const { rect, status, element } = useAnchorRect(step?.anchor, { active: true })
+
+  useEffect(() => {
+    const card = cardRef.current
+    if (!card) return
+    const measure = () => setCardHeight(card.getBoundingClientRect().height)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(card)
+    return () => observer.disconnect()
+  }, [step?.id, vp.w])
 
   const spring = { type: 'spring', stiffness: 260, damping: 30, mass: 0.8 }
 
@@ -64,17 +78,15 @@ export default function TourOverlay() {
   // Passo "waitFor: click" avança quando o usuário clica no alvo de verdade
   useEffect(() => {
     if (step?.waitFor !== 'click' || !step?.anchor) return
-    const el = document.querySelector(`[data-tour="${step.anchor}"]`)
-    if (!el) return
-    const onClick = () => setTimeout(next, 450)
-    el.addEventListener('click', onClick)
-    return () => el.removeEventListener('click', onClick)
-  }, [step, next])
+    if (status !== 'found' || !element) return
+    return watchTourClick(element, next, { completeSelector: step.completeSelector })
+  }, [step, next, status, element])
 
   // Teclado: setas navegam, Esc encerra
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); finish() }
+      else if (e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return
       else if (e.key === 'ArrowRight') { e.preventDefault(); next() }
       else if (e.key === 'ArrowLeft')  { e.preventDefault(); prev() }
     }
@@ -83,8 +95,8 @@ export default function TourOverlay() {
   }, [next, prev, finish])
 
   const pos = useMemo(
-    () => placeCard(rect, step?.placement, vp.w, vp.h),
-    [rect, step?.placement, vp.w, vp.h]
+    () => placeCard(rect, step?.placement, vp.w, vp.h, cardHeight),
+    [rect, step?.placement, vp.w, vp.h, cardHeight]
   )
 
   const chapterIdx = chapters.findIndex(c => c.id === step?.chapter)
@@ -105,6 +117,11 @@ export default function TourOverlay() {
       {/* ── Máscara com o recorte do holofote ── */}
       <svg className="tour-mask" width={vp.w} height={vp.h} aria-hidden="true">
         <defs>
+          {/* Uma máscara muda a pintura, mas não o alvo dos cliques.
+              O clipPath também recorta a área que captura eventos. */}
+          <clipPath id="tour-click-area">
+            <path clipRule="evenodd" d={`M0 0H${vp.w}V${vp.h}H0Z${rect ? ` M${rect.left} ${rect.top}h${rect.width}v${rect.height}h${-rect.width}Z` : ''}`} />
+          </clipPath>
           <mask id="tour-hole">
             <rect x="0" y="0" width={vp.w} height={vp.h} fill="white" />
             {rect && (
@@ -122,7 +139,7 @@ export default function TourOverlay() {
           x="0" y="0" width={vp.w} height={vp.h}
           className="tour-mask__fill"
           mask="url(#tour-hole)"
-          onClick={finish}
+          clipPath="url(#tour-click-area)"
         />
       </svg>
 
@@ -139,6 +156,7 @@ export default function TourOverlay() {
 
       {/* ── Cartão ── */}
       <motion.div
+        ref={cardRef}
         className={`tour-card${pos.centered ? ' tour-card--center' : ''}`}
         initial={false}
         animate={{ x: pos.left, y: pos.top, opacity: 1 }}

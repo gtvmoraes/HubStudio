@@ -17,7 +17,7 @@ const GIVE_UP_MS = 2500     // depois disso, considera que o alvo não vai apare
  */
 export default function useAnchorRect(anchor, { active = true } = {}) {
   const [rect, setRect] = useState(null)
-  const [status, setStatus] = useState(anchor ? 'searching' : 'found')
+  const [anchorStatus, setAnchorStatus] = useState({ anchor, status: anchor ? 'searching' : 'found' })
   const frameRef = useRef(null)
   const elRef = useRef(null)
 
@@ -44,11 +44,12 @@ export default function useAnchorRect(anchor, { active = true } = {}) {
     if (!anchor) {
       elRef.current = null
       setRect(null)
-      setStatus('found')
+      setAnchorStatus({ anchor, status: 'found' })
       return
     }
 
-    setStatus('searching')
+    elRef.current = null
+    setAnchorStatus({ anchor, status: 'searching' })
     setRect(null)
     let cancelled = false
     let poll = null
@@ -57,7 +58,7 @@ export default function useAnchorRect(anchor, { active = true } = {}) {
 
     const attach = (el) => {
       elRef.current = el
-      setStatus('found')
+      setAnchorStatus({ anchor, status: 'found' })
       // Traz o alvo pra área visível antes de medir
       el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
       measure()
@@ -74,7 +75,8 @@ export default function useAnchorRect(anchor, { active = true } = {}) {
     const find = () => {
       if (cancelled) return
       const el = document.querySelector(`[data-tour="${anchor}"]`)
-      if (el) {
+      const bounds = el?.getBoundingClientRect()
+      if (el && bounds.width > 0 && bounds.height > 0) {
         clearInterval(poll)
         clearTimeout(giveUp)
         attach(el)
@@ -86,7 +88,7 @@ export default function useAnchorRect(anchor, { active = true } = {}) {
       poll = setInterval(find, POLL_MS)
       giveUp = setTimeout(() => {
         clearInterval(poll)
-        if (!cancelled && !elRef.current) setStatus('missing')
+        if (!cancelled && !elRef.current) setAnchorStatus({ anchor, status: 'missing' })
       }, GIVE_UP_MS)
     }
 
@@ -105,5 +107,10 @@ export default function useAnchorRect(anchor, { active = true } = {}) {
     }
   }, [anchor, active, measure])
 
-  return { rect, status, element: elRef.current }
+  const current = anchorStatus.anchor === anchor
+  return {
+    rect: current ? rect : null,
+    status: current ? anchorStatus.status : anchor ? 'searching' : 'found',
+    element: current ? elRef.current : null,
+  }
 }

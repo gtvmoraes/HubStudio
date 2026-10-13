@@ -90,10 +90,10 @@ export default function LiveChatWidget({ open, onOpenChange }) {
   const suggestions = ['Quais redes estão conectadas?', analyticsAllowed ? 'Como está meu desempenho nos últimos 30 dias?' : 'Como agendar uma publicação?', 'Por que uma publicação pode falhar?']
 
   return <>
-    <button type="button" className={`sup-chat-fab ${open ? 'sup-chat-fab--hidden' : ''}`} onClick={() => onOpenChange(true)} aria-label="Abrir assistente HubStudio">
+    <button type="button" data-tour="assistant-launcher" className={`sup-chat-fab ${open ? 'sup-chat-fab--hidden' : ''}`} onClick={() => onOpenChange(true)} aria-label="Abrir assistente HubStudio">
       <LuMessageCircle size={24} />
     </button>
-    <AnimatePresence>{open && <motion.section className="sup-chat" role="dialog" aria-label="Assistente HubStudio" initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }} transition={{ duration: 0.22 }}>
+    <AnimatePresence>{open && <motion.section data-tour="assistant-panel" className="sup-chat" role="dialog" aria-label="Assistente HubStudio" initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }} transition={{ duration: 0.22 }}>
       <div className="sup-chat__header">
         <div className="sup-chat__agent"><div className="sup-chat__avatar">H</div><div className="sup-chat__agent-info">
           <strong>Assistente HubStudio · IA</strong><span>{activeContext.personal ? 'Pessoal' : activeContext.name}</span>

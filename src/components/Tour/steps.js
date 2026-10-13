@@ -10,6 +10,8 @@
 //   placement 'top' | 'bottom' | 'left' | 'right' (default: bottom)
 //   optional  true = pula sozinho se o elemento não existir na tela
 //   waitFor   'click' = não avança sozinho; espera o usuário clicar no alvo
+//   completeSelector seletor dentro do alvo que deve existir após o clique
+//   showSupportChat abre o assistente durante a etapa e fecha ao sair dela
 //   action    botão extra que leva a algum lugar e encerra o tour
 // ═══════════════════════════════════════════════════════════════
 
@@ -19,6 +21,7 @@ export const CHAPTERS = [
   { id: 'dashboard', label: 'Dashboard'   },
   { id: 'redes',     label: 'Suas redes'  },
   { id: 'composer',  label: 'Criar post'  },
+  { id: 'ia',        label: 'Assistente IA' },
   { id: 'equipes',   label: 'Equipes'     },
   { id: 'fim',       label: 'Pronto'      },
 ]
@@ -131,7 +134,7 @@ export const STEPS = [
     anchor: 'redes-grid',
     placement: 'top',
     title: 'O passo mais importante',
-    body: 'Aqui você vincula Instagram, TikTok, YouTube, Facebook, LinkedIn e X. Sem pelo menos uma rede conectada não há o que agendar, nem métrica pra mostrar.',
+    body: 'Aqui você vincula suas redes sociais. Sem pelo menos uma rede conectada não há o que agendar, nem métrica pra mostrar. Você pode continuar o tour e conectar uma conta depois.',
     action: { label: 'Conectar uma rede agora', to: '/dashboard/configuracoes?tab=redes' },
   },
 
@@ -143,8 +146,9 @@ export const STEPS = [
     anchor: 'composer-networks',
     placement: 'bottom',
     waitFor: 'click',
+    completeSelector: 'button[aria-pressed="true"]',
     title: 'Escolha as redes',
-    body: 'Selecione uma ou várias: o mesmo post vai pra todas de uma vez. Clique numa rede aqui pra continuar.',
+    body: 'Clique numa rede para conhecer o editor. Você pode selecionar mais de uma; cada rede tem seus formatos e limites. Não precisa conectar uma conta para explorar, mas a conexão é obrigatória antes de publicar.',
   },
   {
     id: 'composer-ai',
@@ -162,7 +166,7 @@ export const STEPS = [
     placement: 'left',
     optional: true,
     title: 'Preview real',
-    body: 'Este celular mostra exatamente como o post vai aparecer em cada rede, atualizando enquanto você digita.',
+    body: 'Este celular mostra uma prévia do conteúdo em cada rede, atualizando enquanto você digita.',
   },
   {
     id: 'composer-schedule',
@@ -171,7 +175,27 @@ export const STEPS = [
     placement: 'top',
     optional: true,
     title: 'Publique agora ou agende',
-    body: 'Escolha data e hora e o sistema publica sozinho no momento certo. Deixando em branco, o post sai na hora.',
+    body: 'Escolha data e hora para agendar ou publique agora. Em equipes, suas permissões podem exigir aprovação antes da publicação. O tour não publica nada automaticamente.',
+  },
+
+  // ── Assistente de IA ──────────────────────────────────────
+  {
+    id: 'assistant',
+    chapter: 'ia',
+    route: '/dashboard',
+    anchor: 'assistant-launcher',
+    placement: 'left',
+    title: 'Seu assistente de IA',
+    body: 'Este botão abre o assistente em qualquer tela do painel. Você pode tirar dúvidas sobre o HubStudio e pedir ajuda para entender seu perfil, redes e posts no contexto selecionado.',
+  },
+  {
+    id: 'assistant-chat',
+    chapter: 'ia',
+    anchor: 'assistant-panel',
+    placement: 'left',
+    showSupportChat: true,
+    title: 'Pergunte à IA',
+    body: 'Escolha uma pergunta sugerida ou escreva a sua. Mesmo sem redes conectadas, você pode pedir orientação para começar. O assistente responde usando o contexto pessoal ou da equipe e não altera sua conta. Nenhuma mensagem é enviada pelo tour.',
   },
 
   // ── Ato 5 — Equipes ────────────────────────────────────────

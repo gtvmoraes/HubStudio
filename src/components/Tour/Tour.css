@@ -19,7 +19,7 @@
 .tour-mask__fill {
   fill: rgba(9, 11, 24, 0.72);
   pointer-events: auto;
-  cursor: pointer;
+  cursor: default;
 }
 [data-theme='dark'] .tour-mask__fill {
   fill: rgba(4, 6, 16, 0.80);

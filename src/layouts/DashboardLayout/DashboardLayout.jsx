@@ -29,7 +29,7 @@ export default function DashboardLayout() {
   })
 
   return (
-    <TourProvider onExpandSidebar={() => setIsCollapsed(false)}>
+    <TourProvider onExpandSidebar={() => setIsCollapsed(false)} onSupportChatChange={setChatOpen}>
     <div className={`dashboard-layout ${isCollapsed ? 'dashboard-layout--collapsed' : ''}`}>
       <Sidebar
         isCollapsed={isCollapsed}
