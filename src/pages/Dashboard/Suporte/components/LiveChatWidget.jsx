@@ -6,6 +6,7 @@ import { useAuth } from '../../../../contexts/AuthContext'
 import { useTeam } from '../../../../contexts/TeamContext'
 import { getChatHistory, sendChatMessage, clearChatHistory } from '../../../../services/supportChat'
 import '../Suporte.css'
+import ChatMarkdown from '../../../../components/ChatMarkdown/ChatMarkdown'
 
 const SOURCE_PATHS = new Set(['/dashboard/configuracoes?tab=perfil', '/dashboard/configuracoes?tab=redes', '/dashboard/posts', '/dashboard', '/dashboard/suporte'])
 
@@ -108,7 +109,7 @@ export default function LiveChatWidget({ open, onOpenChange }) {
         {turns.map(turn => <div key={turn.id} className="sup-chat__turn">
           <div className="sup-chat__msg sup-chat__msg--user">{turn.question}</div>
           {turn.answer && <div className="sup-chat__msg sup-chat__msg--agent">
-            {turn.answer}
+            <ChatMarkdown>{turn.answer}</ChatMarkdown>
             <div className="sup-chat__sources"><span>Conferir no HubStudio:</span>{(turn.sources || []).filter(source => SOURCE_PATHS.has(source.path)).map(source => <Link key={source.path} to={source.path} onClick={() => onOpenChange(false)}>{source.label}</Link>)}</div>
           </div>}
           {turn.failure && <div className="sup-chat__error" role="alert"><p>{turn.failure}</p><button type="button" disabled={unavailable} onClick={() => sendQuestion(turn.question, turn.id)}>Tentar novamente</button></div>}
