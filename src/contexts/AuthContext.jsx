@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react'
-import { loginService, registerService, fetchMe } from '../services/auth'
+import { loginService, registerService, fetchMe, verifyLogin, revokeCurrentSession } from '../services/auth'
 
 const AuthContext = createContext(null)
 
@@ -30,11 +30,25 @@ export function AuthProvider({ children }) {
   })
 
   const login = async (email, password) => {
-    await loginService(email, password)
+    const result = await loginService(email, password)
+    if (result.requiresTwoFactor) return result
     const profile = await fetchMe()
     localStorage.setItem('hs-user', JSON.stringify(profile))
     localStorage.removeItem('hs-show-onboarding')
     setUser(profile)
+    return profile
+  }
+
+  const updateUser = (profile) => {
+    localStorage.setItem('hs-user', JSON.stringify(profile))
+    setUser(profile)
+  }
+
+  const completeTwoFactor = async (challengeId, code) => {
+    await verifyLogin(challengeId, code)
+    const profile = await fetchMe()
+    updateUser(profile)
+    localStorage.removeItem('hs-show-onboarding')
     return profile
   }
 
@@ -49,12 +63,13 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
+    revokeCurrentSession().catch(() => {})
     clearSession()
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, completeTwoFactor, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

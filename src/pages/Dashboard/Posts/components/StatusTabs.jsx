@@ -5,6 +5,8 @@ const TABS = [
   { value: 'draft',     label: 'Rascunhos' },
   { value: 'pending',   label: 'Aguardando aprovação', highlight: true },
   { value: 'scheduled', label: 'Agendados' },
+  { value: 'processing', label: 'Processando', conditional: true },
+  { value: 'partial', label: 'Publicados parcialmente', conditional: true },
   { value: 'published', label: 'Publicados' },
   { value: 'failed',    label: 'Falhou',  conditional: true },
 ]
@@ -14,7 +16,7 @@ export default function StatusTabs({ active, onChange, counts }) {
     <div className="status-tabs" role="tablist">
       {TABS.map(tab => {
         const count = counts[tab.value] || 0
-        if (tab.conditional && count === 0) return null
+        if (tab.conditional && count === 0 && active !== tab.value) return null
         const showHighlight = tab.highlight && count > 0
         return (
           <button

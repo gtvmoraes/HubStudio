@@ -1,16 +1,37 @@
-// MOCK 100% — aguardando backend.
-// Arquivo inteiro (sessões ativas, faturas e uso do plano). Atenção: as
-// "sessões ativas" da aba Segurança são inventadas — não refletem dispositivos
-// reais e o botão de encerrar não desconecta nada.
-// Quando os endpoints existirem, substituir só o corpo das funções — os
-// contratos de retorno não mudam.
+import { authFetch } from './api'
+
+const accountRequest = async (path, method = 'GET', body) => {
+  const res = await authFetch(`/users/me${path}`, {
+    method,
+    ...(body instanceof FormData ? { body } : body !== undefined ? {
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    } : {}),
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error(error.message || error.error || 'Não foi possível concluir a solicitação.')
+  }
+  return res.status === 204 ? null : res.json()
+}
+
+export const updateProfile = (form, photo) => {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(form)) if (value !== undefined && value !== null) body.append(key, value)
+  if (photo) body.append('profilePicture', photo)
+  return accountRequest('', 'PUT', body)
+}
+export const changePassword = (currentPassword, newPassword) => accountRequest('/password', 'PUT', { currentPassword, newPassword })
+export const revokeSession = (id) => accountRequest(`/sessions/${encodeURIComponent(id)}`, 'DELETE')
+export const revokeOtherSessions = () => accountRequest('/sessions', 'DELETE')
+export const requestTwoFactorCode = (currentPassword) => accountRequest('/two-factor/challenge', 'POST', { currentPassword })
+export const configureTwoFactor = (enabled, currentPassword, challengeId, code) => accountRequest('/two-factor', 'PUT', { enabled, currentPassword, challengeId, code })
+export const exportAccount = () => accountRequest('/export')
+export const deleteAccount = (currentPassword, confirmation) => accountRequest('', 'DELETE', { currentPassword, confirmation })
+
+// Faturas e uso do plano ainda aguardam backend.
 
 // ─── Sessões ativas ───
-export const getSessions = () => Promise.resolve([
-  { id: 1, device: 'Windows · Chrome',   location: 'São Paulo, BR',      lastActive: 'Agora',        current: true  },
-  { id: 2, device: 'iPhone 15 · Safari', location: 'São Paulo, BR',      lastActive: 'há 3 horas',   current: false },
-  { id: 3, device: 'MacBook · Firefox',  location: 'Rio de Janeiro, BR', lastActive: 'há 2 dias',    current: false },
-])
+export const getSessions = () => accountRequest('/sessions')
 
 // ─── Histórico de faturas ───
 export const getInvoices = () => Promise.resolve([

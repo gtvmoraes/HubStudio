@@ -32,6 +32,9 @@ export default function PostMenu({ post, perms = {}, submitLabel = 'Enviar', onA
       </button>
       {open && (
         <div className="post-menu__dropdown" role="menu">
+          {perms.canRetry && <button type="button" onClick={run('retry')}>
+            <LuSend size={14} /> Tentar novamente nas redes com falha
+          </button>}
           {perms.canEdit && (
             <button type="button" onClick={run('edit')}>
               <LuPencil size={14} /> Editar

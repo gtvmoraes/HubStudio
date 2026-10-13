@@ -150,6 +150,11 @@
 }
 .post-row--pending  { border-left: 3px solid var(--color-warning); }
 .post-row--failed   { border-left: 3px solid var(--color-error); }
+.post-row--processing { border-left: 3px solid #0EA5E9; }
+.post-row--partial { border-left: 3px solid #F59E0B; }
+.post-row__platform-results { padding-left: 18px; font-size: 0.85rem; margin: 8px 0; }
+.status-badge--processing { background: #0EA5E918; color: #0EA5E9; }
+.status-badge--partial { background: #F59E0B18; color: #B77900; }
 .post-row--rejected { border-left: 3px solid var(--color-error); }
 
 .post-row__thumb {

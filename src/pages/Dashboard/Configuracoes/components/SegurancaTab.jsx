@@ -1,104 +1,104 @@
 import { useState, useEffect } from 'react'
-import { LuKeyRound, LuShieldCheck, LuMonitor, LuSmartphone, LuCheck, LuLogOut } from 'react-icons/lu'
-import { getSessions } from '../../../../services/settings'
+import { useNavigate } from 'react-router-dom'
+import { LuKeyRound, LuShieldCheck, LuMonitor, LuLogOut } from 'react-icons/lu'
+import { getSessions, changePassword, revokeSession, revokeOtherSessions, requestTwoFactorCode, configureTwoFactor } from '../../../../services/settings'
+import { useAuth } from '../../../../contexts/AuthContext'
 import Button from '../../../../components/Button/Button'
-import Toggle from './Toggle'
 
 export default function SegurancaTab() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' })
-  const [pwdSaved, setPwdSaved] = useState(false)
-  const [twoFa, setTwoFa] = useState(false)
   const [sessions, setSessions] = useState([])
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [sessionLoading, setSessionLoading] = useState(true)
+  const [factorPassword, setFactorPassword] = useState('')
+  const [challengeId, setChallengeId] = useState(null)
+  const [code, setCode] = useState('')
 
-  useEffect(() => { getSessions().then(setSessions) }, [])
+  useEffect(() => {
+    let cancelled = false
+    getSessions().then(list => { if (!cancelled) setSessions(list) })
+      .catch(err => { if (!cancelled) setError(err.message) })
+      .finally(() => { if (!cancelled) setSessionLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
-  const canSave = pwd.current && pwd.next.length >= 8 && pwd.next === pwd.confirm
-
+  const run = async (action) => {
+    if (busy) return
+    setBusy(true); setError('')
+    try { await action() } catch (err) { setError(err.message) } finally { setBusy(false) }
+  }
+  const reauthenticate = () => { logout(); navigate('/entrar') }
   const savePwd = (e) => {
     e.preventDefault()
-    if (!canSave) return
-    setPwdSaved(true)
-    setPwd({ current: '', next: '', confirm: '' })
-    setTimeout(() => setPwdSaved(false), 2000)
+    run(async () => { await changePassword(pwd.current, pwd.next); reauthenticate() })
   }
-
-  const endSession = (id) => setSessions(s => s.filter(x => x.id !== id))
-  const endAll = () => setSessions(s => s.filter(x => x.current))
+  const endSession = (id) => run(async () => {
+    await revokeSession(id)
+    setSessions(await getSessions())
+  })
+  const endOthers = () => run(async () => {
+    await revokeOtherSessions()
+    setSessions(await getSessions())
+  })
+  const configureFactor = (e) => {
+    e.preventDefault()
+    run(async () => {
+      if (!challengeId) {
+        const result = await requestTwoFactorCode(factorPassword)
+        setChallengeId(result.challengeId)
+      } else {
+        await configureTwoFactor(!user.twoFactorEnabled, factorPassword, challengeId, code)
+        reauthenticate()
+      }
+    })
+  }
 
   return (
     <div className="set-section">
-      <div className="set-section__head">
-        <h2>Segurança</h2>
-        <p>Proteja sua conta com senha forte, 2FA e controle de sessões.</p>
-      </div>
-
-      {/* Senha */}
+      <div className="set-section__head"><h2>Segurança</h2><p>Controle sua senha, verificação em duas etapas e sessões.</p></div>
+      {error && <p role="alert">{error}</p>}
       <form className="set-card" onSubmit={savePwd}>
         <div className="set-card__title"><LuKeyRound size={18} /> Alterar senha</div>
         <div className="set-form-grid">
-          <div className="set-field set-field--full">
-            <label htmlFor="sec-cur">Senha atual</label>
-            <input id="sec-cur" type="password" value={pwd.current} onChange={e => setPwd(p => ({ ...p, current: e.target.value }))} placeholder="••••••••" />
-          </div>
-          <div className="set-field">
-            <label htmlFor="sec-new">Nova senha</label>
-            <input id="sec-new" type="password" value={pwd.next} onChange={e => setPwd(p => ({ ...p, next: e.target.value }))} placeholder="Mínimo 8 caracteres" />
-          </div>
-          <div className="set-field">
-            <label htmlFor="sec-conf">Confirmar nova senha</label>
-            <input id="sec-conf" type="password" value={pwd.confirm} onChange={e => setPwd(p => ({ ...p, confirm: e.target.value }))} placeholder="Repita a nova senha" />
-          </div>
+          <div className="set-field set-field--full"><label htmlFor="sec-cur">Senha atual</label>
+            <input id="sec-cur" type="password" autoComplete="current-password" value={pwd.current} onChange={e => setPwd(p => ({ ...p, current: e.target.value }))} /></div>
+          <div className="set-field"><label htmlFor="sec-new">Nova senha</label>
+            <input id="sec-new" type="password" autoComplete="new-password" maxLength={72} value={pwd.next} onChange={e => setPwd(p => ({ ...p, next: e.target.value }))} /></div>
+          <div className="set-field"><label htmlFor="sec-conf">Confirmar nova senha</label>
+            <input id="sec-conf" type="password" autoComplete="new-password" value={pwd.confirm} onChange={e => setPwd(p => ({ ...p, confirm: e.target.value }))} /></div>
         </div>
-        <div className="set-card__actions">
-          <Button type="submit" disabled={!canSave} icon={pwdSaved ? <LuCheck size={16} /> : null}>
-            {pwdSaved ? 'Senha atualizada!' : 'Atualizar senha'}
-          </Button>
-        </div>
+        <p>Ao alterar a senha, todas as sessões serão encerradas. Entre novamente com a nova senha.</p>
+        <div className="set-card__actions"><Button type="submit" loading={busy} disabled={busy || !pwd.current || pwd.next.length < 8 || pwd.next !== pwd.confirm}>Atualizar senha</Button></div>
       </form>
 
-      {/* 2FA */}
-      <div className="set-card set-2fa">
-        <div className="set-2fa__info">
-          <div className="set-2fa__icon"><LuShieldCheck size={20} /></div>
-          <div>
-            <strong>Autenticação de dois fatores (2FA)</strong>
-            <p>Exige um código do seu celular além da senha. Recomendado para máxima segurança.</p>
-          </div>
-        </div>
-        <Toggle value={twoFa} onChange={setTwoFa} ariaLabel="Ativar 2FA" />
-      </div>
+      <form className="set-card" onSubmit={configureFactor}>
+        <div className="set-card__title"><LuShieldCheck size={18} /> Verificação em duas etapas por e-mail</div>
+        <p>{user.twoFactorEnabled ? 'Ativada: cada login exige senha e um código enviado ao seu e-mail.' : 'Ao ativar, cada login exigirá senha e um código enviado ao seu e-mail.'}</p>
+        <div className="set-field"><label htmlFor="factor-password">Senha atual</label>
+          <input id="factor-password" type="password" autoComplete="current-password" value={factorPassword} onChange={e => setFactorPassword(e.target.value)} /></div>
+        {challengeId && <div className="set-field"><label htmlFor="factor-code">Código recebido por e-mail (válido por 10 minutos)</label>
+          <input id="factor-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
+          <button type="button" disabled={busy} onClick={() => { setChallengeId(null); setCode('') }}>Solicitar outro código</button></div>}
+        <p>A alteração encerra todas as sessões e exige um novo login.</p>
+        <div className="set-card__actions"><Button type="submit" loading={busy} disabled={busy || !factorPassword || (challengeId && code.length !== 6)}>
+          {!challengeId ? 'Enviar código de confirmação' : user.twoFactorEnabled ? 'Confirmar desativação' : 'Confirmar ativação'}
+        </Button></div>
+      </form>
 
-      {/* Sessões */}
       <div className="set-card">
-        <div className="set-card__title set-card__title--row">
-          <span><LuMonitor size={18} /> Sessões ativas</span>
-          {sessions.length > 1 && (
-            <button type="button" className="set-link-danger" onClick={endAll}>
-              <LuLogOut size={14} /> Encerrar todas
-            </button>
-          )}
-        </div>
-        <ul className="set-sessions">
-          {sessions.map(s => (
-            <li key={s.id} className="set-session">
-              <span className="set-session__icon">
-                {s.device.includes('iPhone') ? <LuSmartphone size={18} /> : <LuMonitor size={18} />}
-              </span>
-              <div className="set-session__info">
-                <strong>
-                  {s.device}
-                  {s.current && <span className="set-session__current">Este dispositivo</span>}
-                </strong>
-                <span>{s.location} · {s.lastActive}</span>
-              </div>
-              {!s.current && (
-                <button type="button" className="set-session__end" onClick={() => endSession(s.id)}>
-                  Encerrar
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="set-card__title set-card__title--row"><span><LuMonitor size={18} /> Sessões ativas</span>
+          {sessions.length > 1 && <button type="button" className="set-link-danger" disabled={busy} onClick={endOthers}><LuLogOut size={14} /> Encerrar outras sessões</button>}</div>
+        {sessionLoading && <p role="status">Carregando sessões…</p>}
+        {!sessionLoading && sessions.length === 0 && <p>Nenhuma sessão carregada.</p>}
+        <ul className="set-sessions">{sessions.map(s => <li key={s.id} className="set-session">
+          <span className="set-session__icon"><LuMonitor size={18} /></span>
+          <div className="set-session__info"><strong>{s.device}{s.current && <span className="set-session__current">Este dispositivo</span>}</strong>
+            <span>Iniciada em {new Date(s.createdAt).toLocaleString('pt-BR')} · expira em {new Date(s.expiresAt).toLocaleString('pt-BR')}</span></div>
+          {!s.current && <button type="button" className="set-session__end" disabled={busy} onClick={() => endSession(s.id)}>Encerrar</button>}
+        </li>)}</ul>
       </div>
     </div>
   )

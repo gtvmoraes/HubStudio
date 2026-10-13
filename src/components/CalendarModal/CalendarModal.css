@@ -82,6 +82,12 @@
 .cal-modal__legend-item--scheduled::before { background: var(--color-primary-solid); }
 .cal-modal__legend-item--published::before { background: var(--color-success); }
 .cal-modal__legend-item--draft::before     { background: var(--color-warning); }
+.cal-modal__legend-item--processing::before { background: #0EA5E9; }
+.cal-modal__legend-item--partial::before { background: #F59E0B; }
+.cal-modal__legend-item--failed::before { background: #EF4444; }
+.cal-modal__chip--processing { background: #0EA5E918; color: #0EA5E9; }
+.cal-modal__chip--partial { background: #F59E0B18; color: #B77900; }
+.cal-modal__chip--failed { background: #EF444418; color: #EF4444; }
 
 .cal-modal__weekdays {
   display: grid;

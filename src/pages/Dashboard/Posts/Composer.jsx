@@ -1015,7 +1015,10 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             ? 'Este post está aguardando aprovação. Para editar, retire-o da aprovação na lista de posts.'
             : 'Este post está aguardando aprovação. Revise-o pela lista de posts.')}
           {['draft', 'rejected'].includes(editingPost.status) && 'Só o autor pode editar este post.'}
-          {['published', 'failed'].includes(editingPost.status) && 'Posts já publicados não podem ser editados.'}
+          {editingPost.status === 'processing' && 'Este post está sendo processado pelas redes. Acompanhe o resultado na lista de posts.'}
+          {editingPost.status === 'partial' && 'Este post foi publicado em parte das redes. Tente novamente nas redes com falha pela lista de posts.'}
+          {editingPost.status === 'failed' && 'Este post falhou. Consulte os erros e tente novamente pela lista de posts.'}
+          {editingPost.status === 'published' && 'Posts já publicados não podem ser editados.'}
         </div>
       )}
       {editable && editingPost?.status === 'rejected' && editingPost.rejectionReason && (

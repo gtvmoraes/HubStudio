@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LuInbox, LuTrash2, LuCopy, LuSend, LuX, LuSquareCheck } from 'react-icons/lu'
-import { getAllPosts, submitPost, cancelPost } from '../../../services/posts'
+import { getAllPosts, submitPost, cancelPost, retryPost } from '../../../services/posts'
 import { dashFadeUp as fadeUp } from '../../../styles/animations'
 import { useTeam } from '../../../contexts/TeamContext'
 import { useAuth } from '../../../contexts/AuthContext'
@@ -54,11 +54,23 @@ export default function Posts() {
   const [view, setView] = useState('list')          // 'list' | 'calendar'
   const [reviewingPost, setReviewingPost] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])  // bulk select
+  const [retryingIds, setRetryingIds] = useState([])
 
   const reload = () => getAllPosts(companyId).then(setPosts)
 
   useEffect(() => {
-    reload()
+    let cancelled = false
+    let busy = false
+    const refresh = async () => {
+      if (busy) return
+      busy = true
+      const list = await getAllPosts(companyId)
+      if (!cancelled) setPosts(list)
+      busy = false
+    }
+    refresh()
+    const timer = setInterval(refresh, 15000)
+    return () => { cancelled = true; clearInterval(timer) }
   }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quem pode o quê em cada post — espelha as regras do backend (PostApprovalService).
@@ -69,6 +81,7 @@ export default function Posts() {
     canCancel:   post.status === 'scheduled' && (isAuthor(post) || can('scheduleDirectly')),
     canWithdraw: post.status === 'pending' && isAuthor(post),
     canReview:   post.status === 'pending' && can('approve') && !isAuthor(post),
+    canRetry:    ['failed', 'partial'].includes(post.status) && can('scheduleDirectly') && !retryingIds.includes(post.id),
   })
   const submitLabel = can('scheduleDirectly') ? 'Agendar' : 'Enviar pra aprovação'
 
@@ -134,7 +147,15 @@ export default function Posts() {
   }
 
   const handleAction = (action, post) => {
-    if (action === 'edit') {
+    if (action === 'retry') {
+      if (retryingIds.includes(post.id)) return
+      setRetryingIds(prev => [...prev, post.id])
+      retryPost(post.id).then(saved => {
+        setPosts(prev => prev.map(p => p.id === saved.id ? saved : p))
+        showToast({ type: saved.status === 'failed' || saved.status === 'partial' ? 'warning' : 'success',
+          title: 'Nova tentativa concluída', message: 'Confira o resultado de cada rede no post.' })
+      }).catch(notifyError).finally(() => setRetryingIds(prev => prev.filter(id => id !== post.id)))
+    } else if (action === 'edit') {
       navigate(`/dashboard/posts/${post.id}/editar`)
     } else if (action === 'cancel') {
       handleCancel(post, `Cancelar o agendamento de "${post.title}"? Ele volta para rascunhos.`)

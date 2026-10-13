@@ -21,7 +21,9 @@ export default function Login() {
   const [errors, setErrors] = useState({})
   const [globalError, setGlobalError] = useState('')
   const [isExiting, setIsExiting] = useState(false)
-  const { login } = useAuth()
+  const { login, completeTwoFactor } = useAuth()
+  const [challengeId, setChallengeId] = useState(null)
+  const [code, setCode] = useState('')
   const { theme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -46,13 +48,18 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setGlobalError('')
-    if (!validate()) return
+    if (!challengeId && !validate()) return
     setLoading(true)
     try {
-      await login(form.email, form.password)
+      if (challengeId) {
+        await completeTwoFactor(challengeId, code)
+      } else {
+        const result = await login(form.email, form.password)
+        if (result.requiresTwoFactor) { setChallengeId(result.challengeId); return }
+      }
       navigate(authReturnPath(location.search))
-    } catch {
-      setGlobalError('E-mail ou senha inválidos. Tente novamente.')
+    } catch (err) {
+      setGlobalError(err.message || 'Não foi possível entrar. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -136,6 +143,12 @@ export default function Login() {
             initial="hidden"
             animate="visible"
           >
+            {challengeId && <div className="auth__field">
+              <p>Enviamos um código ao seu e-mail. Ele expira em 10 minutos.</p>
+              <input className="auth__input" aria-label="Código de verificação" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
+              <button type="button" disabled={loading} onClick={() => { setChallengeId(null); setCode(''); setGlobalError('') }}>Voltar e solicitar outro código</button>
+            </div>}
+            {!challengeId && <>
             <motion.div className="auth__field" variants={fieldVariants}>
               <div className="auth__input-wrap">
                 <input
@@ -173,6 +186,7 @@ export default function Login() {
             <motion.div className="auth__row" variants={fieldVariants}>
               <Link to="/esqueci-senha" className="auth__forgot">Esqueceu a senha?</Link>
             </motion.div>
+            </>}
 
             {globalError && (
               <p className="auth__field-error" role="alert" style={{ marginTop: 0 }}>
@@ -184,11 +198,11 @@ export default function Login() {
             <motion.button
               type="submit"
               className="auth__submit"
-              disabled={loading}
+              disabled={loading || (challengeId && code.length !== 6)}
               aria-busy={loading}
               variants={fieldVariants}
             >
-              {loading ? <span className="auth__submit-spinner" aria-hidden="true" /> : 'Entrar'}
+              {loading ? <span className="auth__submit-spinner" aria-hidden="true" /> : challengeId ? 'Verificar código' : 'Entrar'}
             </motion.button>
           </motion.form>
 

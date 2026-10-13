@@ -26,8 +26,27 @@ export const loginService = async (email, password) => {
     throw new Error(err.message || 'Credenciais inválidas')
   }
   const data = await res.json()
+  if (data.token) localStorage.setItem('hs-token', data.token)
+  return data
+}
+
+export const verifyLogin = async (challengeId, code) => {
+  const res = await fetch(`${API_BASE}/auth/login/verify`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ challengeId, code }),
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error(error.message || 'Não foi possível verificar o código.')
+  }
+  const data = await res.json()
   localStorage.setItem('hs-token', data.token)
   return data
+}
+
+export const revokeCurrentSession = () => {
+  const token = localStorage.getItem('hs-token')
+  if (!token) return Promise.resolve()
+  return fetch(`${API_BASE}/users/me/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
 }
 
 export const fetchMe = async () => {

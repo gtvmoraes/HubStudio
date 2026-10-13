@@ -9,6 +9,9 @@ const WEEKDAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábad
 const STATUS_LABEL = {
   scheduled: 'Agendado',
   published: 'Publicado',
+  processing: 'Processando',
+  partial: 'Publicado parcialmente',
+  failed: 'Falhou',
   draft:     'Rascunho',
 }
 
@@ -42,7 +45,7 @@ export default function CalendarModal({ isOpen, onClose, markers = {} }) {
 
   // Estatísticas do mês exibido (conta os markers daquele ano/mês)
   const totals = useMemo(() => {
-    const t = { scheduled: 0, published: 0, draft: 0 }
+    const t = { scheduled: 0, published: 0, draft: 0, processing: 0, partial: 0, failed: 0 }
     Object.entries(markers).forEach(([key, status]) => {
       const [yy, mm] = key.split('-').map(Number)
       if (yy === view.year && mm === view.month && t[status] != null) t[status]++
@@ -67,6 +70,8 @@ export default function CalendarModal({ isOpen, onClose, markers = {} }) {
         </div>
 
         <div className="cal-modal__legend">
+          {['processing', 'partial', 'failed'].filter(s => totals[s] > 0).map(s =>
+            <span key={s} className={`cal-modal__legend-item cal-modal__legend-item--${s}`}>{STATUS_LABEL[s]} <strong>{totals[s]}</strong></span>)}
           <span className="cal-modal__legend-item cal-modal__legend-item--scheduled">
             Agendados <strong>{totals.scheduled}</strong>
           </span>

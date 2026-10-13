@@ -84,12 +84,16 @@ export const getRecentPosts = async (companyId = null) => {
 const STATUS_TO_MARKER = {
   draft:           'draft',
   scheduled:       'scheduled',
-  posting:         'scheduled',
+  posting:         'processing',
   posted:          'published',
-  partial_success: 'published',
-  error:           'draft',
+  partial_success: 'partial',
+  processing:      'processing',
+  partial:         'partial',
+  failed:          'failed',
+  published:       'published',
+  error:           'failed',
 }
-const MARKER_PRIORITY = { published: 3, scheduled: 2, draft: 1 }
+const MARKER_PRIORITY = { failed: 6, partial: 5, processing: 4, published: 3, scheduled: 2, draft: 1 }
 
 export const getCalendarMarkers = async (companyId = null) => {
   const posts = await getAllPosts(companyId)
@@ -212,6 +216,8 @@ export const submitPost = (postId, scheduledAt) =>
 export const approvePost = (postId, { scheduledAt, publishNow } = {}) =>
   postJson(`/posts/${postId}/approve`, 'POST', { scheduledAt: scheduledAt || null, publishNow: Boolean(publishNow) }, 'Erro ao aprovar post')
 
+export const retryPost = (postId) => postJson(`/posts/${postId}/retry`, 'POST', {}, 'Erro ao tentar publicar novamente')
+
 export const rejectPost = (postId, reason) =>
   postJson(`/posts/${postId}/reject`, 'POST', { reason }, 'Erro ao rejeitar post')
 
@@ -236,6 +242,8 @@ export const STATUS_META = {
   pending:   { label: 'Aguardando aprovação',  color: '#F59E0B' },
   scheduled: { label: 'Agendado',              color: '#4F35E8' },
   published: { label: 'Publicado',             color: '#10B981' },
+  processing: { label: 'Processando',          color: '#0EA5E9' },
+  partial:   { label: 'Publicado parcialmente', color: '#F59E0B' },
   failed:    { label: 'Falhou',                color: '#EF4444' },
   rejected:  { label: 'Rejeitado',             color: '#EF4444' },
 }

@@ -6,6 +6,7 @@ import {
 import StatusBadge from './StatusBadge'
 import NetworkPills from './NetworkPills'
 import PostMenu from './PostMenu'
+import { STATUS_META, NETWORK_META } from '../../../../services/posts'
 
 const TYPE_ICONS = {
   reel:     LuVideo,
@@ -77,6 +78,15 @@ export default function PostListItem({ post, perms = {}, submitLabel, onAction, 
           <StatusBadge status={post.status} />
         </div>
         <p className="post-row__content">{post.content}</p>
+        {['processing', 'partial', 'failed'].includes(post.status) && (
+          <ul className="post-row__platform-results">
+            {(post.platforms || []).map(pl => <li key={pl.postPlatformId || pl.platform}>
+              <strong>{NETWORK_META[pl.platform]?.label || pl.platform}:</strong>{' '}
+              {STATUS_META[pl.status]?.label || pl.status}
+              {pl.errorMessage && <span> — {pl.errorMessage}</span>}
+            </li>)}
+          </ul>
+        )}
         <div className="post-row__meta">
           <NetworkPills networks={post.networks} size={13} />
           <span className="post-row__sep">·</span>
