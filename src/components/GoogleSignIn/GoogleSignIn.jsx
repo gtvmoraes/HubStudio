@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { getGoogleConfig, beginGoogleSignIn } from '../../services/auth'
+import { beginGoogleSignIn } from '../../services/auth'
+import { GoogleIcon } from '../OAuthIcons/OAuthIcons'
 import { loadGoogleIdentity, resolveGoogleClientId } from '../../services/googleIdentity'
 import './GoogleSignIn.css'
 
@@ -35,13 +36,10 @@ export default function GoogleSignIn({ onSuccess, disabled = false, signup = fal
   }
 
   useEffect(() => {
-    if (disabled) { setStep('disabled'); return }
     let cancelled = false
     const controller = new AbortController()
     setStep('loading'); setError('')
     const prepare = async () => {
-      const config = await getGoogleConfig(controller.signal)
-      if (!config.enabled) { if (!cancelled) setStep('unavailable'); return }
       const [google, challenge] = await Promise.all([loadGoogleIdentity(), beginGoogleSignIn(controller.signal)])
       if (cancelled || !container.current) return
       google.initialize({ client_id: resolveGoogleClientId(challenge.clientId), nonce: challenge.nonce, auto_select: false,
@@ -53,7 +51,7 @@ export default function GoogleSignIn({ onSuccess, disabled = false, signup = fal
     }
     prepare().catch(err => { if (!cancelled) { setError(err.message); setStep('unavailable') } })
     return () => { cancelled = true; controller.abort(); container.current?.replaceChildren() }
-  }, [disabled, signup, restart])
+  }, [signup, restart])
 
   const confirm = async (e) => {
     e.preventDefault()
@@ -68,10 +66,15 @@ export default function GoogleSignIn({ onSuccess, disabled = false, signup = fal
   }
 
   return <div className="google-signin">
-    <div ref={container} className="google-signin__button" hidden={step !== 'ready' || working} />
-    {step === 'loading' && <p role="status">Carregando Google…</p>}
-    {step === 'disabled' && <p>{signup ? 'Aceite os termos abaixo para cadastrar-se com Google.' : 'Conclua o acesso em andamento para usar o Google.'}</p>}
-    {step === 'unavailable' && <p>Login com Google indisponível no momento.</p>}
+    <div ref={container} className="google-signin__button" hidden={step !== 'ready' || working}
+      inert={disabled ? '' : undefined} aria-disabled={disabled} />
+    {(step !== 'ready' || working) && <button type="button" className="auth__oauth-btn"
+      disabled={disabled || working || step !== 'unavailable'} aria-busy={step === 'loading' || working}
+      onClick={() => setRestart(v => v + 1)}>
+      <GoogleIcon />
+      {signup ? 'Inscrever-se com o Google' : 'Fazer login com o Google'}
+    </button>}
+    {disabled && signup && <p>Aceite os termos abaixo para cadastrar-se com Google.</p>}
     {working && <p role="status">Confirmando seu acesso…</p>}
     {['link', 'email', 'two-factor'].includes(step) && <form onSubmit={confirm}>
       <p>{step === 'link' ? 'Este e-mail já tem uma conta HubStudio. Confirme a senha dessa conta para vincular o Google.' : step === 'email'
@@ -84,6 +87,5 @@ export default function GoogleSignIn({ onSuccess, disabled = false, signup = fal
     </form>}
     {error && <p className="auth__field-error" role="alert">{error}</p>}
     {(error || ['link', 'email', 'two-factor'].includes(step)) && <button type="button" className="google-signin__retry" disabled={working} onClick={() => { setProof(''); setRestart(v => v + 1) }}>Reiniciar login com Google</button>}
-    {!signup && step === 'ready' && <small>Ao continuar com Google, você aceita os <Link to="/terms">Termos</Link> e a <Link to="/privacy">Política de Privacidade</Link>.</small>}
   </div>
 }

@@ -127,8 +127,9 @@ export default function Login() {
             <GoogleSignIn onSuccess={() => navigate(authReturnPath(location.search))} disabled={loading || Boolean(challengeId)} />
             <button type="button" className="auth__oauth-btn" aria-label="Entrar com Facebook">
               <FacebookIcon />
-              Facebook
+              Fazer login com o Facebook
             </button>
+            <p className="auth__oauth-policy">Ao continuar, você aceita os <Link to="/terms">Termos</Link> e a <Link to="/privacy">Política de Privacidade</Link>.</p>
           </div>
 
           <div className="auth__divider" role="separator">ou continue com email</div>
