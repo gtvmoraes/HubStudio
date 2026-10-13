@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { getGoogleConfig, beginGoogleSignIn } from '../../services/auth'
-import { loadGoogleIdentity } from '../../services/googleIdentity'
+import { loadGoogleIdentity, resolveGoogleClientId } from '../../services/googleIdentity'
 import './GoogleSignIn.css'
 
 export default function GoogleSignIn({ onSuccess, disabled = false, signup = false }) {
@@ -44,7 +44,7 @@ export default function GoogleSignIn({ onSuccess, disabled = false, signup = fal
       if (!config.enabled) { if (!cancelled) setStep('unavailable'); return }
       const [google, challenge] = await Promise.all([loadGoogleIdentity(), beginGoogleSignIn(controller.signal)])
       if (cancelled || !container.current) return
-      google.initialize({ client_id: challenge.clientId, nonce: challenge.nonce, auto_select: false,
+      google.initialize({ client_id: resolveGoogleClientId(challenge.clientId), nonce: challenge.nonce, auto_select: false,
         callback: response => { if (!cancelled) callback.current(response.credential, challenge.challengeId) }, ux_mode: 'popup' })
       container.current.replaceChildren()
       google.renderButton(container.current, { type: 'standard', theme: 'outline', size: 'large', text: signup ? 'signup_with' : 'signin_with',

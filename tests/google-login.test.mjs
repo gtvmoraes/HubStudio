@@ -1,11 +1,31 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { build } from 'esbuild'
 
 async function authModule() {
   const result = await build({ entryPoints: ['src/services/auth.js'], bundle: true, write: false, format: 'esm', define: { 'import.meta.env.VITE_API_URL': '"https://api.example.test"' } })
   return import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`)
 }
+
+async function identityModule(clientId = '') {
+  const source = await readFile(new URL('../src/services/googleIdentity.js', import.meta.url), 'utf8')
+  const configured = source.replace('import.meta.env.VITE_GOOGLE_CLIENT_ID', JSON.stringify(clientId))
+  return import(`data:text/javascript;base64,${Buffer.from(configured).toString('base64')}`)
+}
+
+test('Google login uses the shared Client ID or falls back to the backend', async () => {
+  const serverId = '123-shared.apps.googleusercontent.com'
+  const configured = await identityModule(` ${serverId} `)
+  assert.equal(configured.resolveGoogleClientId(serverId), serverId)
+  const fallback = await identityModule()
+  assert.equal(fallback.resolveGoogleClientId(serverId), serverId)
+})
+
+test('a different Google Client ID in the frontend cannot start a mismatched login', async () => {
+  const configured = await identityModule('123-frontend.apps.googleusercontent.com')
+  assert.throws(() => configured.resolveGoogleClientId('456-backend.apps.googleusercontent.com'), /indisponível/)
+})
 
 test('Google credentials and proofs go only to the backend without prematurely storing a session', async () => {
   const auth = await authModule()

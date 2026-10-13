@@ -1,5 +1,13 @@
 let scriptPromise
 
+export function resolveGoogleClientId(backendClientId) {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
+  if (clientId && clientId !== backendClientId) {
+    throw new Error('Login com Google indisponível no momento. Tente entrar com e-mail e senha.')
+  }
+  return clientId || backendClientId
+}
+
 export function loadGoogleIdentity() {
   if (window.google?.accounts?.id) return Promise.resolve(window.google.accounts.id)
   if (scriptPromise) return scriptPromise
