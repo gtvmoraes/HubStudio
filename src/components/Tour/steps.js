@@ -112,7 +112,7 @@ export const STEPS = [
     placement: 'bottom',
     optional: true,
     title: 'Insights da IA',
-    body: 'Leituras automáticas do seu desempenho: qual formato rende mais, onde você cresceu e qual o melhor horário pra postar.',
+    body: 'Conecte sua primeira rede social para começar. Conforme houver métricas disponíveis, este bloco mostra insights personalizados sobre seu desempenho. Você também pode conectar uma rede por aqui depois do tour.',
   },
   {
     id: 'customize',

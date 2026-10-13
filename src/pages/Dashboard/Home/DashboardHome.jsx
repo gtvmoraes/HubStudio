@@ -4,6 +4,7 @@ import { motion, Reorder } from 'framer-motion'
 import { LuLayoutGrid, LuGripVertical, LuRotateCcw, LuCheck, LuRefreshCw } from 'react-icons/lu'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTeam } from '../../../contexts/TeamContext'
+import { authFetch } from '../../../services/api'
 import {
   getStats, getEngagementData, getNetworkComparison,
   getContentReach, getBestTimes, getAudience, getAccountScore, getAudienceTotal, getAiInsights, getActivityFeed,
@@ -57,7 +58,7 @@ const loadOrder = (key, def) => {
 
 export default function DashboardHome() {
   const { user } = useAuth()
-  const { activeContext } = useTeam()
+  const { activeContext, can } = useTeam()
   const companyId = activeContext.personal ? null : activeContext.id
   const navigate = useNavigate()
   // Abre o compositor já com uma intenção. `ai` dispara a ferramenta de IA
@@ -92,6 +93,8 @@ export default function DashboardHome() {
   const [calendarMarkers, setCalendarMarkers] = useState({})
   const [aiSuggestions, setAiSuggestions] = useState([])
   const [aiInsights, setAiInsights] = useState([])
+  const [socialAccountState, setSocialAccountState] = useState({ companyId: undefined, hasAccounts: null })
+  const hasSocialAccounts = socialAccountState.companyId === companyId ? socialAccountState.hasAccounts : null
   const [upcomingPosts, setUpcomingPosts] = useState(undefined)
   const [activity, setActivity] = useState(undefined)
 
@@ -138,6 +141,26 @@ export default function DashboardHome() {
   })
 
   useEffect(() => { loadStaticData() }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false
+    const loadAccounts = async () => {
+      try {
+        const url = companyId ? `/social/accounts?companyId=${encodeURIComponent(companyId)}` : '/social/accounts'
+        const response = await authFetch(url)
+        if (!response.ok) throw new Error('Não foi possível consultar as contas sociais')
+        const accounts = await response.json()
+        if (!Array.isArray(accounts)) throw new Error('Resposta inválida de contas sociais')
+        if (!cancelled) setSocialAccountState({ companyId, hasAccounts: accounts.length > 0 })
+      } catch {
+        // Uma falha de consulta não significa que o usuário não conectou redes.
+        if (!cancelled) setSocialAccountState({ companyId, hasAccounts: null })
+      }
+    }
+    loadAccounts()
+    window.addEventListener('focus', loadAccounts)
+    return () => { cancelled = true; window.removeEventListener('focus', loadAccounts) }
+  }, [companyId, user?.id])
 
   // Top posts, alcance por tipo de conteúdo e melhores horários dependem tanto
   // de período quanto de rede — antes ignoravam os dois filtros por completo.
@@ -257,7 +280,7 @@ export default function DashboardHome() {
   const LEFT_BLOCKS = {
     kpis: <KpiGrid stats={stats} />,
     followersTotal: <FollowersCard data={audienceTotal} growth={followerGrowth} />,
-    insights: <AIInsightsBar insights={aiInsights} />,
+    insights: <AIInsightsBar insights={aiInsights} hasSocialAccounts={hasSocialAccounts} canConnect={can('accountSettings')} />,
     charts: (
       <div className="dash-home__charts">
         <EngagementChart
