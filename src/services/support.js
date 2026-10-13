@@ -2,7 +2,7 @@
 // Arquivo inteiro (base de conhecimento, artigos, status do sistema, chamados
 // e FAQ). Nada aqui persiste: `createTicket` só guarda o chamado em memória e
 // some ao recarregar a página. Na UI da página de Suporte também são mocks:
-// abrir artigo/categoria, anexar arquivo no chamado e o chat ao vivo.
+// abrir artigo/categoria e anexar arquivo no chamado. O chat de IA usa supportChat.js.
 // Quando os endpoints existirem, substituir só o corpo das funções —
 // os contratos de retorno não mudam.
 

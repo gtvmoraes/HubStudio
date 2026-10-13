@@ -12,10 +12,10 @@ export default function SupportChannels({ onOpenChat, onOpenTicket }) {
     {
       id: 'chat',
       icon: LuMessageCircle,
-      title: 'Chat ao vivo',
-      desc: 'Fale agora com um especialista.',
-      meta: 'Online · responde em ~2 min',
-      online: true,
+      title: 'Assistente HubStudio',
+      desc: 'Pergunte sobre seu perfil ou tire dúvidas de uso.',
+      meta: 'Respostas com inteligência artificial',
+      online: false,
       onClick: onOpenChat,
     },
     {
