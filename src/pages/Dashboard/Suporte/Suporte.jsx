@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LuCircleCheck } from 'react-icons/lu'
 import { useAuth } from '../../../contexts/AuthContext'
@@ -15,13 +16,13 @@ import MyTickets from './components/MyTickets'
 import NewTicketModal from './components/NewTicketModal'
 import SystemStatus from './components/SystemStatus'
 import SupportPlanCard from './components/SupportPlanCard'
-import LiveChatWidget from './components/LiveChatWidget'
 
 import './Suporte.css'
 import RestartTourButton from '../../../components/Tour/RestartTourButton'
 
 export default function Suporte() {
   const { user } = useAuth()
+  const { openSupportChat } = useOutletContext()
   const firstName = user?.name?.split(' ')[0] || 'por aí'
 
   const [categories, setCategories] = useState([])
@@ -31,7 +32,6 @@ export default function Suporte() {
   const [faqs, setFaqs] = useState([])
 
   const [ticketModalOpen, setTicketModalOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function Suporte() {
       />
 
       <SupportChannels
-        onOpenChat={() => setChatOpen(true)}
+        onOpenChat={openSupportChat}
         onOpenTicket={() => setTicketModalOpen(true)}
       />
 
@@ -110,7 +110,6 @@ export default function Suporte() {
         onSubmit={handleCreateTicket}
       />
 
-      <LiveChatWidget open={chatOpen} onOpenChange={setChatOpen} />
 
       <AnimatePresence>
         {toast && (

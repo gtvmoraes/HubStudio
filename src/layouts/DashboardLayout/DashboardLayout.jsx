@@ -5,6 +5,7 @@ import SearchModal from '../../components/SearchModal/SearchModal'
 import ShortcutsModal from '../../components/ShortcutsModal/ShortcutsModal'
 import { TourProvider } from '../../components/Tour/TourProvider'
 import ImportAccountsModal from '../../pages/Dashboard/Equipes/components/ImportAccountsModal'
+import LiveChatWidget from '../../pages/Dashboard/Suporte/components/LiveChatWidget'
 import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts'
 import { useTeam } from '../../contexts/TeamContext'
 import './DashboardLayout.css'
@@ -15,6 +16,7 @@ export default function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
 
   // Substituiu o antigo PostModal por navegação pra página de composição
   const openComposer = () => navigate('/dashboard/posts/novo')
@@ -36,7 +38,7 @@ export default function DashboardLayout() {
         onOpenSearch={() => setShowSearch(true)}
       />
       <main className="dashboard-main">
-        <Outlet />
+        <Outlet context={{ openSupportChat: () => setChatOpen(true) }} />
       </main>
 
       <SearchModal
@@ -55,6 +57,7 @@ export default function DashboardLayout() {
         isOpen={Boolean(pendingImport)}
         onClose={dismissPendingImport}
       />
+      <LiveChatWidget open={chatOpen} onOpenChange={setChatOpen} />
     </div>
     </TourProvider>
   )

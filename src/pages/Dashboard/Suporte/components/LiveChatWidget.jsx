@@ -5,6 +5,7 @@ import { LuMessageCircle, LuX, LuSend, LuTrash2 } from 'react-icons/lu'
 import { useAuth } from '../../../../contexts/AuthContext'
 import { useTeam } from '../../../../contexts/TeamContext'
 import { getChatHistory, sendChatMessage, clearChatHistory } from '../../../../services/supportChat'
+import '../Suporte.css'
 
 const SOURCE_PATHS = new Set(['/dashboard/configuracoes?tab=perfil', '/dashboard/configuracoes?tab=redes', '/dashboard/posts', '/dashboard', '/dashboard/suporte'])
 
