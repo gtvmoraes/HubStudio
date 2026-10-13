@@ -6,7 +6,8 @@ import { LuArrowLeft, LuCheck, LuCircleAlert } from 'react-icons/lu'
 import { useAuth } from '../../contexts/AuthContext'
 import { joinByCodeApi } from '../../services/team'
 import { useTheme } from '../../contexts/ThemeContext'
-import { GoogleIcon, FacebookIcon } from '../../components/OAuthIcons/OAuthIcons'
+import { FacebookIcon } from '../../components/OAuthIcons/OAuthIcons'
+import GoogleSignIn from '../../components/GoogleSignIn/GoogleSignIn'
 import { AuthPasswordField, StrengthMeter } from '../../components/PasswordField/PasswordField'
 import { formContainerVariants, fieldVariants } from '../../styles/animations'
 import { calcStrength } from '../../utils/password'
@@ -140,10 +141,10 @@ export default function Cadastro() {
           </header>
 
           <div className="auth__oauth">
-            <button type="button" className="auth__oauth-btn" aria-label="Cadastrar-se com Google">
-              <GoogleIcon />
-              Google
-            </button>
+            <GoogleSignIn signup disabled={loading || !form.acceptTerms} onSuccess={async () => {
+              if (form.teamCode.trim()) { try { await joinByCodeApi(form.teamCode.trim().toUpperCase()) } catch { /* O convite por link continua disponível. */ } }
+              navigate(authReturnPath(location.search))
+            }} />
             <button type="button" className="auth__oauth-btn" aria-label="Cadastrar-se com Facebook">
               <FacebookIcon />
               Facebook

@@ -15,6 +15,23 @@ const recoveryRequest = async (path, body) => {
 export const forgotPassword = (email) => recoveryRequest('forgot-password', { email: email.trim() })
 export const resetPassword = (token, newPassword) => recoveryRequest('reset-password', { token, newPassword })
 
+const googleRequest = async (path, body, signal) => {
+  const res = await fetch(`${API_BASE}/auth/google${path}`, {
+    method: body === undefined ? 'GET' : 'POST', signal,
+    ...(body !== undefined ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error(error.message || error.error || 'Não foi possível entrar com Google. Tente novamente.')
+  }
+  return res.json()
+}
+export const getGoogleConfig = (signal) => googleRequest('/config', undefined, signal)
+export const beginGoogleSignIn = (signal) => googleRequest('/challenge', {}, signal)
+export const googleLoginService = (credential, challengeId) => googleRequest('', { credential, challengeId })
+export const linkGoogleAccountService = (challengeId, currentPassword) => googleRequest('/link', { challengeId, currentPassword })
+export const verifyGoogleEmailService = (challengeId, code) => googleRequest('/verify-email', { challengeId, code })
+
 export const loginService = async (email, password) => {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
@@ -49,8 +66,8 @@ export const revokeCurrentSession = () => {
   return fetch(`${API_BASE}/users/me/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
 }
 
-export const fetchMe = async () => {
-  const token = localStorage.getItem('hs-token')
+export const fetchMe = async (verifiedToken) => {
+  const token = verifiedToken || localStorage.getItem('hs-token')
   const res = await fetch(`${API_BASE}/users/me`, {
     headers: { 'Authorization': `Bearer ${token}` },
   })

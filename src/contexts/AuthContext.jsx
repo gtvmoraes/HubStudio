@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { loginService, registerService, fetchMe, verifyLogin, revokeCurrentSession } from '../services/auth'
+import { googleLoginService, linkGoogleAccountService, verifyGoogleEmailService } from '../services/auth'
 
 const AuthContext = createContext(null)
 
@@ -52,6 +53,19 @@ export function AuthProvider({ children }) {
     return profile
   }
 
+  const finishGoogleLogin = async (result) => {
+    if (!result.token) return result
+    const profile = await fetchMe(result.token)
+    localStorage.setItem('hs-token', result.token)
+    updateUser(profile)
+    if (result.createdUser) localStorage.setItem('hs-show-onboarding', '1')
+    else localStorage.removeItem('hs-show-onboarding')
+    return profile
+  }
+  const loginGoogle = async (credential, challengeId) => finishGoogleLogin(await googleLoginService(credential, challengeId))
+  const linkGoogle = async (challengeId, password) => finishGoogleLogin(await linkGoogleAccountService(challengeId, password))
+  const verifyGoogleEmail = async (challengeId, code) => finishGoogleLogin(await verifyGoogleEmailService(challengeId, code))
+
   const register = async (data) => {
     await registerService(data)
     await loginService(data.email, data.password)
@@ -69,7 +83,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, completeTwoFactor, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, completeTwoFactor, loginGoogle, linkGoogle, verifyGoogleEmail, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

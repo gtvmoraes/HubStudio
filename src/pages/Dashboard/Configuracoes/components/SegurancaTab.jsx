@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { LuKeyRound, LuShieldCheck, LuMonitor, LuLogOut } from 'react-icons/lu'
 import { getSessions, changePassword, revokeSession, revokeOtherSessions, requestTwoFactorCode, configureTwoFactor } from '../../../../services/settings'
 import { useAuth } from '../../../../contexts/AuthContext'
@@ -60,6 +61,7 @@ export default function SegurancaTab() {
     <div className="set-section">
       <div className="set-section__head"><h2>Segurança</h2><p>Controle sua senha, verificação em duas etapas e sessões.</p></div>
       {error && <p role="alert">{error}</p>}
+      {user.passwordLoginEnabled === false && <p>Sua conta usa Google. Para ações que pedem senha atual, <Link to="/esqueci-senha">defina uma senha pela recuperação de senha</Link>.</p>}
       <form className="set-card" onSubmit={savePwd}>
         <div className="set-card__title"><LuKeyRound size={18} /> Alterar senha</div>
         <div className="set-form-grid">

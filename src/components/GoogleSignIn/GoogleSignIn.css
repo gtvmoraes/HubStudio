@@ -1,0 +1,8 @@
+.google-signin { width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.auth__oauth > .google-signin { grid-column: 1 / -1; }
+.google-signin__button { min-width: 0; min-height: 44px; }
+.google-signin p, .google-signin small { font-size: 0.78rem; line-height: 1.5; color: var(--color-text-muted); margin: 0; }
+.google-signin form { display: flex; flex-direction: column; gap: 10px; }
+.google-signin a { color: var(--color-primary-solid); }
+.google-signin__retry { padding: 0; border: 0; background: transparent; color: var(--color-primary-solid); font: inherit; font-size: 0.8rem; cursor: pointer; text-align: left; }
+.google-signin .auth__field-error { color: var(--color-error); }

@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import { LuArrowLeft, LuCircleAlert } from 'react-icons/lu'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { GoogleIcon, FacebookIcon } from '../../components/OAuthIcons/OAuthIcons'
+import { FacebookIcon } from '../../components/OAuthIcons/OAuthIcons'
+import GoogleSignIn from '../../components/GoogleSignIn/GoogleSignIn'
 import { AuthPasswordField } from '../../components/PasswordField/PasswordField'
 import { formContainerVariants, fieldVariants } from '../../styles/animations'
 import logoHub from '../../assets/images/logo-hub.png'
@@ -123,10 +124,7 @@ export default function Login() {
           </header>
 
           <div className="auth__oauth">
-            <button type="button" className="auth__oauth-btn" aria-label="Entrar com Google">
-              <GoogleIcon />
-              Google
-            </button>
+            <GoogleSignIn onSuccess={() => navigate(authReturnPath(location.search))} disabled={loading || Boolean(challengeId)} />
             <button type="button" className="auth__oauth-btn" aria-label="Entrar com Facebook">
               <FacebookIcon />
               Facebook
