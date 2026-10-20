@@ -123,7 +123,7 @@ export default function RedesTab() {
     }
   }
 
-  const handleRefreshProfile = async (accountId) => {
+  const handleRefreshProfile = async (accountId, networkName) => {
     setRefreshingProfile(accountId)
     setError('')
     setProfileFeedback('')
@@ -136,10 +136,10 @@ export default function RedesTab() {
       setAccounts(prev => prev.map(a => a.id === accountId ? data : a))
       setFailedAvatars(prev => ({ ...prev, [accountId]: null }))
       setProfileFeedback(data.avatarUrl
-        ? 'Perfil LinkedIn atualizado. Se a imagem não carregar, tente autorizar a conta novamente.'
-        : 'O LinkedIn não retornou a foto deste perfil. Confira sua foto no LinkedIn e tente autorizar novamente.')
+        ? `Perfil ${networkName} atualizado. Se a imagem não carregar, tente autorizar a conta novamente.`
+        : `O ${networkName} não retornou a foto deste perfil. Confira sua foto no ${networkName} e tente autorizar novamente.`)
     } catch (e) {
-      setError(`Erro ao atualizar perfil LinkedIn: ${e.message}`)
+      setError(`Erro ao atualizar perfil ${networkName}: ${e.message}`)
     } finally {
       setRefreshingProfile(null)
     }
@@ -279,16 +279,16 @@ export default function RedesTab() {
                 {id === 'linkedin' && (
                   <p className="set-net-card__description">Conecta nome e foto do perfil e permite publicar. Histórico e métricas exigem permissões adicionais do LinkedIn.</p>
                 )}
-                {id === 'linkedin' && avatarUrl && failedAvatars[accountId] === avatarUrl && (
+                {(id === 'linkedin' || id === 'instagram') && avatarUrl && failedAvatars[accountId] === avatarUrl && (
                   <p className="set-net-card__description">A foto não carregou. Use Atualizar perfil para buscar a imagem novamente.</p>
                 )}
               </div>
 
               <div className="set-net-card__actions">
-                {id === 'linkedin' && status === 'connected' && (
+                {(id === 'linkedin' || id === 'instagram') && status === 'connected' && (
                   <>
                     <Button variant="outline" size="sm" fullWidth
-                      onClick={() => handleRefreshProfile(accountId)} disabled={isBusy || !canManage}>
+                      onClick={() => handleRefreshProfile(accountId, name)} disabled={isBusy || !canManage}>
                       <LuRefreshCw size={13} /> Atualizar perfil
                     </Button>
                     <Button variant="outline" size="sm" fullWidth
