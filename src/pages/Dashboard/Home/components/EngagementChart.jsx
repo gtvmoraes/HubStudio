@@ -17,6 +17,9 @@ const METRICS = [
   { key: 'views',    label: 'Visualizações', color: '#4F35E8' },
   { key: 'likes',    label: 'Curtidas',      color: '#E84FA5' },
   { key: 'comments', label: 'Comentários',   color: '#10B981' },
+  // Seguidores é um nível (total naquele momento), não soma do intervalo:
+  // o card mostra o valor atual e o resumo mostra a variação no período
+  { key: 'followers', label: 'Seguidores',   color: '#F59E0B', level: true },
 ]
 
 const fmtCompact = (n) => {
@@ -34,7 +37,7 @@ function MetricTooltip({ active, payload, label, color, metricLabel }) {
       <span className="eng-tooltip__date">{label}</span>
       <span className="eng-tooltip__value" style={{ color }}>
         <span className="eng-tooltip__dot" style={{ background: color }} />
-        {metricLabel}: <strong>{payload[0].value.toLocaleString('pt-BR')}</strong>
+        {metricLabel}: <strong>{payload[0].value == null ? '—' : payload[0].value.toLocaleString('pt-BR')}</strong>
       </span>
     </div>
   )
@@ -45,27 +48,35 @@ export default function EngagementChart({ data, granularity, onGranularityChange
   const [metricKey, setMetricKey] = useState('views')
   const isEmpty = !data || data.length === 0
 
+  // Pontos de seguidores com coleta (antes da primeira coleta o backend manda null)
+  const followerPoints = useMemo(() => (data ?? []).filter(d => d.followers != null), [data])
+
   const totals = useMemo(() => {
-    const acc = { views: 0, likes: 0, comments: 0 }
+    const acc = { views: 0, likes: 0, comments: 0, followers: null }
     data?.forEach(d => {
       acc.views += d.views || 0
       acc.likes += d.likes || 0
       acc.comments += d.comments || 0
     })
+    if (followerPoints.length) acc.followers = followerPoints[followerPoints.length - 1].followers
     return acc
-  }, [data])
+  }, [data, followerPoints])
 
   const metric = METRICS.find(m => m.key === metricKey)
 
   // Contexto que reconcilia o total (no card) com a escala do gráfico (por período)
   const stats = useMemo(() => {
     if (!data || data.length === 0) return null
+    if (metric.level) {
+      if (!followerPoints.length) return null
+      return { change: followerPoints[followerPoints.length - 1].followers - followerPoints[0].followers }
+    }
     const vals = data.map(d => d[metricKey] || 0)
     return {
       avg: vals.reduce((a, b) => a + b, 0) / vals.length,
       max: Math.max(...vals),
     }
-  }, [data, metricKey])
+  }, [data, metricKey, metric, followerPoints])
 
   return (
     <motion.div
@@ -102,8 +113,10 @@ export default function EngagementChart({ data, granularity, onGranularityChange
               <span className="eng-metric__dot" style={{ background: m.color }} />
               {m.label}
             </span>
-            <span className="eng-metric__value"><AnimatedNumber value={fmtCompact(totals[m.key])} /></span>
-            <span className="eng-metric__caption">total no período</span>
+            <span className="eng-metric__value">
+              {totals[m.key] == null ? '—' : <AnimatedNumber value={fmtCompact(totals[m.key])} />}
+            </span>
+            <span className="eng-metric__caption">{m.level ? 'atual' : 'total no período'}</span>
           </button>
         ))}
       </div>
@@ -114,7 +127,18 @@ export default function EngagementChart({ data, granularity, onGranularityChange
         <div className="chart-card__empty">Sem dados para o período selecionado.</div>
       ) : (
         <>
-          {stats && (
+          {stats && metric.level && (
+            <div className="eng-summary">
+              <span className="eng-summary__dot" style={{ background: metric.color }} />
+              Variação no período:
+              <strong>{stats.change > 0 ? '+' : stats.change < 0 ? '−' : ''}{fmtCompact(Math.abs(stats.change))}</strong>
+              seguidores
+            </div>
+          )}
+          {metric.level && !followerPoints.length && (
+            <div className="eng-summary">Ainda não há coleta de seguidores neste período.</div>
+          )}
+          {stats && !metric.level && (
             <div className="eng-summary">
               <span className="eng-summary__dot" style={{ background: metric.color }} />
               {metric.label} por {PERIOD_WORD[granularity]}:
@@ -142,6 +166,9 @@ export default function EngagementChart({ data, granularity, onGranularityChange
             <YAxis
               tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
               tickFormatter={fmtCompact}
+              // Seguidores: escala a partir do menor valor, senão a curva fica achatada no topo
+              domain={metric.level ? ['auto', 'auto'] : [0, 'auto']}
+              allowDecimals={false}
               axisLine={false}
               tickLine={false}
               width={48}

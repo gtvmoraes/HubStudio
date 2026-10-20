@@ -689,9 +689,12 @@
 /* ─── Engagement chart (área + seletor de métrica) ─── */
 .eng-metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 18px;
+}
+@media (max-width: 640px) {
+  .eng-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .eng-metric {
   display: flex;
