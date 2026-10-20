@@ -272,6 +272,10 @@
 
 /* Ações do card de rede */
 .set-net-card__actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.set-net-card__stats { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.set-net-card__stats div { padding: 6px 8px; border-radius: 10px; background: var(--color-bg-tertiary); min-width: 0; }
+.set-net-card__stats dt { font-size: 0.68rem; color: var(--color-text-muted); }
+.set-net-card__stats dd { margin: 0; font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
 .set-net-card__description { margin-top: 8px; font-size: var(--font-size-sm); color: var(--color-text-muted); line-height: 1.5; }
 .set-net-card__avatar {
   width: 100%;

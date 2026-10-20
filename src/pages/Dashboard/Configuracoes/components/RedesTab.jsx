@@ -88,6 +88,8 @@ export default function RedesTab() {
     return () => window.removeEventListener('focus', onFocus)
   }, [fetchAccounts])
 
+  const formatStat = (value) => value == null ? '—' : new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+
   // Mescla os dados da API com a lista fixa de plataformas
   const networks = ALL_PLATFORMS.map(p => {
     const connected = accounts.find(a => a.platform === p.id)
@@ -96,6 +98,9 @@ export default function RedesTab() {
       accountId: connected?.id ?? null,
       handle: connected?.username ?? '—',
       avatarUrl: connected?.avatarUrl ?? null,
+      followersCount: connected?.followersCount ?? null,
+      mediaCount: connected?.mediaCount ?? null,
+      likesCount: connected?.likesCount ?? null,
       status: connected?.status ?? 'disconnected',
       tokenExpiresAt: connected?.tokenExpiresAt ?? null,
       companyName: connected?.companyName ?? null,
@@ -239,7 +244,7 @@ export default function RedesTab() {
       )}
 
       <div className="set-net-grid" data-tour="redes-grid">
-        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, accountId, companyName, personal }, i) => {
+        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, followersCount, mediaCount, likesCount, accountId, companyName, personal }, i) => {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon
           const color = networkColor(id, theme)
@@ -275,6 +280,13 @@ export default function RedesTab() {
                   <span className="set-net-card__context">
                     {personal ? 'Pessoal' : companyName}
                   </span>
+                )}
+                {id === 'instagram' && status !== 'disconnected' && (followersCount != null || mediaCount != null || likesCount != null) && (
+                  <dl className="set-net-card__stats">
+                    <div><dt>Seguidores</dt><dd>{formatStat(followersCount)}</dd></div>
+                    <div><dt>Posts</dt><dd>{formatStat(mediaCount)}</dd></div>
+                    <div><dt>Curtidas</dt><dd>{formatStat(likesCount)}</dd></div>
+                  </dl>
                 )}
                 {id === 'linkedin' && (
                   <p className="set-net-card__description">Conecta nome e foto do perfil e permite publicar. Histórico e métricas exigem permissões adicionais do LinkedIn.</p>
