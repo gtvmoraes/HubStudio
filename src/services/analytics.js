@@ -85,13 +85,14 @@ export const getAudience = async (companyId = null) => {
 export const getAiInsights = (period = '30d', companyId = null) =>
   getArray(`/analytics/ai-insights?period=${period}`, companyId)
 
-// MOCK — aguardando backend.
-// Único dado fabricado que restou neste arquivo. Quando existir o endpoint,
-// trocar por: getArray('/analytics/activity-feed', companyId)
-export const getActivityFeed = () => Promise.resolve([
-  { id: 1, type: 'publish',   text: 'Post "5 dicas para aumentar seu engajamento" foi publicado', time: 'há 2h' },
-  { id: 2, type: 'milestone', text: 'Você ultrapassou 8.500 seguidores no Instagram',             time: 'há 5h' },
-  { id: 3, type: 'comment',   text: '23 novos comentários no seu último Reel',                     time: 'há 8h' },
-  { id: 4, type: 'connect',   text: 'Conta do YouTube reconectada com sucesso',                   time: 'ontem' },
-  { id: 5, type: 'schedule',  text: 'Post "Como criar conteúdo que conecta" foi agendado',        time: 'ontem' },
-])
+// Força nova coleta de seguidores (Instagram/TikTok/YouTube/LinkedIn) ignorando
+// o cache de 6h — contas coletadas há menos de 5 min são puladas pelo backend.
+export const refreshFollowers = async (companyId = null) => {
+  const res = await authFetch(withCompany('/analytics/followers/refresh', companyId), { method: 'POST' })
+  if (!res.ok) throw new Error('Falha ao atualizar seguidores')
+}
+
+// Publicações, falhas, agendamentos, contas conectadas e marcos de seguidores
+// dos últimos 30 dias — cada item traz `at` (ISO) e o card formata o "há 2h".
+export const getActivityFeed = (companyId = null) =>
+  getArray('/analytics/activity-feed', companyId)

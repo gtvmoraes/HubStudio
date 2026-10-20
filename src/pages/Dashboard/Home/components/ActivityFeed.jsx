@@ -1,14 +1,29 @@
 import { motion } from 'framer-motion'
-import { LuSend, LuTrophy, LuMessageCircle, LuPlug, LuCalendarClock } from 'react-icons/lu'
+import { LuSend, LuTrophy, LuTriangleAlert, LuPlug, LuCalendarClock } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import { SkeletonList } from './CardSkeleton'
 
 const TYPE_META = {
   publish:   { icon: LuSend,          color: '#10B981' },
   milestone: { icon: LuTrophy,        color: '#F59E0B' },
-  comment:   { icon: LuMessageCircle, color: '#4F35E8' },
+  error:     { icon: LuTriangleAlert, color: '#EF4444' },
   connect:   { icon: LuPlug,          color: '#7C5FE8' },
   schedule:  { icon: LuCalendarClock, color: '#6B7280' },
+}
+
+// "há 5 min", "há 2h", "ontem", "há 3 dias" — o backend manda só o horário (`at`)
+function timeAgo(iso) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const minutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000))
+  if (minutes < 1) return 'agora'
+  if (minutes < 60) return `há ${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `há ${hours}h`
+  const days = Math.round(hours / 24)
+  if (days === 1) return 'ontem'
+  if (days < 7) return `há ${days} dias`
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
 export default function ActivityFeed({ items }) {
@@ -37,7 +52,7 @@ export default function ActivityFeed({ items }) {
                 </span>
                 <div className="activity__body">
                   <p>{item.text}</p>
-                  <span className="activity__time">{item.time}</span>
+                  <span className="activity__time">{timeAgo(item.at)}</span>
                 </div>
               </li>
             )

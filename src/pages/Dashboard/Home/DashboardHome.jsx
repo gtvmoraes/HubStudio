@@ -8,6 +8,7 @@ import { authFetch } from '../../../services/api'
 import {
   getStats, getEngagementData, getNetworkComparison,
   getContentReach, getBestTimes, getAudience, getAccountScore, getAudienceTotal, getAiInsights, getActivityFeed,
+  refreshFollowers,
 } from '../../../services/analytics'
 import {
   getTopPosts, getRecentPosts, getCalendarMarkers, getAiSuggestions, getUpcomingPosts,
@@ -125,7 +126,7 @@ export default function DashboardHome() {
     getCalendarMarkers(companyId),
     getAiSuggestions(),
     getUpcomingPosts(companyId),
-    getActivityFeed(),
+    getActivityFeed(companyId),
   ]).then(([
     audienceRes, accountScoreRes,
     recentPostsRes, markersRes, aiSuggestionsRes,
@@ -242,10 +243,13 @@ export default function DashboardHome() {
     if (refreshing) return
     setRefreshing(true)
     try {
-      if (localStorage.getItem('hs-token')) {
-        await refreshAllMetrics(companyId)
-      }
+      // Métricas dos posts e seguidores em paralelo; se um falhar, o outro e o
+      // recarregamento dos cards seguem, e o feedback avisa do erro
+      const results = localStorage.getItem('hs-token')
+        ? await Promise.allSettled([refreshAllMetrics(companyId), refreshFollowers(companyId)])
+        : []
       await Promise.all([loadStaticData(), loadFilteredData()])
+      if (results.some(r => r.status === 'rejected')) throw new Error('refresh parcial')
       flashFeedback('refresh', 'Atualizado!')
     } catch {
       flashFeedback('refresh', 'Erro ao atualizar')
