@@ -278,7 +278,7 @@ export default function DashboardHome() {
   // ─── Registry de blocos: cada id → conteúdo. Mantém os pares lado a lado
   //     como uma unidade arrastável (charts, audience, bottom). ───
   const LEFT_BLOCKS = {
-    kpis: <KpiGrid stats={stats} />,
+    kpis: <KpiGrid stats={stats} followers={audienceTotal} />,
     followersTotal: <FollowersCard data={audienceTotal} growth={followerGrowth} />,
     insights: <AIInsightsBar insights={aiInsights} hasSocialAccounts={hasSocialAccounts} canConnect={can('accountSettings')} />,
     charts: (

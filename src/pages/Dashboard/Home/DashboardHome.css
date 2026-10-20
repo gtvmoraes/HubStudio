@@ -355,7 +355,7 @@
 /* KPI cards */
 .dash-home__kpis {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -392,6 +392,15 @@
   justify-content: center;
   flex-shrink: 0;
   border: 1px solid var(--color-primary-solid);
+}
+
+/* Seguidores: card principal — ícone preenchido e borda na cor da marca */
+.kpi-card--primary {
+  border-color: color-mix(in srgb, var(--color-primary-solid) 45%, var(--color-border));
+}
+.kpi-card--primary .kpi-card__icon {
+  background: var(--color-primary-solid);
+  color: #fff;
 }
 
 .kpi-card__body {
@@ -2158,7 +2167,7 @@
 @media (max-width: 1200px) {
   /* Colunas empilham (esquerda e depois direita), cada uma full-width */
   .dash-home__grid { grid-template-columns: minmax(0, 1fr); }
-  .dash-home__kpis { grid-template-columns: repeat(3, 1fr); }
+  .dash-home__kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1024px) {

@@ -1,20 +1,21 @@
 import { motion } from 'framer-motion'
-import { LuEye, LuHeart, LuMessageCircle, LuTrendingUp, LuTrendingDown } from 'react-icons/lu'
+import { LuEye, LuHeart, LuMessageCircle, LuTrendingUp, LuTrendingDown, LuUsers } from 'react-icons/lu'
 import { dashFadeUp as fadeUp } from '../../../../styles/animations'
 import AnimatedNumber from '../../../../components/AnimatedNumber/AnimatedNumber'
 
 const STAT_ICONS = {
-  views: LuEye, likes: LuHeart, comments: LuMessageCircle,
+  followers: LuUsers, views: LuEye, likes: LuHeart, comments: LuMessageCircle,
 }
 const STAT_LABELS = {
+  followers: 'Seguidores',
   views: 'Visualizações',
   likes: 'Curtidas',
   comments: 'Comentários',
 }
 
 // Views/likes/comments vêm das métricas reais coletadas por post (TikTok/
-// YouTube/Instagram/Facebook/LinkedIn). Seguidores/inscritos têm seu próprio
-// card (FollowersCard, soma Instagram+TikTok+YouTube) em vez de entrar aqui.
+// YouTube/Instagram/Facebook/LinkedIn). Seguidores é o card principal e vem de
+// getAudienceTotal (soma Instagram+TikTok+YouTube), carregado à parte.
 const SHOWN_KEYS = ['views', 'likes', 'comments']
 
 function Skeleton() {
@@ -29,70 +30,41 @@ function Skeleton() {
   )
 }
 
-export default function KpiGrid({ stats }) {
-  // undefined = ainda carregando · null = carregou e não há dado (não fica em
-  // skeleton pra sempre quando a API falha ou a conta não tem métrica)
-  if (stats === undefined) {
-    return (
-      <div className="dash-home__kpis">
-        {[...Array(3)].map((_, i) => <Skeleton key={i} />)}
+function KpiCard({ statKey, val, index, primary }) {
+  const Icon = STAT_ICONS[statKey]
+  const TrendIcon = val?.trend === 'down' ? LuTrendingDown : LuTrendingUp
+  return (
+    <motion.div
+      className={`kpi-card${primary ? ' kpi-card--primary' : ''}`}
+      variants={fadeUp} initial="hidden" animate="visible" custom={index}
+    >
+      <div className="kpi-card__top">
+        <div className="kpi-card__icon"><Icon size={24} /></div>
+        {val?.change && (
+          <span className={`kpi-card__change kpi-card__change--${val.trend}`}>
+            <TrendIcon size={12} /> {val.change}
+          </span>
+        )}
       </div>
-    )
-  }
-
-  if (!stats) {
-    return (
-      <div className="dash-home__kpis">
-        {SHOWN_KEYS.map((key, i) => {
-          const Icon = STAT_ICONS[key]
-          return (
-            <motion.div
-              key={key}
-              className="kpi-card"
-              variants={fadeUp} initial="hidden" animate="visible" custom={i}
-            >
-              <div className="kpi-card__top">
-                <div className="kpi-card__icon"><Icon size={24} /></div>
-              </div>
-              <div className="kpi-card__body">
-                <span className="kpi-card__label">{STAT_LABELS[key]}</span>
-                <span className="kpi-card__value">—</span>
-              </div>
-            </motion.div>
-          )
-        })}
+      <div className="kpi-card__body">
+        <span className="kpi-card__label">{STAT_LABELS[statKey]}</span>
+        <span className="kpi-card__value">{val ? <AnimatedNumber value={val.value} /> : '—'}</span>
       </div>
-    )
-  }
+    </motion.div>
+  )
+}
 
+// `stats` e `followers`: undefined = ainda carregando · null = carregou e não há
+// dado (não fica em skeleton pra sempre quando a API falha ou a conta não tem métrica)
+export default function KpiGrid({ stats, followers }) {
   return (
     <div className="dash-home__kpis">
-      {Object.entries(stats)
-        .filter(([key]) => SHOWN_KEYS.includes(key))
-        .map(([key, val], i) => {
-          const Icon = STAT_ICONS[key]
-          const TrendIcon = val.trend === 'down' ? LuTrendingDown : LuTrendingUp
-          return (
-            <motion.div
-              key={key}
-              className="kpi-card"
-              variants={fadeUp} initial="hidden" animate="visible" custom={i}
-            >
-              <div className="kpi-card__top">
-                <div className="kpi-card__icon"><Icon size={24} /></div>
-                {val.change && (
-                  <span className={`kpi-card__change kpi-card__change--${val.trend}`}>
-                    <TrendIcon size={12} /> {val.change}
-                  </span>
-                )}
-              </div>
-              <div className="kpi-card__body">
-                <span className="kpi-card__label">{STAT_LABELS[key]}</span>
-                <span className="kpi-card__value"><AnimatedNumber value={val.value} /></span>
-              </div>
-            </motion.div>
-          )
-        })}
+      {followers === undefined
+        ? <Skeleton />
+        : <KpiCard statKey="followers" val={followers} index={0} primary />}
+      {SHOWN_KEYS.map((key, i) => stats === undefined
+        ? <Skeleton key={key} />
+        : <KpiCard key={key} statKey={key} val={stats?.[key]} index={i + 1} />)}
     </div>
   )
 }
