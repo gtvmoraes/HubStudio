@@ -190,7 +190,7 @@ export default function FollowersCard({ data, growth }) {
                     <div className="followers-total__net-track">
                       <span
                         className="followers-total__net-fill"
-                        style={{ width: `${pct}%`, background: networkColor(item.network, theme) }}
+                        style={{ '--fill': `${pct}%`, background: networkColor(item.network, theme) }}
                       />
                     </div>
                   </div>
