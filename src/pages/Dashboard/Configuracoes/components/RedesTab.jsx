@@ -105,6 +105,7 @@ export default function RedesTab() {
       tokenExpiresAt: connected?.tokenExpiresAt ?? null,
       companyName: connected?.companyName ?? null,
       personal: connected?.personal ?? null,
+      missingScopes: connected?.missingScopes ?? [],
     }
   })
 
@@ -244,7 +245,7 @@ export default function RedesTab() {
       )}
 
       <div className="set-net-grid" data-tour="redes-grid">
-        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, followersCount, mediaCount, likesCount, accountId, companyName, personal }, i) => {
+        {networks.map(({ id, name, icon: Icon, status, handle, avatarUrl, followersCount, mediaCount, likesCount, accountId, companyName, personal, missingScopes }, i) => {
           const cfg = STATUS_CONFIG[status]
           const StatusIcon = cfg.icon
           const color = networkColor(id, theme)
@@ -281,12 +282,15 @@ export default function RedesTab() {
                     {personal ? 'Pessoal' : companyName}
                   </span>
                 )}
-                {id === 'instagram' && status !== 'disconnected' && (followersCount != null || mediaCount != null || likesCount != null) && (
+                {(id === 'instagram' || id === 'tiktok') && status !== 'disconnected' && (followersCount != null || mediaCount != null || likesCount != null) && (
                   <dl className="set-net-card__stats">
                     <div><dt>Seguidores</dt><dd>{formatStat(followersCount)}</dd></div>
-                    <div><dt>Posts</dt><dd>{formatStat(mediaCount)}</dd></div>
+                    <div><dt>{id === 'tiktok' ? 'Vídeos' : 'Posts'}</dt><dd>{formatStat(mediaCount)}</dd></div>
                     <div><dt>Curtidas</dt><dd>{formatStat(likesCount)}</dd></div>
                   </dl>
+                )}
+                {status === 'connected' && missingScopes.length > 0 && (
+                  <p className="set-net-card__description">Novas permissões disponíveis. Use Autorizar novamente para liberar estatísticas e vídeos da conta.</p>
                 )}
                 {id === 'linkedin' && (
                   <p className="set-net-card__description">Conecta nome e foto do perfil e permite publicar. Histórico e métricas exigem permissões adicionais do LinkedIn.</p>
@@ -297,7 +301,7 @@ export default function RedesTab() {
               </div>
 
               <div className="set-net-card__actions">
-                {(id === 'linkedin' || id === 'instagram') && status === 'connected' && (
+                {(id === 'linkedin' || id === 'instagram' || id === 'tiktok') && status === 'connected' && (
                   <>
                     <Button variant="outline" size="sm" fullWidth
                       onClick={() => handleRefreshProfile(accountId, name)} disabled={isBusy || !canManage}>
