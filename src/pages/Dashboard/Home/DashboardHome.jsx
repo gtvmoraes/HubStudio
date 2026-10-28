@@ -99,7 +99,7 @@ export default function DashboardHome() {
   const [upcomingPosts, setUpcomingPosts] = useState(undefined)
   const [activity, setActivity] = useState(undefined)
 
-  const [period, setPeriod] = useState('30d')
+  const [period, setPeriod] = useState('all')
   const [network, setNetwork] = useState('all')
   const [granularity, setGranularity] = useState('daily')
 
