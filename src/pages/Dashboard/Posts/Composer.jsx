@@ -532,6 +532,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
     const contentTypes = {}
     if (form.networks.includes('tiktok') && form.typesByNetwork.tiktok === 'photo') contentTypes.TIKTOK = 'photo'
     if (form.networks.includes('youtube') && form.typesByNetwork.youtube === 'shorts') contentTypes.YOUTUBE = 'shorts'
+    if (form.networks.includes('instagram') && form.typesByNetwork.instagram) contentTypes.INSTAGRAM = form.typesByNetwork.instagram
 
     return {
       content,
@@ -815,6 +816,10 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                 mediaUrl,
                 ...(immediate ? {} : { scheduledAt: isoDate }),
                 socialAccountIds: matchingIds,
+                // Sem isso o backend não sabe que é Story e publica no feed
+                ...(networks.includes('instagram') && form.typesByNetwork.instagram
+                  ? { contentTypes: { INSTAGRAM: form.typesByNetwork.instagram } }
+                  : {}),
               }),
             })
             if (!res.ok) {
