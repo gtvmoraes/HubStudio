@@ -76,6 +76,9 @@ function typeNeedsTitle(networkId, typeId) {
   return typeMeta?.needsTitle === true
 }
 
+// Mesmo teto do backend (PostScheduleService)
+const MAX_VIDEO_BYTES = 100_000_000
+
 export default function Composer() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -489,7 +492,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           } catch { reject(new Error(`Erro HTTP ${xhr.status}`)) }
         }
       })
-      xhr.addEventListener('error', () => reject(new Error('Erro de rede ao enviar vídeo')))
+      xhr.addEventListener('error', () => reject(new Error('A conexão caiu durante o envio do vídeo. Verifique a internet e tente de novo.')))
       xhr.open('POST', `${API_BASE}${endpoint}`)
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       xhr.send(formData)
@@ -707,6 +710,13 @@ const xhrUpload = (endpoint, formData, onProgress) =>
       }
 
       if (videoNetworks.length > 0 && videoFile) {
+        // Mesmo teto do backend; acima disso o upload era cortado no meio e
+        // aparecia só "erro de rede".
+        if (videoFile.size > MAX_VIDEO_BYTES) {
+          setFeedback(`Vídeo muito grande (${(videoFile.size / 1e6).toFixed(0)} MB). O limite é 100 MB.`)
+          setLoading(false)
+          return
+        }
         try {
           const accounts = await getSocialAccounts(companyId)
           const matchingIds = accounts
