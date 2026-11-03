@@ -271,7 +271,25 @@
 }
 
 /* Ações do card de rede */
-.set-net-card__actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.set-net-card__actions { margin-top: auto; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.set-net-card__actions > * { min-width: 0; white-space: nowrap; }
+.set-net-card__title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.set-net-card__icon-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast, 0.15s), border-color var(--transition-fast, 0.15s);
+}
+.set-net-card__icon-btn:hover:not(:disabled) { color: var(--net-color, var(--color-primary)); border-color: var(--net-color, var(--color-primary)); }
+.set-net-card__icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .set-net-card__stats { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .set-net-card__stats div { padding: 6px 8px; border-radius: 10px; background: var(--color-bg-tertiary); min-width: 0; }
 .set-net-card__stats dt { font-size: 0.68rem; color: var(--color-text-muted); }

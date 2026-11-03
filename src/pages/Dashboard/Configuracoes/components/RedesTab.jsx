@@ -27,6 +27,12 @@ const STATUS_CONFIG = {
   disconnected: { label: 'Desconectado', color: 'error',   icon: LuWifiOff      },
 }
 
+// Redes com POST /social/accounts/{id}/profile/refresh no backend
+const PROFILE_REFRESH = new Set(['instagram', 'tiktok', 'linkedin'])
+
+// Mesma folga do TokenRefreshJob no backend
+const AUTO_REFRESH_BUFFER_MS = 30 * 60000
+
 const PERMISSIONS = [
   { label: 'Publicação de conteúdo', desc: 'Criar, agendar e excluir publicações nos perfis vinculados.', done: true  },
   { label: 'Leitura de métricas',    desc: 'Depende da rede e das permissões liberadas. No LinkedIn, a conexão básica não libera histórico nem métricas.', done: false },
@@ -193,16 +199,19 @@ export default function RedesTab() {
     setRefreshAll(true)
     setError('')
     const connected = accounts.filter(a => a.status === 'connected' || a.status === 'expired')
+    const failed = []
     for (const acc of connected) {
       try {
         const rUrl = companyId ? `/social/accounts/${acc.id}/refresh?companyId=${companyId}` : `/social/accounts/${acc.id}/refresh`
         const res = await authFetch(rUrl, { method: 'POST' })
-        if (res.ok) {
-          const updated = await res.json()
-          setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, ...updated } : a))
-        }
-      } catch { /* continua para as demais */ }
+        if (!res.ok) throw new Error()
+        const updated = await res.json()
+        setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, ...updated } : a))
+      } catch {
+        failed.push(acc.username || acc.platform) // continua para as demais
+      }
     }
+    if (failed.length) setError(`Não foi possível renovar: ${failed.join(', ')}. Tente reconectar essas contas.`)
     setRefreshAll(false)
   }
 
@@ -275,8 +284,24 @@ export default function RedesTab() {
               </div>
 
               <div className="set-net-card__body">
-                <h3>{name}</h3>
-                <span className="set-net-card__handle">{handle}</span>
+                <div className="set-net-card__title">
+                  <h3>{name}</h3>
+                  {status !== 'disconnected' && PROFILE_REFRESH.has(id) && (
+                    <button
+                      type="button"
+                      className="set-net-card__icon-btn"
+                      onClick={() => handleRefreshProfile(accountId, name)}
+                      disabled={isBusy || !canManage}
+                      title="Atualizar nome, foto e estatísticas"
+                      aria-label={`Atualizar perfil do ${name}`}
+                    >
+                      <LuRefreshCw size={13} className={refreshingProfile === accountId ? 'spin' : ''} />
+                    </button>
+                  )}
+                </div>
+                <span className="set-net-card__handle">
+                  {status === 'disconnected' ? 'Não conectado' : handle}
+                </span>
                 {companyName && (
                   <span className="set-net-card__context">
                     {personal ? 'Pessoal' : companyName}
@@ -290,41 +315,12 @@ export default function RedesTab() {
                   </dl>
                 )}
                 {status === 'connected' && missingScopes.length > 0 && (
-                  <p className="set-net-card__description">Novas permissões disponíveis. Use Autorizar novamente para liberar estatísticas e vídeos da conta.</p>
-                )}
-                {id === 'linkedin' && (
-                  <p className="set-net-card__description">Conecta nome e foto do perfil e permite publicar. Histórico e métricas exigem permissões adicionais do LinkedIn.</p>
-                )}
-                {(id === 'linkedin' || id === 'instagram') && avatarUrl && failedAvatars[accountId] === avatarUrl && (
-                  <p className="set-net-card__description">A foto não carregou. Use Atualizar perfil para buscar a imagem novamente.</p>
+                  <p className="set-net-card__description">Novas permissões disponíveis — reautorize para liberar estatísticas e vídeos.</p>
                 )}
               </div>
 
               <div className="set-net-card__actions">
-                {(id === 'linkedin' || id === 'instagram' || id === 'tiktok') && status === 'connected' && (
-                  <>
-                    <Button variant="outline" size="sm" fullWidth
-                      onClick={() => handleRefreshProfile(accountId, name)} disabled={isBusy || !canManage}>
-                      <LuRefreshCw size={13} /> Atualizar perfil
-                    </Button>
-                    <Button variant="outline" size="sm" fullWidth
-                      onClick={() => handleConnect(id)} disabled={isBusy || !canManage}>
-                      Autorizar novamente
-                    </Button>
-                  </>
-                )}
-                {status === 'connected' ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    fullWidth
-                    onClick={() => handleDisconnect(accountId, name)}
-                    disabled={isBusy || !isAuthenticated || !canManage}
-                    title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : undefined}
-                  >
-                    <LuUnplug size={13} /> Desconectar
-                  </Button>
-                ) : (
+                {status === 'disconnected' ? (
                   <Button
                     variant="primary"
                     size="sm"
@@ -333,8 +329,31 @@ export default function RedesTab() {
                     disabled={isBusy || !isAuthenticated || !canManage}
                     title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : undefined}
                   >
-                    {status === 'expired' ? 'Reconectar' : 'Conectar'}
+                    Conectar
                   </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant={status === 'expired' ? 'primary' : 'outline'}
+                      size="sm"
+                      fullWidth
+                      onClick={() => handleConnect(id)}
+                      disabled={isBusy || !isAuthenticated || !canManage}
+                      title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : 'Refazer a autorização na rede'}
+                    >
+                      {status === 'expired' ? 'Reconectar' : 'Reautorizar'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      fullWidth
+                      onClick={() => handleDisconnect(accountId, name)}
+                      disabled={isBusy || !isAuthenticated || !canManage}
+                      title={!canManage ? 'Você não tem permissão para gerenciar redes desta equipe' : undefined}
+                    >
+                      <LuUnplug size={13} /> Desconectar
+                    </Button>
+                  </>
                 )}
               </div>
             </motion.div>
@@ -360,7 +379,7 @@ export default function RedesTab() {
             <div className="set-tokens__title">
               <LuKey size={16} />
               <strong>Status dos tokens</strong>
-              <span className="set-tokens__subtitle">Renovação automática a cada 15 min — use o botão para forçar agora</span>
+              <span className="set-tokens__subtitle">Renovação automática antes do vencimento — use o botão para forçar agora</span>
             </div>
             <button
               type="button"
@@ -392,9 +411,10 @@ export default function RedesTab() {
               const now = new Date()
               const expiresAt = acc.tokenExpiresAt ? new Date(acc.tokenExpiresAt) : null
               const msLeft = expiresAt ? expiresAt - now : null
-              const daysLeft = msLeft !== null ? Math.ceil(msLeft / 86400000) : null
-              const hoursLeft = msLeft !== null ? Math.ceil(msLeft / 3600000) : null
 
+              // O backend renova sozinho ~30 min antes do vencimento. Token curto
+              // (YouTube dura 1h) é normal; só vira problema se passar desse ponto
+              // sem renovar.
               let tokenHealth = 'ok'
               let expiryLabel = '—'
               if (expiresAt === null) {
@@ -403,14 +423,11 @@ export default function RedesTab() {
               } else if (msLeft < 0) {
                 tokenHealth = 'expired'
                 expiryLabel = 'Expirado'
-              } else if (daysLeft <= 1) {
-                tokenHealth = 'critical'
-                expiryLabel = hoursLeft <= 1 ? '< 1h' : `${hoursLeft}h`
-              } else if (daysLeft <= 7) {
-                tokenHealth = 'warning'
-                expiryLabel = `${daysLeft} dias`
               } else {
-                expiryLabel = `${daysLeft} dias`
+                if (msLeft < AUTO_REFRESH_BUFFER_MS) tokenHealth = 'warning'
+                if (msLeft < 3600000) expiryLabel = `${Math.max(1, Math.floor(msLeft / 60000))} min`
+                else if (msLeft < 2 * 86400000) expiryLabel = `${Math.floor(msLeft / 3600000)}h`
+                else expiryLabel = `${Math.floor(msLeft / 86400000)} dias`
               }
 
               const refreshExpires = acc.refreshTokenExpiresAt ? new Date(acc.refreshTokenExpiresAt) : null
