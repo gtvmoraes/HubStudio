@@ -260,7 +260,9 @@
 }
 
 .dash-home__left { display: flex; flex-direction: column; justify-content: space-between; gap: 20px; }
-.dash-home__right { display: flex; flex-direction: column; justify-content: space-between; gap: 20px; }
+/* Coluna da direita empilha do topo: com space-between os cards se espalhavam
+   até a altura da coluna da esquerda, deixando buracos entre eles. */
+.dash-home__right { display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; }
 
 /* ─── Blocos modulares (Reorder) ─── */
 .dash-block { position: relative; min-width: 0; list-style: none; }
