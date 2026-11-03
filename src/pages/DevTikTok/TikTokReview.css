@@ -1,0 +1,37 @@
+.tt-review { min-height: 100vh; background: #f3f5f8; color: #192233; font-family: Inter, system-ui, sans-serif; }
+.tt-review * { box-sizing: border-box; }
+.tt-review header { display: flex; align-items: center; justify-content: space-between; padding: 24px max(24px, calc((100vw - 1080px)/2)); background: #fff; border-bottom: 1px solid #dfe5ed; gap: 20px; }
+.tt-review a { color: #3559bf; text-decoration: underline; text-underline-offset: 3px; }
+.tt-review header a:first-child { color: #192233; font-size: 24px; font-weight: 800; text-decoration: none; }
+.tt-review-content { max-width: 1080px; margin: auto; padding: 40px 24px; }
+.tt-review-intro { margin-bottom: 32px; }
+.tt-review h1 { font-size: clamp(28px, 4vw, 42px); letter-spacing: -1.5px; margin: 12px 0; }
+.tt-review h2 { margin: 6px 0 12px; font-size: 24px; }
+.tt-review small { color: #536482; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; }
+.tt-review p { line-height: 1.6; }
+.tt-review section { background: #fff; border: 1px solid #dfe5ed; border-radius: 18px; padding: 28px; margin: 24px 0; }
+.tt-review-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.tt-review button { background: #192233; color: #fff; border: 1px solid #192233; border-radius: 10px; padding: 12px 20px; cursor: pointer; font: inherit; font-weight: 600; }
+.tt-review button.secondary { color: #192233; background: #fff; border-color: #bdc9dc; }
+.tt-review button:disabled { opacity: .45; cursor: not-allowed; }
+.tt-review label { display: grid; gap: 8px; font-weight: 500; margin: 20px 0; }
+.tt-review input:not([type=checkbox]), .tt-review textarea, .tt-review select { width: 100%; background: #fafbfd; color: #192233; border: 1px solid #bdc9dc; border-radius: 9px; padding: 12px; font: inherit; }
+.tt-review textarea { min-height: 90px; resize: vertical; }
+.tt-review label.tt-review-check, .tt-review-checks label { display: flex; align-items: flex-start; gap: 10px; font-weight: 400; line-height: 1.6; }
+.tt-review input[type=checkbox] { margin-top: 6px; accent-color: #3559bf; }
+.tt-review label:has(input:disabled) { color: #68778d; }
+.tt-review-profile { display: grid; grid-template-columns: 1fr 1.3fr; gap: 32px; margin-top: 28px; }
+.tt-review-profile img { width: 72px; height: 72px; border-radius: 50%; }
+.tt-review-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: center; }
+.tt-review-stats div { background: #f3f5f8; padding: 20px; border-radius: 12px; display: grid; gap: 6px; }
+.tt-review-stats strong { font-size: 26px; }
+.tt-review-stats span { color: #536482; font-size: 14px; }
+.tt-review .tt-review-scopes { font: 12px ui-monospace, monospace; color: #536482; margin: 24px 0 0; }
+.tt-review-videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.tt-review-videos article { padding: 20px; border-radius: 12px; background: #f3f5f8; margin: 16px 0; overflow-wrap: anywhere; }
+.tt-review-preview { display: block; max-width: 100%; width: 320px; max-height: 420px; background: #111; border-radius: 12px; }
+.tt-review-error { padding: 16px; border: 1px solid #d68181; background: #fff0f0; color: #8e2020; border-radius: 10px; }
+.tt-review-result { background: #eef3ff; padding: 20px; border-radius: 12px; margin-top: 20px; overflow-wrap: anywhere; }
+.tt-review summary { cursor: pointer; font-weight: 600; }
+.tt-review footer { display: flex; gap: 24px; margin-top: 32px; }
+@media(max-width: 640px) { .tt-review-profile { grid-template-columns: 1fr; } .tt-review section { padding: 20px; } .tt-review header span { display: none; } }

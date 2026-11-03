@@ -49,9 +49,10 @@ Providers, de fora pra dentro: `ThemeProvider` → `AuthProvider` → `TeamProvi
 | `/privacy` | PrivacyPolicy | não |
 | `/terms` | TermsOfService | não |
 | `/dev/tiktok`, `/dev/tiktok/post`, `/dev/tiktok/metrics` | páginas de teste do TikTok | não |
+| `/dev/tiktok/review` | TikTokReview (fluxo para a revisão do app no TikTok) | sim |
 | `/dev/youtube`, `/dev/youtube/post` | páginas de teste do YouTube | não |
 
-As rotas `/dev/*` são de desenvolvimento, **sem autenticação**, acessadas direto pela URL.
+As rotas `/dev/*` são de desenvolvimento, acessadas direto pela URL e, exceto `/dev/tiktok/review`, **sem autenticação**.
 Qualquer rota desconhecida redireciona para `/`.
 
 ### Contextos globais
