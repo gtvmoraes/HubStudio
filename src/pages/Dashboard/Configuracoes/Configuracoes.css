@@ -979,3 +979,67 @@
 [data-theme='dark'] .set-tabs { border: 1px solid var(--color-border); }
 [data-theme='dark'] .set-net-card--add { border: 1px dashed var(--color-border); }
 [data-theme='dark'] .set-toast { background: #1F2937; }
+
+/* ─── Pagamento de plano (AbacatePay) ─── */
+.set-billing-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+  color: var(--color-text);
+}
+.set-billing-notice--ok { border-color: var(--color-success); color: var(--color-success); }
+.set-billing-notice--error { border-color: var(--color-error, #EF4444); color: var(--color-error, #EF4444); }
+.set-billing-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.set-billing-head .set-card__title { margin-bottom: 0; }
+.set-billing-cycle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+}
+.set-billing-cycle button {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.set-billing-cycle button.is-active { background: var(--color-primary-solid); color: #fff; }
+.set-billing-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.set-billing-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.set-billing-plan.is-current { border-color: var(--color-primary); }
+.set-billing-plan > strong { font-size: var(--font-size-base); color: var(--color-text); }
+.set-billing-plan__price { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
+.set-billing-plan__price small { font-size: var(--font-size-xs); font-weight: 500; color: var(--color-text-muted); }
+.set-billing-plan__note,
+.set-billing-plan__perks { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.set-billing-plan__perks { margin-bottom: 10px; }
+.set-billing-foot { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 12px; }
