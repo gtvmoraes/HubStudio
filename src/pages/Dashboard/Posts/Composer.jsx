@@ -782,8 +782,13 @@ const xhrUpload = (endpoint, formData, onProgress) =>
             return
           }
           const instagramIsCarousel = form.networks.includes('instagram') && form.typesByNetwork['instagram'] === 'carousel'
+          // Story com várias fotos: o backend publica um Story por imagem, na ordem
+          const instagramIsStory = form.networks.includes('instagram') && form.typesByNetwork['instagram'] === 'story'
           const imageItems = form.media.filter(m => m.type === 'image' && m.file)
 
+          if (instagramIsStory && imageItems.length > 10) {
+            throw new Error('Envie no máximo 10 imagens por sequência de Stories.')
+          }
           if (instagramIsCarousel) {
             if (imageItems.length < 2) throw new Error('Selecione pelo menos 2 imagens pra publicar um carrossel no Instagram.')
             if (imageItems.length > 10) throw new Error('O Instagram aceita no máximo 10 imagens por carrossel.')
@@ -839,7 +844,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
           setFeedback(immediate ? 'Publicando agora…' : 'Registrando agendamento…')
 
           let published
-          if (instagramIsCarousel) {
+          if (instagramIsCarousel || (instagramIsStory && urls.length > 1)) {
             const otherNetworks = urlNetworks.filter(n => n !== 'instagram')
             const igPublished = await publishBatch(['instagram'], contentFor(['instagram']), urls.join(','))
             const otherPublished = otherNetworks.length > 0
