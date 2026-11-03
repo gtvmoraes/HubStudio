@@ -4,7 +4,7 @@ import {
   LuX, LuCheck, LuMessageSquare, LuCalendarClock,
   LuArrowLeft, LuZap,
 } from 'react-icons/lu'
-import { approvePost, rejectPost, getBestTimeSlots } from '../../../../services/posts'
+import { approvePost, rejectPost, getBestTimeSlots, mediaFromUrls } from '../../../../services/posts'
 import StatusBadge from './StatusBadge'
 import NetworkPills from './NetworkPills'
 import PhonePreview from './PhonePreview'
@@ -44,9 +44,11 @@ export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
 
   if (!post) return null
 
-  // Mapeia o `type` antigo (string) pra `typesByNetwork` pro PhonePreview
+  // Formato escolhido por rede (Story, Reel, Shorts...) e a mídia já enviada,
+  // pra pré-visualização mostrar o post como vai ser publicado
   const typesByNetwork = {}
-  ;(post.networks || []).forEach(n => { typesByNetwork[n] = post.type })
+  ;(post.networks || []).forEach(n => { typesByNetwork[n] = post.contentTypes?.[n] || post.type })
+  const media = mediaFromUrls(post.mediaUrl)
 
   const datePassed = !isFuture(post.scheduledFor)
 
@@ -168,6 +170,7 @@ export default function ApprovalDrawer({ post, isOpen, onClose, onAction }) {
                   typesByNetwork={typesByNetwork}
                   title={post.title}
                   content={post.content}
+                  media={media}
                   user={post.author}
                 />
               </div>

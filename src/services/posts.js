@@ -176,6 +176,16 @@ export const normalizePost = (p) => ({
   contentTypes: Object.fromEntries((p.platforms || []).map(pl => [pl.platform, pl.contentType])),
 })
 
+// Mídia já enviada (mediaUrl com URLs separadas por vírgula) no formato que os
+// previews usam: { id, url, name, type: 'image' | 'video' }
+export const mediaFromUrls = (mediaUrl) =>
+  (mediaUrl || '').split(',').map(u => u.trim()).filter(Boolean).map((url, i) => ({
+    id: `saved-${i}`,
+    url,
+    name: url.split('/').pop(),
+    type: /\.(mp4|mov|webm|avi|mkv)(\?|$)/i.test(url) ? 'video' : 'image',
+  }))
+
 // ── Rascunhos e aprovação (ver docs/api-frontend.md §9.1 no backend) ──────────
 
 const postJson = async (path, method, body, fallback) => {
