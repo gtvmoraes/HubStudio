@@ -12,6 +12,7 @@ import SegurancaTab from './components/SegurancaTab'
 import NotificacoesTab from './components/NotificacoesTab'
 import AparenciaTab from './components/AparenciaTab'
 import CobrancaTab from './components/CobrancaTab'
+import { useTeam } from '../../../contexts/TeamContext'
 import PrivacidadeTab from './components/PrivacidadeTab'
 
 import './Configuracoes.css'
@@ -26,11 +27,15 @@ const TABS = [
   { id: 'privacidade',  label: 'Privacidade',      icon: LuLock },
 ]
 
-const TAB_IDS = TABS.map(t => t.id)
-
 export default function Configuracoes() {
+  const { activeContext } = useTeam()
+  // Plano & Cobrança: só na conta pessoal ou para administradores da equipe
+  const canBill = activeContext?.personal || String(activeContext?.role || '').toLowerCase() === 'admin'
+  const tabs = TABS.filter(t => t.id !== 'cobranca' || canBill)
+  const tabIds = tabs.map(t => t.id)
+
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialTab = TAB_IDS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'perfil'
+  const initialTab = tabIds.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'perfil'
   const [tab, setTab] = useState(initialTab)
   const [toast, setToast] = useState('')
 
@@ -53,7 +58,7 @@ export default function Configuracoes() {
 
       <div className="set-page__layout">
         <nav className="set-tabs">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {tabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -80,7 +85,7 @@ export default function Configuracoes() {
               {tab === 'seguranca'    && <SegurancaTab />}
               {tab === 'notificacoes' && <NotificacoesTab />}
               {tab === 'aparencia'    && <AparenciaTab />}
-              {tab === 'cobranca'     && <CobrancaTab />}
+              {tab === 'cobranca' && canBill && <CobrancaTab />}
               {tab === 'privacidade'  && <PrivacidadeTab onToast={flashToast} />}
             </motion.div>
           </AnimatePresence>

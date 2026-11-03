@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LuCrown, LuCircleCheck, LuClock } from 'react-icons/lu'
 import { getUsage } from '../../../../services/settings'
-import { getCurrentPlan, getPayments, startCheckout, confirmPayment } from '../../../../services/billing'
+import { getCurrentPlan, getPayments, startCheckout, confirmPayment, cancelPlan } from '../../../../services/billing'
 import { useTeam } from '../../../../contexts/TeamContext'
 import Button from '../../../../components/Button/Button'
 
@@ -45,8 +45,9 @@ export default function CobrancaTab() {
   const [usage, setUsage] = useState(null)
   const [plan, setPlan] = useState(undefined)       // undefined = carregando
   const [payments, setPayments] = useState([])
-  const [annual, setAnnual] = useState(false)
+  const [annual, setAnnual] = useState(true)       // anual pré-selecionado
   const [busyPlan, setBusyPlan] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
   const [notice, setNotice] = useState(null)        // { type: 'ok' | 'wait' | 'error', text }
 
   const reload = useCallback(() => {
@@ -100,6 +101,22 @@ export default function CobrancaTab() {
     } catch (e) {
       setNotice({ type: 'error', text: e.message })
       setBusyPlan(null)
+    }
+  }
+
+  const handleCancel = async () => {
+    const label = PLAN_LABELS[currentId] ?? currentId
+    if (!window.confirm(`Cancelar o plano ${label}? A conta volta para o Lite agora e os recursos do ${label} deixam de valer. O valor pago não é reembolsado automaticamente.`)) return
+    setCancelling(true)
+    setNotice(null)
+    try {
+      await cancelPlan(companyId)
+      setNotice({ type: 'ok', text: 'Plano cancelado. Sua conta voltou para o Lite.' })
+      reload()
+    } catch (e) {
+      setNotice({ type: 'error', text: e.message })
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -218,6 +235,21 @@ export default function CobrancaTab() {
           </ul>
         )}
       </div>
+
+      {/* Cancelamento */}
+      {currentId !== 'lite' && (
+        <div className="set-card set-billing-cancel">
+          <div>
+            <div className="set-card__title">Cancelar plano</div>
+            <p className="set-billing-foot">
+              A conta volta para o Lite na hora. Para pedir reembolso, fale com o suporte.
+            </p>
+          </div>
+          <Button size="sm" variant="secondary" loading={cancelling} onClick={handleCancel}>
+            Cancelar plano {PLAN_LABELS[currentId] ?? currentId}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

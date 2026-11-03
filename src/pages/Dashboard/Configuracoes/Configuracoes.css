@@ -1043,3 +1043,11 @@
 .set-billing-plan__perks { font-size: var(--font-size-xs); color: var(--color-text-muted); }
 .set-billing-plan__perks { margin-bottom: 10px; }
 .set-billing-foot { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 12px; }
+.set-billing-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.set-billing-cancel .set-billing-foot { margin-top: 4px; }

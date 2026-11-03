@@ -42,3 +42,10 @@ export const confirmPayment = async (paymentId) => {
   if (!res.ok) throw await readError(res, 'Não foi possível confirmar o pagamento.')
   return res.json()
 }
+
+// Volta para o Lite na hora (sem reembolso automático)
+export const cancelPlan = async (companyId) => {
+  const res = await authFetch(withCompany('/billing/cancel', companyId), { method: 'POST' })
+  if (!res.ok) throw await readError(res, 'Não foi possível cancelar o plano.')
+  return res.json()
+}
