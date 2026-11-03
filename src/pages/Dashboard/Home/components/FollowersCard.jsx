@@ -15,11 +15,18 @@ const EMPTY_NETS = ['instagram', 'tiktok', 'youtube']
 // TikTok + YouTube quando a rede selecionada é "Todas", e mostra só a rede
 // filtrada quando o filtro é uma dessas 3 (o detalhamento por rede abaixo do
 // total só aparece quando há mais de uma pra detalhar).
-// A API devolve, por período, o total atual (`raw`) e a variação (`change`,
-// ex.: "+7.4%"). O ganho absoluto sai daí: total − total/(1 + variação).
-// Sem `change` não dá pra derivar nada — devolve null e a coluna mostra "—".
+// A API devolve, por período, o total atual (`raw`), o saldo exato (`gain`) e o
+// total no início do período (`previous`). Resposta antiga sem `gain`: deriva da
+// variação arredondada (`change`) — total − total/(1 + variação), impreciso.
+// Sem nenhum dos dois não dá pra derivar nada — devolve null e a coluna mostra "—".
 function gainFrom(entry) {
   if (!entry) return null
+  // Backend atual manda o saldo exato; a derivação pela % fica só como fallback
+  if (entry.gain != null) {
+    const previous = Number(entry.previous)
+    const pct = previous > 0 ? (entry.gain / previous) * 100 : (entry.gain > 0 ? 100 : 0)
+    return { gain: entry.gain, pct }
+  }
   const pct = parseFloat(String(entry.change ?? '').replace('%', '').replace(',', '.'))
   const total = Number(entry.raw)
   if (!Number.isFinite(pct) || !Number.isFinite(total)) return null
