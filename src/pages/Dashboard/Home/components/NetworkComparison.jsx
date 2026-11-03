@@ -23,7 +23,7 @@ const ICON_BY_ID = {
 const PERIOD_LABELS = {
   '24h': 'Engajamento nas últimas 24h',
   '7d':  'Engajamento nos últimos 7 dias',
-  '30d': 'Engajamento nos últimos 30 dias',
+  '30d': 'Engajamento neste mês',
   'all': 'Engajamento acumulado total',
 }
 

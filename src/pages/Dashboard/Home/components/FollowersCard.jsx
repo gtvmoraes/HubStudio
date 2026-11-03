@@ -117,7 +117,7 @@ export default function FollowersCard({ data, growth }) {
   // Linhas do resumo de crescimento — só as que a API realmente devolveu.
   const growthRows = [
     { key: 'week',  label: 'Últimos 7 dias',  entry: growth?.week  },
-    { key: 'month', label: 'Últimos 30 dias', entry: growth?.month },
+    { key: 'month', label: 'Este mês',        entry: growth?.month },
     { key: 'all',   label: 'Desde o início',  entry: growth?.all   },
   ]
     .filter(r => r.entry)
@@ -161,7 +161,7 @@ export default function FollowersCard({ data, growth }) {
         </div>
 
         {/* Uma única rede: não há o que detalhar, então o espaço vira o
-            resumo de crescimento (7 dias / 30 dias / total). */}
+            resumo de crescimento (7 dias / este mês / total). */}
         {!showBreakdown && growthRows.length > 0 && (
           <div className="followers-total__growth">
             {growthRows.map(row => (

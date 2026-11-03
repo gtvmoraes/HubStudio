@@ -8,7 +8,8 @@ import { useTeam } from '../../../../contexts/TeamContext'
 const PERIOD_OPTIONS = [
   { label: 'Ultimas 24h',    shortLabel: '24h',     value: '24h', icon: LuCalendar, tone: '#4F35E8', desc: 'Hoje em tempo real'  },
   { label: 'Ultimos 7 dias', shortLabel: '7 dias',  value: '7d',  icon: LuCalendar, tone: '#4F35E8', desc: 'Pulso recente'       },
-  { label: 'Ultimos 30 dias',shortLabel: '30 dias', value: '30d', icon: LuCalendar, tone: '#4F35E8', desc: 'Tendencia mensal'    },
+  // '30d' é o mês do calendário (dia 1 até hoje) — o backend compara com o mês passado
+  { label: 'Este mês',       shortLabel: 'Este mês', value: '30d', icon: LuCalendar, tone: '#4F35E8', desc: 'Comparado ao mês passado' },
   { label: 'Geral',          shortLabel: 'Geral',   value: 'all', icon: LuInfinity, tone: '#4F35E8', desc: 'Total acumulado'     },
 ]
 

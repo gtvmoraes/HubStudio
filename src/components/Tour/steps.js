@@ -97,7 +97,7 @@ export const STEPS = [
     placement: 'bottom',
     optional: true,
     title: 'Seguidores',
-    body: 'A soma de seguidores das redes conectadas, com quanto você ganhou nos últimos 7 e 30 dias. Filtrando por uma rede, ele detalha só aquela.',
+    body: 'A soma de seguidores das redes conectadas, com quanto você ganhou nos últimos 7 dias e neste mês. Filtrando por uma rede, ele detalha só aquela.',
   },
   {
     id: 'engagement',
