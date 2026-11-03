@@ -806,6 +806,7 @@
 .set-usage__inf { color: var(--color-success); font-weight: 700; }
 .set-usage__track { height: 8px; border-radius: var(--radius-full); background: var(--color-bg-tertiary); overflow: hidden; }
 .set-usage__fill { height: 100%; border-radius: var(--radius-full); background: linear-gradient(90deg, #4F35E8, #7C5FE8); }
+.set-usage__fill--full { background: linear-gradient(90deg, #F59E0B, #EF4444); }
 .set-usage__fill--inf { background: repeating-linear-gradient(45deg, #7C5FE8, #7C5FE8 6px, #A78BFA 6px, #A78BFA 12px); }
 
 .set-paymethod { display: flex; align-items: center; justify-content: space-between; gap: 16px; }

@@ -49,3 +49,11 @@ export const cancelPlan = async (companyId) => {
   if (!res.ok) throw await readError(res, 'Não foi possível cancelar o plano.')
   return res.json()
 }
+
+// Uso real: { profiles: {used, total}, posts: {used, total}, storageBytes } — total null = ilimitado
+export const getPlanUsage = async (companyId) => {
+  try {
+    const res = await authFetch(withCompany('/billing/usage', companyId))
+    return res.ok ? await res.json() : null
+  } catch { return null }
+}

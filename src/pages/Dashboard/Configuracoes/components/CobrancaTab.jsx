@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LuCrown, LuCircleCheck, LuClock } from 'react-icons/lu'
-import { getUsage } from '../../../../services/settings'
-import { getCurrentPlan, getPayments, startCheckout, confirmPayment, cancelPlan } from '../../../../services/billing'
+import { getCurrentPlan, getPayments, getPlanUsage, startCheckout, confirmPayment, cancelPlan } from '../../../../services/billing'
 import { useTeam } from '../../../../contexts/TeamContext'
 import Button from '../../../../components/Button/Button'
 
@@ -18,20 +17,29 @@ const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   : null
 
-const UsageBar = ({ label, used, total, unit }) => {
+// Bytes → "850 KB" / "120 MB" / "3.2 GB"
+const fmtBytes = (bytes) => {
+  const b = Number(bytes) || 0
+  if (b >= 1e9) return { value: (b / 1e9).toFixed(1), unit: 'GB' }
+  if (b >= 1e6) return { value: (b / 1e6).toFixed(b >= 1e8 ? 0 : 1), unit: 'MB' }
+  return { value: Math.round(b / 1e3), unit: 'KB' }
+}
+
+const UsageBar = ({ label, used, total, unit, unlimitedLabel = 'ilimitado' }) => {
   const unlimited = total == null
-  const pct = unlimited ? 30 : Math.min(100, Math.round((used / total) * 100))
+  // Sem limite: barra listrada inteira (não é porcentagem de nada)
+  const pct = unlimited ? 100 : Math.min(100, Math.round((used / total) * 100))
   return (
     <div className="set-usage">
       <div className="set-usage__meta">
         <span>{label}</span>
         <strong>
           {used}{unit ? ` ${unit}` : ''}{unlimited ? '' : ` / ${total}${unit ? ` ${unit}` : ''}`}
-          {unlimited && <span className="set-usage__inf"> · ilimitado</span>}
+          {unlimited && <span className="set-usage__inf"> · {unlimitedLabel}</span>}
         </strong>
       </div>
       <div className="set-usage__track">
-        <div className={`set-usage__fill ${unlimited ? 'set-usage__fill--inf' : ''}`} style={{ width: `${pct}%` }} />
+        <div className={`set-usage__fill ${unlimited ? 'set-usage__fill--inf' : pct >= 90 ? 'set-usage__fill--full' : ''}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -53,9 +61,9 @@ export default function CobrancaTab() {
   const reload = useCallback(() => {
     getCurrentPlan(companyId).then(setPlan)
     getPayments(companyId).then(setPayments)
+    getPlanUsage(companyId).then(setUsage)
   }, [companyId])
 
-  useEffect(() => { getUsage().then(setUsage) }, [])
   useEffect(() => { reload() }, [reload])
 
   // Volta do checkout da AbacatePay (?checkout=<paymentId>): confirma algumas vezes,
@@ -161,12 +169,15 @@ export default function CobrancaTab() {
         {/* Uso */}
         <div className="set-card set-usage-card">
           <div className="set-card__title">Uso do plano</div>
-          {usage && (
+          {usage ? (
             <>
               <UsageBar label="Perfis sociais" used={usage.profiles.used} total={usage.profiles.total} />
               <UsageBar label="Posts neste mês" used={usage.posts.used} total={usage.posts.total} />
-              <UsageBar label="Armazenamento" used={usage.storage.used} total={usage.storage.total} unit={usage.storage.unit} />
+              <UsageBar label="Armazenamento de mídia" used={fmtBytes(usage.storageBytes).value}
+                unit={fmtBytes(usage.storageBytes).unit} total={null} unlimitedLabel="sem limite" />
             </>
+          ) : (
+            <p className="set-billing-foot">Carregando uso…</p>
           )}
         </div>
       </div>
