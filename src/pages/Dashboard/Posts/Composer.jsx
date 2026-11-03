@@ -18,7 +18,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { useTheme } from '../../../contexts/ThemeContext'
 import { useTeam } from '../../../contexts/TeamContext'
 import PhonePreview from './components/PhonePreview'
-import MediaUploader from './components/MediaUploader'
+import MediaUploader, { MAX_VIDEO_BYTES } from './components/MediaUploader'
 import DateTimePicker from './components/DateTimePicker'
 import CaptionIdeaModal from './components/CaptionIdeaModal'
 import './Composer.css'
@@ -75,9 +75,6 @@ function typeNeedsTitle(networkId, typeId) {
   const typeMeta = meta.types.find(t => t.id === typeId)
   return typeMeta?.needsTitle === true
 }
-
-// Mesmo teto do backend (PostScheduleService)
-const MAX_VIDEO_BYTES = 100_000_000
 
 export default function Composer() {
   const { id } = useParams()
@@ -1314,6 +1311,7 @@ const xhrUpload = (endpoint, formData, onProgress) =>
                 onRejected={allowedImageMimeTypes ? handleMediaRejected : null}
                 validateImage={validateImageAspect}
                 onAspectRejected={handleAspectRejected}
+                onSizeRejected={handleAspectRejected}
               />
               {aspectRatioIssues.map((issue, idx) => (
                 <p key={idx} className="composer__type-warning">

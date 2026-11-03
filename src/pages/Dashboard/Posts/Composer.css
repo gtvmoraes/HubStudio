@@ -476,6 +476,10 @@
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 10px;
 }
+.uploader__limit {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
 .uploader__item {
   display: flex;
   flex-direction: column;

@@ -1,6 +1,11 @@
 import { useRef, useState, useEffect } from 'react'
 import { LuCloudUpload, LuX, LuPlus, LuPlay, LuImage } from 'react-icons/lu'
 
+// Mesmos tetos do backend (PostScheduleService): 20 MB por imagem, 100 MB por vídeo
+export const MAX_IMAGE_BYTES = 20_000_000
+export const MAX_VIDEO_BYTES = 100_000_000
+const SIZE_HINT = 'imagens até 20 MB · vídeos até 100 MB'
+
 export default function MediaUploader({
   media = [],
   onChange,
@@ -9,6 +14,7 @@ export default function MediaUploader({
   onRejected = null,
   validateImage = null,
   onAspectRejected = null,
+  onSizeRejected = null,
 }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
@@ -31,7 +37,15 @@ export default function MediaUploader({
   const addFiles = async (fileList) => {
     if (!fileList || fileList.length === 0) return
 
-    const all = Array.from(fileList)
+    const files = Array.from(fileList)
+    const tooBig = files.filter(f =>
+      f.size > (f.type.startsWith('video/') ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES))
+    if (tooBig.length > 0 && onSizeRejected) {
+      const f = tooBig[0]
+      const limit = f.type.startsWith('video/') ? '100 MB' : '20 MB'
+      onSizeRejected(tooBig, `${f.name} tem ${(f.size / 1e6).toFixed(0)} MB. O limite é ${limit} por ${f.type.startsWith('video/') ? 'vídeo' : 'imagem'}.`)
+    }
+    const all = files.filter(f => !tooBig.includes(f))
     const mimeRejected = allowedImageMimeTypes
       ? all.filter(f => !f.type.startsWith('video/') && !allowedImageMimeTypes.includes(f.type))
       : []
@@ -99,8 +113,8 @@ export default function MediaUploader({
   const isEmpty = media.length === 0
 
   const formatHint = allowedImageMimeTypes
-    ? `${allowedImageMimeTypes.map(t => t.split('/')[1].toUpperCase()).join(', ')}, MP4 · até 20 MB`
-    : 'JPG, PNG, MP4 · até 20 MB'
+    ? `${allowedImageMimeTypes.map(t => t.split('/')[1].toUpperCase()).join(', ')}, MP4 · ${SIZE_HINT}`
+    : `JPG, PNG, MP4 · ${SIZE_HINT}`
 
   const inputAccept = allowedImageMimeTypes
     ? `${allowedImageMimeTypes.join(',')},video/*`
@@ -157,6 +171,7 @@ export default function MediaUploader({
               <span>Adicionar mais</span>
             </button>
           )}
+          <span className="uploader__formats uploader__limit">{SIZE_HINT}</span>
         </div>
       )}
 
