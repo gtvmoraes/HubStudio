@@ -12,6 +12,7 @@ const EVENT_META = {
   'post-scheduled':  { Icon: LuCalendarClock, color: '#4F35E8', verb: 'agendou' },
   'post-published':  { Icon: LuCheckCheck,    color: '#10B981', verb: 'publicou' },
   'member-added':    { Icon: LuUserPlus,      color: '#0EA5E9', verb: 'adicionou' },
+  'member-joined':   { Icon: LuUserPlus,      color: '#0EA5E9', verb: 'entrou na equipe' },
   'member-removed':  { Icon: LuX,             color: '#EF4444', verb: 'removeu' },
   'role-changed':    { Icon: LuShield,        color: '#7C5FE8', verb: 'mudou o papel de' },
   'config-changed':  { Icon: LuSettings,      color: '#6B7280', verb: 'alterou' },
@@ -29,9 +30,24 @@ function timeAgo(iso) {
   return date
 }
 
+// Registros antigos gravavam a entrada por código como "X adicionou X"
+const isSelfJoin = (event) =>
+  event.type === 'member-joined' || (event.type === 'member-added' && event.target === event.actor)
+
 function renderText(event) {
   const meta = EVENT_META[event.type]
   if (!meta) return null
+
+  if (isSelfJoin(event)) {
+    return (
+      <>
+        <strong>{event.actor}</strong> entrou na equipe
+        {event.type === 'member-joined' && (event.targetUser
+          ? <> por convite de <strong>{event.targetUser}</strong></>
+          : ' pelo código de convite')}
+      </>
+    )
+  }
 
   return (
     <>
