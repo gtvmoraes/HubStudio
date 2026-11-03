@@ -1574,6 +1574,14 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+}
+.audience__places-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 .audience__gender {
   display: flex;

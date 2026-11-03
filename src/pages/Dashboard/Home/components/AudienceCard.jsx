@@ -1,8 +1,16 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { LuMapPin } from 'react-icons/lu'
 import { SkeletonLines } from './CardSkeleton'
 
+const PLACE_TYPES = [
+  { label: 'Cidades', value: 'cities' },
+  { label: 'Países',  value: 'countries' },
+]
+
 export default function AudienceCard({ data }) {
+  const [placeType, setPlaceType] = useState('cities')
+
   if (data === undefined) {
     return (
       <div className="audience">
@@ -25,14 +33,19 @@ export default function AudienceCard({ data }) {
     )
   }
 
-  const ageSorted = [...data.ageGroups].sort((a, b) => b.value - a.value)
-  const maxAge = ageSorted[0]?.value || 100
+  // Faixas na ordem natural (13–17 → 65+), como no painel profissional
+  const ageSorted = data.ageGroups
+  const maxAge = Math.max(...ageSorted.map(g => g.value), 1)
+  const countries = data.topCountries ?? []
+  const places = placeType === 'countries'
+    ? countries.map(c => ({ name: c.country, value: c.value }))
+    : (data.topLocations ?? []).map(l => ({ name: l.city, value: l.value }))
 
   return (
     <div className="audience">
       <div className="chart-card__header">
         <h3>Seu público</h3>
-        <span className="audience__hint">Distribuição dos seguidores</span>
+        <span className="audience__hint">Seguidores do Instagram</span>
       </div>
 
       <div className="audience__section">
@@ -71,12 +84,29 @@ export default function AudienceCard({ data }) {
         </div>
 
         <div className="audience__sub">
-          <span className="audience__label"><LuMapPin size={11} /> Top localizações</span>
+          <div className="audience__places-head">
+            <span className="audience__label"><LuMapPin size={11} /> Principais locais</span>
+            {countries.length > 0 && (
+              <div className="chart-card__period">
+                {PLACE_TYPES.map(p => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`chart-card__period-btn ${placeType === p.value ? 'chart-card__period-btn--active' : ''}`}
+                    onClick={() => setPlaceType(p.value)}
+                    aria-pressed={placeType === p.value}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <ul className="audience__locations">
-            {data.topLocations.slice(0, 3).map(loc => (
-              <li key={loc.city} className="audience__location">
-                <span>{loc.city}</span>
-                <strong>{loc.value}%</strong>
+            {places.slice(0, 5).map(place => (
+              <li key={place.name} className="audience__location">
+                <span>{place.name}</span>
+                <strong>{place.value}%</strong>
               </li>
             ))}
           </ul>
